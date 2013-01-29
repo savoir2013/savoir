@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/MySavoirView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:savoirlib="http://savoir.iit.nrc.ca/savoirlib" xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:handlers="handlers.*" xmlns:merapiproject="http://merapiproject.net/2009" xmlns:mxml="merapi.handlers.mxml.*" xmlns:messages="messages.*"
+	width="100%" height="100%" paddingBottom="10" paddingLeft="40" paddingRight="40" paddingTop="10"
+	verticalGap="10" initialize="initMySavoir()" >
+	
+    <mx:HBox width="100%" paddingTop="20">
+    	<mx:Label text="My SAVOIR" styleName="header1"/>
+    </mx:HBox>
+    <mx:HRule width="100%"/>
+    
+    <mx:HBox width="100%">
+    	<mx:VBox id="sessionsVBox" width="50%" paddingLeft="10">
+			<mx:Text maxWidth="400" text="{sessionSectionHdrText}" styleName="header1"
+				selectable="false"/>
+    	</mx:VBox>	
+    	<mx:VBox width="50%">
+    		<mx:VBox width="100%" paddingBottom="50">
+				<mx:Text maxWidth="400" text="{recmdSectionHdrText}" styleName="header1"
+					selectable="false"/>
+<!--				<mx:LinkButton enabled="false" label="{recmdSection1Text}" styleName="hyperLinkButton"
+					paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0"
+					click="Application.application.devicesMainBox.handleSystemTrayStartClick(event)"/> -->
+				<mx:Text maxWidth="400" htmlText="{recmd1Text}" selectable="false"/>
+<!--				<mx:LinkButton enabled="false" styleName="hyperLinkButton" label="{recmdLink1Text}"
+					paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0"
+					click="Application.application.devicesMainBox.handleSystemTrayStartClick(event)"/> -->
+    		</mx:VBox>
+    		<mx:VBox width="100%">
+				<mx:Text maxWidth="400" text="{newsSectionHdrText}" styleName="header1"
+					selectable="false"/>
+<!--				<mx:LinkButton enabled="false" label="{newsSection1Text}" styleName="hyperLinkButton"
+					paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0"
+					click="handleLaunchFacebook(event)"/> -->
+				<mx:Text maxWidth="400" htmlText="{news1Text}" selectable="false"/>
+<!--				<mx:HBox>
+					<mx:Text maxWidth="400" htmlText="{newsLinkHdrText}" selectable="false"/>
+					<mx:LinkButton enabled="false" styleName="hyperLinkButton" label="{newsLink1Text}"
+						paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0"
+						click="handleLaunchFacebook(event)"/>
+				</mx:HBox> -->
+    		</mx:VBox>
+    	</mx:VBox>	
+    </mx:HBox>
+
+	<mx:Metadata>
+		[ResourceBundle("savoirFlex")]
+	</mx:Metadata>
+	
+	<mx:Script>
+    	<![CDATA[
+
+			// ======================= External Modules =============================
+
+   	        import mx.core.Application;
+   			import mx.controls.Alert;
+   			import savoirlib.Session;
+   			import savoirComp.SesnOrScnInfo;
+   			import mx.managers.PopUpManager;
+            import mx.core.IFlexDisplayObject;
+        	import handlers.InitListenerMessageHandler;
+			import messages.InitListenerMessage;
+        	import events.InitListenerEvent;
+
+			// ======================= Public Members ===============================
+			
+            public var currSesnID:SharedObject;
+            public var savoirRunSessionInstance:IFlexDisplayObject;
+            public var serverName:SharedObject;           
+
+			// This does not seem to be currently used - ask Yonghua
+			public var userSessionId:uint;
+			
+			public var initSesnListenerHandler:InitListenerMessageHandler;
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+            protected var initSesnListenerTimer:Timer;
+            
+            [Bindable]
+            protected var initSesnListenerDelayTime:int = 3000;
+            [Bindable]
+            protected var initSesnListenerMaxTimes:int = 1000;
+
+			[Bindable]
+			private var sessionSectionHdrText:String = "Available Sessions";
+			
+			[Bindable]
+			private var recmdSectionHdrText:String = "Recommendations";
+			
+			[Bindable]
+			private var recmd1Text:String = "None at this time";
+			
+			[Bindable]
+			private var newsSectionHdrText:String = "News";
+			
+			[Bindable]
+			private var newsSection1Text:String = "No news at this time";
+			
+			[Bindable]
+			private var news1Text:String = "None at this time";
+			
+//			[Bindable]
+//			private var newsLinkHdrText:String = "Find out more at our: ";
+//
+//			[Bindable]
+//			private var newsLink1Text:String = "Facebook Group";
+			
+   			private var sessionDispItem:SesnOrScnInfo;
+
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleLaunchSession
+            // Author:       	Justin Hickey
+            // Purpose:      	To launch a scheduled session
+            // Input Vars:   	event - mouse event triggered by clicking on the session link
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Jun 29, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleLaunchSession(event:MouseEvent):void
+            {
+            	var sesnID:String = new String();
+            	
+//            	Alert.show(event.target.id.substring(4));
+				
+				// Get the sessionID and store it as a shared object
+				sesnID = event.target.id.substring(4);
+		
+				this.currSesnID.clear();
+				this.currSesnID.data.currSesnID = sesnID;
+           		this.currSesnID.flush();
+				
+				initSesnListener();
+				initSesnListenerTimerIfNull();
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleLaunchFacebook
+            // Author:       	Justin Hickey
+            // Purpose:      	To 
+            // Input Vars:   	event - mouse event triggered by clicking facebook link
+            // Return Vars:  	none
+            // Date Created: 	Mar 04, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleLaunchFacebook(event:MouseEvent):void
+            {
+            	Alert.show("SimChallenge Facebook Group (to come soon)");
+            }
+
+			// =================== Application Event Handlers =======================
+
+			// none
+			
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     initMySavoir
+			// Author:       Justin Hickey
+			// Purpose:      To instantiate the MySavoir view
+			// Input Vars:   none
+			// Return Vars:  none
+			// Date Created: Mar 22, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initMySavoir():void
+			{
+				var index:int;
+				
+				// Create the shared objects for the current session ID and server name
+				this.currSesnID = SharedObject.getLocal("currSesnID","/");
+				this.serverName = SharedObject.getLocal("serverName","/");
+				
+				// Go through all the sessions and display them
+				if (Application.application.sessionData != null)
+				{
+					for (index = 0; index < Application.application.sessionData.length; index++)
+					{
+						createSessionDisplayObj(index);
+					}
+				}
+			}
+						
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		createSessionDisplayObj
+			// Author:			Justin Hickey
+			// Purpose:			To create the display object for a session item and add it to the 
+			//					vertical box container for the sessions.
+			// Input Vars:		index - index into the session associative array
+			// Return Vars:		none
+			// Date Created:	Aug 20, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function createSessionDisplayObj(index:int):void
+			{
+				var sessionItem:Session = new Session();
+				
+				// Get the session item from the array collection
+				sessionItem = Application.application.sessionData.getItemAt(index);
+				
+				// Set up a new display item - the initialize function is required to access
+				// properties otherwise properties cannot be accessed until after addChild()
+				// is called
+				sessionDispItem = new SesnOrScnInfo();
+				sessionDispItem.initialize();
+
+				// Create a name for the display item based on the sessionId for easy access elsewhere
+				sessionDispItem.name = "sesn" + sessionItem.sessionID;
+				
+				// Get the items to be displayed
+				sessionDispItem.link.label = sessionItem.title + " " + sessionItem.sessionID;
+				sessionDispItem.description.htmlText = sessionItem.createTextString();
+
+				// Use the sessionID as part of the ID for the link button so that we
+				// can access the correct sessionID when the user clicks the link. Also
+				// add the event listener to handle the launching of the session
+				sessionDispItem.link.id = "link" + sessionItem.sessionID;
+				sessionDispItem.link.addEventListener(MouseEvent.CLICK, handleLaunchSession);
+					
+				// Add the item to the container
+				sessionsVBox.addChild(sessionDispItem);
+			}
+			
+			// ======================= Private Functions ============================
+
+            protected function initSesnListener():void
+            {
+            	initSesnListenerHandler = new InitListenerMessageHandler();
+            	initSesnListenerHandler.addEventListener(InitListenerEvent.INITLISTENER,
+            	 initSesnListenerReturnHandler, false, 0, true);
+            }
+            
+            protected function initSesnListenerReturnHandler(event:InitListenerEvent):void
+            {
+            	
+//            	if (initSesnListenerTimer == null)
+//           	{
+//            		Alert.show("Init listener tiomer is null");
+//            	}
+//				Alert.show("Session ID Str = ", this.theSessionIdStr);
+            	
+            	if(event.message.success == true)
+            	{
+            		//Alert.show("receive init listener msg and success is true","test info");
+            		initSesnListenerHandler.removeMessageType(InitListenerMessage.INITLISTENER);
+            		initSesnListenerTimer.stop();
+					
+					savoirRunSessionInstance = PopUpManager.createPopUp(this, runSession, false);
+               		PopUpManager.centerPopUp(savoirRunSessionInstance);
+               		
+
+     			}
+            }
+            
+            protected function initSesnListenerTimerIfNull():void
+            {
+				if(initSesnListenerTimer == null)
+				{
+					initSesnListenerTimer = new Timer(initSesnListenerDelayTime, this.initSesnListenerMaxTimes);
+					initSesnListenerTimer.addEventListener(TimerEvent.TIMER, sendInitSesnListenerMessage, false, 0, true);
+				}
+				
+				if(!initSesnListenerTimer.running)
+				{
+					initSesnListenerTimer.start();
+				}
+			}
+			
+			protected function sendInitSesnListenerMessage(event:Event):void
+			{
+				var deployServer:String = new String();
+				var initSesnListenerMsg:InitListenerMessage = new InitListenerMessage(InitListenerMessage.INITLISTENER);
+				
+				// Determine which type of server we are on - development or production
+				deployServer = resourceManager.getString("savoirFlex", "savoir.deploy.server");
+				
+				if (deployServer == "development")
+				{
+					initSesnListenerMsg.server= "Dev";
+				}
+				else
+				{
+					initSesnListenerMsg.server = "Prd";
+				}
+				
+				initSesnListenerMsg.sessionID = currSesnID.data.currSesnID;
+				
+				// This does not seem to be currently used - ask Yonghhua
+				initSesnListenerMsg.userSessionID = Application.application.userSessionId;
+				
+				initSesnListenerMsg.url = resourceManager.getString("savoirFlex", "savoir.activemq.system.url");
+				initSesnListenerMsg.isListenLogInfo = true;
+				initSesnListenerMsg.send();
+				//Alert.show("sending out init listener msg!","test info");
+				
+			}
+
+		]]>
+    </mx:Script>
+
+</mx:VBox>

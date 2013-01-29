@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<profileMessage action="reportProfile">
+	<service ID="169" name="VaderWebTutorial_NRC" description="This is the vader web tutorial device." maxSimultaneousUsers="-1" ipAddress="0.0.0.0" portNumber="" contactName="someone" contactEmail="somebody@some.com" timestamp="24082010:34:16">
+		
+		<widget title="Vader Web Tutorial">
+			<description>Vader Web tutorial will open a website for setting the respiration rate. However this device is meant to be tied to the Vader desktop device within a scenario. Thus, when you set a new respiration rate, it will only update the website.</description>
+			<icon name="VaderWeb" format="png" />
+			<choices baseUri="http://0.0.0.0/sampleDevices/VaderWebTutorial/VaderWebTutorial.html">
+			</choices>
+		</widget>		
+
+		<activities>
+<!-- Comment out this activity unless the EKG device is working again 
+			<activity ID="1" name="Change heartbeat" paramValue="http://0.0.0.0/sampleDevices/VaderWebTutorial/VaderWebTutorial.html">
+				<activityParameters>
+					<activityParameter ID="1" name="heartBeat" dataType="xs:integer" />
+				</activityParameters>
+			</activity> -->
+			<activity ID="2" name="Change respiration rate" paramValue="http://0.0.0.0/sampleDevices/VaderWebTutorial/VaderWebTutorial.html">
+				<activityParameters>
+					<activityParameter ID="1" name="respirationRate" dataType="xs:integer" />
+				</activityParameters>
+			</activity>
+		</activities>
+		
+	</service>
+</profileMessage> 

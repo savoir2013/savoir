@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:jaxws="http://cxf.apache.org/jaxws"
+	xmlns:cxf="http://cxf.apache.org/core" 
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+							http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/context 
+							http://www.springframework.org/schema/context/spring-context-2.5.xsd
+						http://cxf.apache.org/jaxws 							
+							http://cxf.apache.org/schemas/jaxws.xsd
+						http://cxf.apache.org/core
+							http://cxf.apache.org/schemas/core.xsd
+						http://www.springframework.org/schema/util
+							http://www.springframework.org/schema/util/spring-util-2.0.xsd
+						http://www.springframework.org/schema/security
+    						http://www.springframework.org/schema/security/spring-security-2.0.1.xsd
+						http://cxf.apache.org/transports/http/configuration
+							http://cxf.apache.org/schemas/configuration/http-conf.xsd">
+
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-extension-soap.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+	
+	<!-- Load mgmtservices properties file. Values in it can be referenced 
+		 using Ant-style ${variable} syntax -->
+	<context:property-placeholder 
+		location="classpath:mgmtservices.properties"/>
+
+	<!--
+		depending on whether the managers are deployed altogether or
+		separately you can change the refs of the manager's properties: if
+		deployed together: use the spring bean / if separate: use the cxf
+		client
+	-->
+
+	<cxf:bus>
+		<cxf:features>
+			<cxf:logging />
+		</cxf:features>
+	</cxf:bus>
+
+	<http-conf:conduit
+		name="{http://scheduler.savoir.iit.nrc.gc.ca/}SavoirSchedulerPort.http-conduit">
+		<http-conf:client ReceiveTimeout="240000" />
+	</http-conf:conduit>
+
+	<bean id="sessionMgr" class="ca.gc.nrc.iit.savoir.sessionMgmt.SessionMgrImpl">
+		<property name="savoirScheduler" ref="schedulerClient"/>
+		<property name="resourceMgr" ref="resourceMgr"/>
+		<property name="regServer" ref="registrationServer"/>
+		<property name="scenarioMgr" ref="scenarioMgr" />
+		<property name="msgSender" ref="thresholdMgr" />
+		<!-- <property name="edgeDeviceServices" ref="EdgeDeviceServiceClient"/>-->
+	</bean>
+	
+	<!-- Added by Aaron 14-05-2010 (also referenced in sessionMgr) -->
+	<bean id="scenarioMgr" class="ca.gc.nrc.iit.savoir.scenarioMgmt.ScenarioMgrImpl">
+		<property name="sessionMgr" ref="sessionMgr" />
+		<property name="resourceMgr" ref="resourceMgr" />
+	</bean>
+	<!-- End added -->
+
+	<bean id="resourceMgr" class="ca.gc.nrc.iit.savoir.resourceMgmt.ResourceMgrImpl">
+		<property name="savoirScheduler" ref="schedulerClient"/>
+		<!--  <property name="edgeDeviceServices" ref="EdgeDeviceServiceClient"/> -->
+		<!-- Added by Aaron 14-05-2010 -->
+		<property name="messageSender" ref="thresholdMgr" />
+		<property name="credMgr" ref="credMgr" />
+		<!-- added 07-06-2010 --><property name="sessionMgr" ref="sessionMgr" />
+		<!-- End added -->
+	</bean>
+	
+	<bean id="thresholdMgr" class="ca.gc.nrc.iit.savoir.thresholdMgmt.ThresholdMgrImpl">
+		<property name="edgeServicesPrototype" ref="edgeServicesPrototypeClient"/>	
+		<!-- set the timeout value to 90 seconds -->
+		<property name="maxAge" value="90000" />	
+		<!-- Local testing code - should not go to dev or production 
+		<property name="edgeServicesPrototype" ref="testMsgSender" />
+		 End local testing code -->
+		<property name="sessionMgr" ref="sessionMgr" />
+		<property name="resourceMgr" ref="resourceMgr" />
+		<property name="deployment" value="${server.deployment}" />
+	</bean>
+	
+	
+	<jaxws:client id="resourceMgrClient"
+		serviceClass="ca.gc.nrc.iit.savoir.resourceMgmt.ResourceMgr"
+		address="http://localhost:8080/SAVOIR_MgmtServices/services/ResourceManagerWS" />
+	
+<!-- 
+	<jaxws:client id="NotifyServiceClient"
+		serviceClass="Services.NotifyServices"
+		address="http://localhost:9005/Services/NotifyServices" />
+		
+	<jaxws:client id="ThresholdServiceClient"
+		serviceClass="Services.ThresholdServices"
+		address="http://localhost:9005/Services/ThresholdServices" />
+-->
+
+	<bean id="userMgr" class="ca.gc.nrc.iit.savoir.userMgmt.UserMgrImpl" />
+	
+	<bean id="credMgr" class="ca.gc.nrc.iit.savoir.credMgmt.CredMgrImpl" />	
+
+	<jaxws:client id="sessionMgrClient"
+		serviceClass="ca.gc.nrc.iit.savoir.sessionMgmt.SessionMgr"
+		address="http://localhost:8080/SAVOIR_MgmtServices/services/SessionManagerWS" />
+
+	<jaxws:client id="schedulerClient"
+		serviceClass="ca.gc.nrc.iit.savoir.scheduler.SavoirScheduler"
+		address="http://localhost:8080/SAVOIR_SchedulingService/services/schedulerService">
+		<jaxws:dataBinding>
+			<bean class="org.apache.cxf.jaxb.JAXBDataBinding">
+				<property name="contextProperties">
+					<map>
+						<entry>
+							<key>
+								<util:constant
+									static-field="com.sun.xml.bind.api.JAXBRIContext.ANNOTATION_READER" />
+							</key>
+							<bean class="ca.gc.nrc.iit.savoir.spring.QSJaxbAnnotationReader" />
+						</entry>
+					</map>
+				</property>
+			</bean>
+		</jaxws:dataBinding>
+	</jaxws:client>
+
+
+	<jaxws:client id="registrationServer" serviceClass="ca.gc.nrc.iit.server.IRegServer"
+		address="http://142.92.75.221:8080/RegServer/services/reg_server" />
+	<!-- added by Yonghua You for edgeservice --> 
+    <jaxws:client id="edgeServicesPrototypeClient" serviceClass="Services.EdgeServicesPrototype" 
+        address="http://198.164.40.185:9009/services/EdgeServicesPrototype"/>
+     <!-- end adding -->
+     <!-- local testing variant - replace with above in production 
+     <jaxws:client id="edgeServicesPrototypeClient" serviceClass="Services.EdgeServicesPrototype" 
+        address="http://localhost:9008/services/EdgeServicesPrototype"/>
+     end local testing varient -->
+
+	<jaxws:endpoint id="sessions-WS" implementor="#sessionMgr"
+		address="/SessionManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+	
+	<!-- Added by Aaron 14-05-2010 -->
+	<jaxws:endpoint id="scenarios-WS" implementor="#scenarioMgr"
+		address="/ScenarioManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+	<!-- End added -->
+
+	<jaxws:endpoint id="resources-WS" implementor="#resourceMgr"
+		address="/ResourceManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+
+	<jaxws:endpoint id="users-WS" implementor="#userMgr"
+		address="/UserManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+	
+	<jaxws:endpoint id="creds-WS" implementor="#credMgr"
+		address="/CredentialManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+	
+	<jaxws:endpoint id="threshold-WS" implementor="#thresholdMgr"
+		address="/ThresholdManagerWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+
+	<!--
+		If you want to reference another bean: <bean id="persistence"
+		class="ca.gc.nrc.iit.savoir.persistence.ws.impl.PersistenceServiceImpl"
+		/> <jaxws:endpoint id="persistenceWS" implementor="#persistence"
+		address="/PersistenceWS" />
+		
+		Also be sure to add the new service to the security config, below
+	-->
+	
+	<bean id="userDetailService" class="ca.gc.nrc.iit.savoir.userMgmt.SavoirUserDetailServiceImpl"/>
+	
+	<bean id="oAuthConsumerProvider" 
+			class="ca.gc.nrc.iit.oauth.provider.consumer.SpringSecurityOAuthConsumerProvider">
+	    <property name="userDetails" ref="userDetailService"/>
+	</bean>
+	
+	<bean id="oAuthProvider" 
+			class="ca.gc.nrc.iit.savoir.oAuthProvider.OAuthProviderImpl">
+		<property name="consumerProvider" ref="oAuthConsumerProvider"/>
+		<!-- Enables detailed exception traces back to the client
+			 (this is a security liability, and should only be enabled
+			 for debugging purposes)
+		<property name="sendExceptionBody" value="true"/>
+		 -->
+	</bean>
+	
+	<jaxws:endpoint id="OAuthProviderService" implementor="#oAuthProvider"
+		address="/oAuthProviderWS">
+		<jaxws:serviceFactory>
+			<bean class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean">
+				<property name="serviceConfigurations">
+					<list>
+						<bean class="ca.gc.nrc.iit.savoir.ws.ServiceConfiguration" />
+						<bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration" />
+					</list>
+				</property>
+			</bean>
+		</jaxws:serviceFactory>
+	</jaxws:endpoint>
+	
+	<!-- Spring Security configuration -->
+	<!-- <security:http> -->
+		<!-- Secure Web service pages to authenticated clients only -->
+		<!-- NOTE: switch requires-channel to "any" if SSL not enabled on 
+			 server -->
+		<!-- 
+		<security:intercept-url pattern="/services/SessionManagerWS" 
+				access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/ScenarioManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/ResourceManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/UserManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/UserManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/CredentialManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/ThresholdManagerWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		<security:intercept-url pattern="/services/oAuthProviderWS" 
+			access="ROLE_CLIENT" requires-channel="https" />
+		 -->
+		<!-- Exempt service status page from security -->
+		<!--<security:intercept-url pattern="/services/" filters="none" />-->
+		<!-- Exempt everything not explicitly defined from security
+			 (includes service status page) -->
+		<!--<security:intercept-url pattern="/**" filters="none" />-->
+		<!-- <security:intercept-url pattern="/**" 
+			access="ROLE_ANONYMOUS,ROLE_CLIENT" requires-channel="https" /> -->
+		
+		
+		<!-- Enable HTTP Basic authentication -->
+		<!-- <security:http-basic /> -->
+		<!-- Enable unauthenticated access -->
+		<!-- <security:anonymous /> -->
+		
+		<!-- Set up HTTPS Mappings -->
+		<!-- 
+		<security:port-mappings>
+			<security:port-mapping http="8080" https="8443"/>
+		</security:port-mappings>
+		-->
+	<!-- </security:http> -->
+	
+	<!-- Valid API keys -->
+	<!-- 
+	<security:authentication-provider>
+		<security:user-service>
+			<security:user name="webBroker" password="broker20!()sav" 
+				authorities="ROLE_CLIENT" />
+		</security:user-service>
+	</security:authentication-provider>
+	 -->
+
+</beans>

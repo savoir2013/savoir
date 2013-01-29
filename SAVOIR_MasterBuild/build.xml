@@ -1,0 +1,1327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Master Build
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a production server and a
+*				development server. To accomplish this, the properties file for
+*				the system is created by the master build file (this file) which
+*				copies the appropriate properties to the new "build.properties"
+*				file based on the value of the "prebuild.deploy.server" property
+*				that is found in the "localDefault.properties" file. The
+*				"prebuild.deploy.server" property can be set to either
+*				"production" to deploy SAVOIR to the production server or
+*				"development" to deploy SAVOIR to the development server. Of 
+*				course, the properties listed in the "localDefault.properties"
+*				file need to be defined to the proper settings before the build
+*				file is executed. Note that an alternative way to build SAVOIR
+*				for a particular server is to set the "prebuild.deploy.server"
+*				property on the command line. For example, the following will
+*				build SAVOIR for the development server:
+*
+*					ant -Dprebuild.deploy.server=development deploy
+*
+*				Upon execution, the master build file calls specific project
+*				build files in the other SAVOIR projects to build and deploy
+*				SAVOIR. The build files within the projects contain the actual
+*				definitions of the various build targets. This build
+*				infrastructure assumes that each SAVOIR project is checked out
+*				of SVN separately such that each project build file is in the
+*				root directory of the project. Note that the build files are
+*				named "build.xml"
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				The targets of this file copy the "build.properties" file to the
+*				various projects and deploy SAVOIR. Unlike typical build files
+*				where the build target builds the software, this file assumes
+*				that the project build files will be used for individual builds
+*				and this file will be used mainly for deployment. Thus, the
+*				build target should not be called except by a continuous
+*				integration program (like Jenkins) that performs automatic
+*				builds. The main target for this file is the deploy target which
+*				deploys SAVOIR.
+* DATE CREATED:	Feb 18, 2011
+*
+********************************************************************************
+-->
+
+<project name="savoirMasterBuild" default="deploy" xmlns:ivy="antlib:org.apache.ivy.ant"
+	xmlns="antlib:org.apache.tools.ant">
+
+	<description>Master build file for deploying SAVOIR to a development server</description>
+
+	<!-- **************************** Properties *************************** -->
+
+	<property name="savoir.home" value="${basedir}/.." />
+	<property name="savoir.pers.home" value="${savoir.home}/SAVOIR_Persistence" />
+	<property name="savoir.util.home" value="${savoir.home}/SAVOIR_Utils" />
+	<property name="savoir.oaut.home" value="${savoir.home}/SAVOIR_OAuth" />
+	<property name="savoir.bus.home" value="${savoir.home}/SAVOIR_Bus" />
+	<property name="savoir.sced.home" value="${savoir.home}/SAVOIR_SchedulingService" />
+	<property name="savoir.mgmt.home" value="${savoir.home}/SAVOIR_MgmtServices" />
+	<property name="savoir.webr.home" value="${savoir.home}/SAVOIR_WebBroker" />
+	<property name="savoir.fimg.home" value="${savoir.home}/SAVOIR_Web/Images" />
+	<property name="savoir.flib.home" value="${savoir.home}/SAVOIR_Web/gui/SavoirLib" />
+	<property name="savoir.logn.home" value="${savoir.home}/SAVOIR_Web/gui/login" />
+	<property name="savoir.main.home" value="${savoir.home}/SAVOIR_Web/gui/mySavoir" />
+	<property name="savoir.auth.home" value="${savoir.home}/SAVOIR_Web/gui/authoringTool" />
+	<property name="savoir.skpx.home" value="${savoir.home}/SAVOIR_Web/SocketProxy" />
+	<property name="savoir.lnch.home" value="${savoir.home}/SAVOIR_SampleDevices/ClientLaunchProps" />
+	<property name="savoir.docs.home" value="${savoir.home}/SAVOIR_Docs" />
+	<property name="savoir.ekgt.home" value="${savoir.home}/SAVOIR_SampleDevices/EKGTutorial" />
+	<property name="savoir.vdrw.home" value="${savoir.home}/SAVOIR_SampleDevices/VaderWebTutorial" />
+	<property name="savoir.vadr.home" value="${savoir.home}/SAVOIR_SampleDevices/VaderDesktop" />
+	
+	<property name="savoir.is.master.build" value="true" />
+
+	<!-- Property sets -->
+	<propertyset id="savoir.build.data">
+		<propertyref name="savoir.is.master.build" />
+		<propertyref name="savoir.server.user.name" />
+		<propertyref name="savoir.server.password" />
+	</propertyset>
+
+	<propertyset id="savoir.bus.data">
+		<propertyref name="savoir.remote.server.bus" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.fimg.data">
+		<propertyref name="savoir.remote.server.fimg" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.logn.data">
+		<propertyref name="savoir.remote.server.logn" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.main.data">
+		<propertyref name="savoir.remote.server.main" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.auth.data">
+		<propertyref name="savoir.remote.server.auth" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.skpx.data">
+		<propertyref name="savoir.remote.server.skpx" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.lnch.data">
+		<propertyref name="savoir.remote.server.lnch" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.docs.data">
+		<propertyref name="savoir.remote.server.docs" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.ekgt.data">
+		<propertyref name="savoir.remote.server.ekgt" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.vdrw.data">
+		<propertyref name="savoir.remote.server.vdrw" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<propertyset id="savoir.vadr.data">
+		<propertyref name="savoir.remote.server.vadr" />
+		<propertyset refid="savoir.build.data" />
+	</propertyset>
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property files exist -->
+	<available file="${basedir}/localDefault.properties" property="prop.file.exists" />
+	<fail message="Local default properties file is missing! Please check out the file from the code repository and edit it."
+		unless="prop.file.exists" />
+
+	<!-- Load in the local default properties -->
+	<property file="${basedir}/localDefault.properties" />
+
+	<available file="${basedir}/defaultBuild.properties" property="prop.templ.exists" />
+	<fail message="Default build properties file is missing! Please check out the file from the code repository."
+		unless="prop.templ.exists" />
+
+	<!-- A task def below requires the ivy.jar file so make sure it is downloaded
+		Download ivy from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${prebuild.ivy.jar.dir}" />
+	<get src="${prebuild.ivy.url}/${prebuild.ivy.install.version}/${prebuild.ivy.jar.file}"
+		dest="${prebuild.ivy.jar.dir}/${prebuild.ivy.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${prebuild.cont.jar.dir}" />
+	<get src="${prebuild.cont.url}/${prebuild.cont.install.version}/${prebuild.cont.jar.file}"
+		dest="${prebuild.cont.jar.dir}/${prebuild.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- **************************** File Sets **************************** -->
+
+	<!-- none -->
+
+	<!-- *************************** Class Paths *************************** -->
+
+	<!-- none -->
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the ivy ant tasks -->
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+		uri="antlib:org.apache.ivy.ant" classpath="${prebuild.ivy.jar.dir}/${prebuild.ivy.jar.file}" />
+
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${prebuild.cont.jar.dir}/${prebuild.cont.jar.file}" />
+
+	<!-- Get the user name and password for the remote SAVOIR server if necessary -->
+	<macrodef name="get-user" description="Prompt the user for his/her username and password for a remote server">
+		<sequential>
+			<echo message="Macrodef: get-user" />
+			<echo message=" " />
+			<if>
+				<isset property="savoir.remote.server" />
+				<then>
+					<check-if-eclipse/>
+					<echo message="IMPORTANT NOTE!!!" />
+					<echo message="The system has determined that at least one of the SAVOIR services" />
+					<echo message="will be deployed to a remote SAVOIR server." />
+					<input message="Please enter your SAVOIR server username " addproperty="savoir.server.user.name"/>
+
+					<input message="Please enter your SAVOIR server password " addproperty="savoir.server.password">
+						<handler type="secure" />
+					</input>
+					<check-credentials/>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if we need to get the user credentials -->
+	<macrodef name="check-require-username" description="Check if we need to prompt for a username and password">
+		<sequential>
+			<echo message="Macrodef: check-require-username" />
+			<echo message=" " />
+			
+			<!-- Get the host information -->
+			<hostinfo prefix="host" />
+
+			<!-- Check each project that might require a username and password -->
+			<condition property="savoir.remote.server.bus">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.bus.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.bus.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.fimg">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.fimg.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.fimg.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+		
+			<condition property="savoir.remote.server.logn">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.logn.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.logn.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.main">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.main.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.main.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+		
+			<condition property="savoir.remote.server.auth">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.auth.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.auth.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+		
+			<condition property="savoir.remote.server.skpx">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.skpx.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.skpx.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.lnch">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.lnch.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.lnch.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.docs">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.docs.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.docs.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+		
+			<condition property="savoir.remote.server.ekgt">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.ekgt.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.ekgt.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.vdrw">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.vdrw.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.vdrw.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<condition property="savoir.remote.server.vadr">
+				<not>
+					<or>
+						<matches pattern="${host.ADDR4}" string="${savoir.vadr.deploy.host}" />
+						<matches pattern="${host.NAME}" string="${savoir.vadr.deploy.host}" />
+					</or>
+				</not>
+			</condition>
+
+			<!-- Check if any of the projects actually need a username and password -->
+			<condition property="savoir.remote.server">
+				<or>
+					<isset property="savoir.remote.server.bus" />
+					<isset property="savoir.remote.server.fimg" />
+					<isset property="savoir.remote.server.logn" />
+					<isset property="savoir.remote.server.main" />
+					<isset property="savoir.remote.server.auth" />
+					<isset property="savoir.remote.server.skpx" />
+					<isset property="savoir.remote.server.lnch" />
+					<isset property="savoir.remote.server.docs" />
+					<isset property="savoir.remote.server.ekgt" />
+					<isset property="savoir.remote.server.vdrw" />
+					<isset property="savoir.remote.server.vadr" />
+				</or>
+			</condition>
+
+			<!-- Get the user credentials if necessary -->
+			<get-user/>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the user is trying to deploy from Eclipse -->
+	<macrodef name="check-if-eclipse" description="Check if the user is calling this script from eclipse">
+		<sequential>
+			<echo message="Macrodef: check-if-eclipse" />
+			<echo message=" " />
+			<if>
+				<isset property="eclipse.running" />
+				<then>
+					<echo message="ERROR - Build failed" />
+					<echo message="It appears you are trying to deploy a SAVOIR project to a remote" />
+					<echo message="server. Unfortunately, remote deployment will only work from the command" />
+					<echo message="line since it prompts for a password and secure entry of your password" />
+					<echo message="is not supported in Eclipse." />
+					<echo message="To deploy from the command line, perform the following commands:" />
+					<echo message="cd &lt;workspace dir&gt;/SAVOIR_MasterBuild" />
+					<echo message="ant deploy" />
+					<fail>See message above for build failure explanation</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check the credentials the user supplied for one of the remote servers. This is done to catch typos in
+		the credentials since they are not used until much later in the build. That is, we want to check the
+		credentials as soon as they are entered. -->
+	<macrodef name="check-credentials" description="Check if the user crendentials are valid">
+		<sequential>
+			<echo message="Macrodef: check-credentials" />
+			<echo message=" " />
+			<echo message="Testing your remote host credentials. If the build failed," />
+			<echo message="it is most likely due to a failed login attempt to the" />
+			<echo message="remote server. Please run the script again." />
+
+			<if>
+
+				<!-- First, find one of the remote hosts. Need to test all of these hosts since it is possible
+					that only one of them is is a remote host. Note that we assume that the same user name and
+					password will be used for all remote hosts. Thus, we just need to try to authenticate to
+					a single host -->
+				<isset property="savoir.remote.server.bus" />
+				<then>
+					<property name="remote.server" value="${savoir.bus.deploy.host}" />
+				</then>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.fimg" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.fimg.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.logn" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.logn.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.main" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.main.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.auth" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.auth.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.skpx" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.skpx.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.lnch" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.lnch.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.docs" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.docs.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.ekgt" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.ekgt.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.vdrw" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.vdrw.deploy.host}" />
+					</then>
+				</elseif>
+
+				<elseif>
+					<and>
+						<isset property="savoir.remote.server.vadr" />
+						<not>
+							<isset property="remote.server" />
+						</not>
+					</and>
+					<then>
+						<property name="remote.server" value="${savoir.vadr.deploy.host}" />
+					</then>
+				</elseif>
+			</if>
+
+			<!-- Try to execute a harmless command on the remote host -->
+			<sshexec host="${remote.server}" username="${savoir.server.user.name}" password="${savoir.server.password}"
+				command="cd" />
+		</sequential>
+	</macrodef>
+
+	<!-- Copy properties file to a project -->
+	<macrodef name="copy-prop-file" description="Copy the build.properties file to the given SAVOIR project">
+		<attribute name="file" description="The properties file to be copied - must be in ${basedir}" />
+		<attribute name="destination" description="The destination directory that the property file will be copied to" />
+		<attribute name="hasProj" description="Property indicating whether the destination directory exists" />
+		<sequential>
+			<echo message="Macrodef: copy-prop-file" />
+			<echo message=" " />
+			<if>
+				<istrue value="@{hasProj}" />
+				<then>
+					<copy file="${basedir}/@{file}" tofile="@{destination}/@{file}" />
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Copy all properties files to projects -->
+	<macrodef name="copy-all-prop-files" description="Copy the build.properties file to all the SAVOIR projects">
+		<sequential>
+			<echo message="Macrodef: copy-all-prop-files" />
+			<echo message=" " />
+			<copy-prop-file file="build.properties" destination="${savoir.pers.home}" hasProj="${has.pers}" />
+			<copy-prop-file file="build.properties" destination="${savoir.util.home}" hasProj="${has.util}" />
+			<copy-prop-file file="build.properties" destination="${savoir.oaut.home}" hasProj="${has.oaut}" />
+			<copy-prop-file file="build.properties" destination="${savoir.bus.home}" hasProj="${has.bus}" />
+			<copy-prop-file file="build.properties" destination="${savoir.sced.home}" hasProj="${has.sced}" />
+			<copy-prop-file file="build.properties" destination="${savoir.mgmt.home}" hasProj="${has.mgmt}" />
+			<copy-prop-file file="build.properties" destination="${savoir.webr.home}" hasProj="${has.webr}" />
+			<copy-prop-file file="build.properties" destination="${savoir.fimg.home}" hasProj="${has.fimg}" />
+			<copy-prop-file file="build.properties" destination="${savoir.flib.home}" hasProj="${has.flib}" />
+			<copy-prop-file file="build.properties" destination="${savoir.logn.home}" hasProj="${has.logn}" />
+			<copy-prop-file file="build.properties" destination="${savoir.main.home}" hasProj="${has.main}" />
+			<copy-prop-file file="savoirFlex.properties" destination="${savoir.main.home}/src/locale/en_US" hasProj="${has.main}" />
+			<copy-prop-file file="build.properties" destination="${savoir.auth.home}" hasProj="${has.auth}" />
+			<copy-prop-file file="savoirFlex.properties" destination="${savoir.auth.home}/src/locale/en_US" hasProj="${has.auth}" />
+			<copy-prop-file file="build.properties" destination="${savoir.skpx.home}" hasProj="${has.skpx}" />
+			<copy-prop-file file="build.properties" destination="${savoir.lnch.home}" hasProj="${has.lnch}" />
+			<copy-prop-file file="build.properties" destination="${savoir.docs.home}" hasProj="${has.docs}" />
+			<copy-prop-file file="build.properties" destination="${savoir.ekgt.home}" hasProj="${has.ekgt}" />
+			<copy-prop-file file="build.properties" destination="${savoir.vdrw.home}" hasProj="${has.vdrw}" />
+			<copy-prop-file file="build.properties" destination="${savoir.vadr.home}" hasProj="${has.vadr}" />
+		</sequential>
+	</macrodef>
+
+	<!-- Call the build target of a project -->
+	<macrodef name="build-project" description="Call the build target for the given SAVOIR project - should not be used for deployment">
+		<attribute name="project" description="The project to build" />
+		<attribute name="hasProj" description="Property indicating whether the project directory exists" />
+		<sequential>
+			<echo message="Macrodef: build-project" />
+			<echo message=" " />
+			<if>
+				<istrue value="@{hasProj}" />
+				<then>
+					<ant antfile="build.xml" dir="@{project}/" inheritAll="false" target="build" />
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Call the deploy target of a project -->
+	<macrodef name="deploy-project" description="Call the deploy target for the given SAVOIR project">
+		<attribute name="project" description="The project to deploy" />
+		<attribute name="hasProj" description="Property indicating whether the project directory exists" />
+		<attribute name="propSetId" default="none" description="The property set to pass to the project" />
+		<sequential>
+			<echo message="Macrodef: deploy-project" />
+			<echo message=" " />
+			<if>
+				<istrue value="@{hasProj}" />
+				<then>
+					<if>
+						<equals arg1="@{propSetId}" arg2="none" />
+						<then>
+							<ant antfile="build.xml" dir="@{project}/" inheritAll="false" target="deploy" />
+						</then>
+						<else>
+							<ant antfile="build.xml" dir="@{project}/" inheritAll="false" target="deploy">
+								<propertyset refid="@{propSetId}" />
+							</ant>
+						</else>
+					</if>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Call the clean target of a project -->
+	<macrodef name="clean-project" description="Call the clean target of the given SAVOIR project">
+		<attribute name="project" description="The project to clean" />
+		<attribute name="hasProj" description="Property indicating whether the project directory exists" />
+		<sequential>
+			<echo message="Macrodef: clean-project" />
+			<echo message=" " />
+			<if>
+				<istrue value="@{hasProj}" />
+				<then>
+					<ant antfile="build.xml" dir="@{project}/" inheritAll="false" target="clean" />
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Clean all projects -->
+	<macrodef name="clean-all-projs" description="Clean all the SAVOIR projects">
+		<sequential>
+			<echo message="Macrodef: clean-all-projs" />
+			<echo message=" " />
+			<clean-project project="${savoir.pers.home}" hasProj="${has.pers}" />
+			<clean-project project="${savoir.util.home}" hasProj="${has.util}" />
+			<clean-project project="${savoir.oaut.home}" hasProj="${has.oaut}" />
+			<clean-project project="${savoir.bus.home}" hasProj="${has.bus}" />
+			<clean-project project="${savoir.sced.home}" hasProj="${has.sced}" />
+			<clean-project project="${savoir.mgmt.home}" hasProj="${has.mgmt}" />
+			<clean-project project="${savoir.webr.home}" hasProj="${has.webr}" />
+			<clean-project project="${savoir.fimg.home}" hasProj="${has.fimg}" />
+			<clean-project project="${savoir.flib.home}" hasProj="${has.flib}" />
+			<clean-project project="${savoir.logn.home}" hasProj="${has.logn}" />
+			<clean-project project="${savoir.main.home}" hasProj="${has.main}" />
+			<clean-project project="${savoir.auth.home}" hasProj="${has.auth}" />
+			<clean-project project="${savoir.skpx.home}" hasProj="${has.skpx}" />
+			<clean-project project="${savoir.lnch.home}" hasProj="${has.lnch}" />
+			<clean-project project="${savoir.docs.home}" hasProj="${has.docs}" />
+			<clean-project project="${savoir.ekgt.home}" hasProj="${has.ekgt}" />
+			<clean-project project="${savoir.vdrw.home}" hasProj="${has.vdrw}" />
+			<clean-project project="${savoir.vadr.home}" hasProj="${has.vadr}" />
+		</sequential>
+	</macrodef>
+
+	<!-- Clean the Ivy repository -->
+	<macrodef name="clean-ivy-repo" description="Clean out the local Ivy repository">
+		<sequential>
+			<echo message="Macrodef: clean-ivy-repo" />
+			<echo message=" " />
+			<property file="${basedir}/build.properties" />
+			<delete dir="${savoir.repo.home}" includeEmptyDirs="true" />
+			<ivy:cleancache />
+		</sequential>
+	</macrodef>
+
+	<!-- Delete a file if it exists -->
+	<macrodef name="del-file" description="Deletes the given file if it exists">
+		<attribute name="file" description="The file to be deleted" />
+		<sequential>
+			<echo message="Macrodef: del-file" />
+			<echo message=" " />
+			<if>
+				<available file="@{file}" />
+				<then>
+					<delete file="@{file}" />
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Delete all property files including build properties and savoirFlex properties -->
+	<macrodef name="del-all-prop-files" description="Deletes all the property files in the system">
+		<sequential>
+			<echo message="Macrodef: del-all-prop-files" />
+			<echo message=" " />
+			<del-file file="${basedir}/savoirFlex.properties" />
+			<del-file file="${savoir.main.home}/src/locale/en_US/savoirFlex.properties" />
+			<del-file file="${savoir.auth.home}/src/locale/en_US/savoirFlex.properties" />
+			<del-file file="${basedir}/build.properties" />
+			<del-file file="${savoir.pers.home}/build.properties" />
+			<del-file file="${savoir.util.home}/build.properties" />
+			<del-file file="${savoir.oaut.home}/build.properties" />
+			<del-file file="${savoir.bus.home}/build.properties" />
+			<del-file file="${savoir.sced.home}/build.properties" />
+			<del-file file="${savoir.mgmt.home}/build.properties" />
+			<del-file file="${savoir.webr.home}/build.properties" />
+			<del-file file="${savoir.fimg.home}/build.properties" />
+			<del-file file="${savoir.flib.home}/build.properties" />
+			<del-file file="${savoir.logn.home}/build.properties" />
+			<del-file file="${savoir.main.home}/build.properties" />
+			<del-file file="${savoir.auth.home}/build.properties" />
+			<del-file file="${savoir.skpx.home}/build.properties" />
+			<del-file file="${savoir.lnch.home}/build.properties" />
+			<del-file file="${savoir.docs.home}/build.properties" />
+			<del-file file="${savoir.ekgt.home}/build.properties" />
+			<del-file file="${savoir.vdrw.home}/build.properties" />
+			<del-file file="${savoir.vadr.home}/build.properties" />
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+
+	<!-- **** Init **** -->
+	<target name="init" description="Create the build.properties file for SAVOIR as well as other properties for use in this file">
+		<echo message="==== Savoir master build init target ====" />
+
+		<copy file="${basedir}/defaultBuild.properties" tofile="${basedir}/build.properties" />
+
+		<!-- Check which type of server we will deploy to -->
+		<if>
+			<equals arg1="${prebuild.deploy.server}" arg2="production" />
+			<then>
+				
+				<!-- Create the build.properties file for the production server -->
+				<propertyfile file="${basedir}/build.properties">
+
+					<!-- Set the SAVOIR home property -->
+	  				<entry key="savoir.home" value="${savoir.home}" />
+
+					<!-- Set the local properties -->
+					<entry key="savoir.deploy.server" value="${prebuild.deploy.server}" />
+
+					<entry key="savoir.release.ver" value="${prebuild.release.ver}" />
+
+					<entry key="savoir.repo.home" value="${prebuild.repo.home}" />
+
+					<entry key="savoir.java.source.ver" value="${prebuild.java.source.ver}" />
+					<entry key="savoir.java.target.ver" value="${prebuild.java.target.ver}" />
+
+					<entry key="savoir.flash.major.version" value="${prebuild.flash.major.version}" />
+					<entry key="savoir.flash.minor.version" value="${prebuild.flash.minor.version}" />
+					<entry key="savoir.flash.revision.version" value="${prebuild.flash.revision.version}" />
+
+					<entry key="savoir.ivy.install.version" value="${prebuild.ivy.install.version}" />
+	  				<entry key="savoir.ivy.jar.dir" value="${prebuild.ivy.jar.dir}" />
+	  				<entry key="savoir.ivy.jar.file" value="${prebuild.ivy.jar.file}" />
+	  				<entry key="savoir.ivy.url" value="${prebuild.ivy.url}" />
+
+					<entry key="savoir.cont.install.version" value="${prebuild.cont.install.version}" />
+	  				<entry key="savoir.cont.jar.dir" value="${prebuild.cont.jar.dir}" />
+	  				<entry key="savoir.cont.jar.file" value="${prebuild.cont.jar.file}" />
+	  				<entry key="savoir.cont.url" value="${prebuild.cont.url}" />
+
+					<entry key="FLEX_HOME" value="${prebuild.prd.FLEX_HOME}" />
+
+					<entry key="savoir.flash.ant.dir" value="${prebuild.prd.flash.ant.dir}" />
+
+					<entry key="savoir.activemq.url" value="${prebuild.prd.activemq.url}" />
+					<entry key="savoir.activemq.system.url" value="${prebuild.prd.activemq.system.url}" />
+
+					<entry key="savoir.pers.jdbc.driverClassName" value="${prebuild.pers.jdbc.driverClassName}" />
+					<entry key="savoir.pers.jdbc.url" value="${prebuild.pers.jdbc.url}" />
+					<entry key="savoir.pers.jdbc.testOnBorrow" value="${prebuild.pers.jdbc.testOnBorrow}" />
+					<entry key="savoir.pers.jdbc.testWhileIdle" value="${prebuild.pers.jdbc.testWhileIdle}" />
+					<entry key="savoir.pers.jdbc.timeBetweenEvictionRunsMillis" value="${prebuild.pers.jdbc.timeBetweenEvictionRunsMillis}" />
+					<entry key="savoir.pers.jdbc.minEvictableIdleTimeMillis" value="${prebuild.pers.jdbc.minEvictableIdleTimeMillis}" />
+					<entry key="savoir.pers.jdbc.removeAbandoned" value="${prebuild.pers.jdbc.removeAbandoned}" />
+					<entry key="savoir.pers.jdbc.removeAbandonedTimeout" value="${prebuild.pers.jdbc.removeAbandonedTimeout}" />
+
+					<entry key="savoir.pers.jdbc.username" value="${prebuild.prd.pers.jdbc.username}" />
+					<entry key="savoir.pers.jdbc.password" value="${prebuild.prd.pers.jdbc.password}" />
+
+					<entry key="savoir.oaut.compile.debug" value="${prebuild.oaut.compile.debug}" />
+					<entry key="savoir.oaut.compile.deprecation" value="${prebuild.oaut.compile.deprecation}" />
+					<entry key="savoir.oaut.compile.optimize" value="${prebuild.oaut.compile.optimize}" />
+
+					<!-- Note that the following are runtime properties and both prd and dev are required - this should be fixed -->
+					<entry key="savoir.prd.bus.mgmt.url" value="${prebuild.prd.bus.mgmt.url}/" />
+					<entry key="savoir.dev.bus.mgmt.url" value="${prebuild.dev.bus.mgmt.url}/" />
+
+					<entry key="savoir.bus.deploy.directory" value="${prebuild.prd.bus.deploy.directory}" />
+					<entry key="savoir.bus.config.directory" value="${prebuild.prd.bus.config.directory}" />
+					<entry key="savoir.bus.config.file" value="${prebuild.prd.bus.config.file}" />
+					<entry key="savoir.bus.deploy.host" value="${prebuild.prd.bus.deploy.host}" />
+
+					<entry key="savoir.sced.compile.debug" value="${prebuild.sced.compile.debug}" />
+					<entry key="savoir.sced.compile.deprecation" value="${prebuild.sced.compile.deprecation}" />
+					<entry key="savoir.sced.compile.optimize" value="${prebuild.sced.compile.optimize}" />
+					<entry key="savoir.sced.compile.verbose" value="${prebuild.sced.compile.verbose}" />
+
+					<entry key="savoir.sced.deploy.username" value="${prebuild.prd.sced.deploy.username}" />
+					<entry key="savoir.sced.deploy.password" value="${prebuild.prd.sced.deploy.password}" />
+					<entry key="savoir.sced.deploy.url" value="${prebuild.prd.sced.deploy.url}" />
+
+					<entry key="savoir.mgmt.compile.debug" value="${prebuild.mgmt.compile.debug}" />
+					<entry key="savoir.mgmt.compile.deprecation" value="${prebuild.mgmt.compile.deprecation}" />
+					<entry key="savoir.mgmt.compile.optimize" value="${prebuild.mgmt.compile.optimize}" />
+					<entry key="savoir.mgmt.compile.verbose" value="${prebuild.mgmt.compile.verbose}" />
+
+					<entry key="savoir.mgmt.deploy.username" value="${prebuild.prd.mgmt.deploy.username}" />
+					<entry key="savoir.mgmt.deploy.password" value="${prebuild.prd.mgmt.deploy.password}" />
+					<entry key="savoir.mgmt.deploy.url" value="${prebuild.prd.mgmt.deploy.url}" />
+
+					<entry key="savoir.mgmt.admin.name" value="${prebuild.prd.mgmt.admin.name}" />
+					<entry key="savoir.mgmt.admin.email" value="${prebuild.prd.mgmt.admin.email}" />
+
+					<entry key="savoir.mgmt.email.host" value="${prebuild.prd.mgmt.email.host}" />
+					<entry key="savoir.mgmt.email.port" value="${prebuild.prd.mgmt.email.port}" />
+					<entry key="savoir.mgmt.email.from" value="${prebuild.prd.mgmt.email.from}" />
+					<entry key="savoir.mgmt.email.replyto" value="${prebuild.prd.mgmt.email.replyto}" />
+					<entry key="savoir.mgmt.email.username" value="${prebuild.prd.mgmt.email.username}" />
+					<entry key="savoir.mgmt.email.password" value="${prebuild.prd.mgmt.email.password}" />
+					<entry key="savoir.mgmt.email.useSSL" value="${prebuild.prd.mgmt.email.useSSL}" />
+					<entry key="savoir.mgmt.email.useTLS" value="${prebuild.prd.mgmt.email.useTLS}" />
+
+					<entry key="savoir.mgmt.server.deployment" value="${prebuild.prd.mgmt.server.deployment}" />
+					<entry key="savoir.mgmt.repos.webPrefix" value="${prebuild.prd.mgmt.repos.webPrefix}" />
+					<entry key="savoir.mgmt.mule.server.url" value="${prebuild.prd.mgmt.mule.server.url}" />
+
+					<entry key="savoir.webr.compile.debug" value="${prebuild.webr.compile.debug}" />
+					<entry key="savoir.webr.compile.deprecation" value="${prebuild.webr.compile.deprecation}" />
+					<entry key="savoir.webr.compile.optimize" value="${prebuild.webr.compile.optimize}" />
+
+					<entry key="savoir.webr.deploy.username" value="${prebuild.prd.webr.deploy.username}" />
+					<entry key="savoir.webr.deploy.password" value="${prebuild.prd.webr.deploy.password}" />
+					<entry key="savoir.webr.deploy.url" value="${prebuild.prd.webr.deploy.url}" />
+
+					<entry key="savoir.fimg.deploy.directory" value="${prebuild.prd.fimg.deploy.directory}" />
+					<entry key="savoir.fimg.deploy.host" value="${prebuild.prd.fimg.deploy.host}" />
+
+					<entry key="savoir.flib.flash.name" value="${prebuild.flib.flash.name}" />
+
+					<entry key="savoir.logn.flash.name" value="${prebuild.logn.flash.name}" />
+					<entry key="savoir.logn.flash.html" value="${prebuild.logn.flash.html}" />
+					<entry key="savoir.logn.flash.title" value="${prebuild.logn.flash.title}" />
+
+					<entry key="savoir.logn.deploy.directory" value="${prebuild.prd.logn.deploy.directory}" />
+					<entry key="savoir.logn.deploy.host" value="${prebuild.prd.logn.deploy.host}" />
+
+					<entry key="savoir.main.flash.name" value="${prebuild.main.flash.name}" />
+					<entry key="savoir.main.flash.html" value="${prebuild.main.flash.html}" />
+					<entry key="savoir.main.flash.title" value="${prebuild.main.flash.title}" />
+
+					<entry key="savoir.main.deploy.directory" value="${prebuild.prd.main.deploy.directory}" />
+					<entry key="savoir.main.deploy.host" value="${prebuild.prd.main.deploy.host}" />
+
+					<entry key="savoir.auth.flash.name" value="${prebuild.auth.flash.name}" />
+					<entry key="savoir.auth.flash.html" value="${prebuild.auth.flash.html}" />
+					<entry key="savoir.auth.flash.title" value="${prebuild.auth.flash.title}" />
+
+					<entry key="savoir.auth.deploy.directory" value="${prebuild.prd.auth.deploy.directory}" />
+					<entry key="savoir.auth.deploy.host" value="${prebuild.prd.auth.deploy.host}" />
+
+					<entry key="savoir.skpx.signjar.password" value="${prebuild.skpx.signjar.password}" />
+					<entry key="savoir.skpx.signjar.alias" value="${prebuild.skpx.signjar.alias}" />
+					<entry key="savoir.skpx.signjar.key" value="${prebuild.skpx.signjar.key}" />
+
+					<entry key="savoir.skpx.activemq.version" value="${prebuild.prd.skpx.activemq.version}" />
+					<entry key="savoir.skpx.deploy.directory" value="${prebuild.prd.skpx.deploy.directory}" />
+					<entry key="savoir.skpx.deploy.host" value="${prebuild.prd.skpx.deploy.host}" />
+					<entry key="savoir.skpx.web.url" value="${prebuild.prd.skpx.web.url}" />
+
+					<entry key="savoir.lnch.deploy.resrc.directory" value="${prebuild.prd.lnch.deploy.resrc.directory}" />
+					<entry key="savoir.lnch.deploy.host" value="${prebuild.prd.lnch.deploy.host}" />
+
+					<entry key="savoir.docs.deploy.directory" value="${prebuild.prd.docs.deploy.directory}" />
+					<entry key="savoir.docs.deploy.host" value="${prebuild.prd.docs.deploy.host}" />
+
+					<entry key="savoir.ekgt.compile.debug" value="${prebuild.ekgt.compile.debug}" />
+					<entry key="savoir.ekgt.compile.deprecation" value="${prebuild.ekgt.compile.deprecation}" />
+					<entry key="savoir.ekgt.compile.optimize" value="${prebuild.ekgt.compile.optimize}" />
+
+					<entry key="savoir.ekgt.deploy.contact.name" value="${prebuild.prd.ekgt.deploy.contact.name}" />
+					<entry key="savoir.ekgt.deploy.contact.email" value="${prebuild.prd.ekgt.deploy.contact.email}" />
+					<entry key="savoir.ekgt.deploy.username" value="${prebuild.prd.ekgt.deploy.username}" />
+					<entry key="savoir.ekgt.deploy.password" value="${prebuild.prd.ekgt.deploy.password}" />
+					<entry key="savoir.ekgt.deploy.resrc.directory" value="${prebuild.prd.ekgt.deploy.resrc.directory}" />
+					<entry key="savoir.ekgt.deploy.host" value="${prebuild.prd.ekgt.deploy.host}" />
+					<entry key="savoir.ekgt.deploy.port" value="${prebuild.prd.ekgt.deploy.port}" />
+					<entry key="savoir.ekgt.deploy.url" value="${prebuild.prd.ekgt.deploy.url}" />
+
+					<entry key="savoir.vdrw.flash.name" value="${prebuild.vdrw.flash.name}" />
+					<entry key="savoir.vdrw.flash.html" value="${prebuild.vdrw.flash.html}" />
+					<entry key="savoir.vdrw.flash.title" value="${prebuild.vdrw.flash.title}" />
+
+					<entry key="savoir.vdrw.deploy.contact.name" value="${prebuild.prd.vdrw.deploy.contact.name}" />
+					<entry key="savoir.vdrw.deploy.contact.email" value="${prebuild.prd.vdrw.deploy.contact.email}" />
+					<entry key="savoir.vdrw.deploy.flex.directory" value="${prebuild.prd.vdrw.deploy.flex.directory}" />
+					<entry key="savoir.vdrw.deploy.resrc.directory" value="${prebuild.prd.vdrw.deploy.resrc.directory}" />
+					<entry key="savoir.vdrw.deploy.host" value="${prebuild.prd.vdrw.deploy.host}" />
+					<entry key="savoir.vdrw.services.config" value="${prebuild.prd.vdrw.services.config}" />
+					<entry key="savoir.vdrw.context.root" value="${prebuild.prd.vdrw.context.root}" />
+
+					<entry key="savoir.vadr.deploy.contact.name" value="${prebuild.prd.vadr.deploy.contact.name}" />
+					<entry key="savoir.vadr.deploy.contact.email" value="${prebuild.prd.vadr.deploy.contact.email}" />
+					<entry key="savoir.vadr.deploy.jar.directory" value="${prebuild.prd.vadr.deploy.jar.directory}" />
+					<entry key="savoir.vadr.deploy.resrc.directory" value="${prebuild.prd.vadr.deploy.resrc.directory}" />
+					<entry key="savoir.vadr.deploy.host" value="${prebuild.prd.vadr.deploy.host}" />
+
+			    </propertyfile>
+			</then>
+			<else>
+
+				<!-- Create the build.properties file for the development server -->
+				<propertyfile file="${basedir}/build.properties">
+
+					<!-- Set the SAVOIR home property -->
+	  				<entry key="savoir.home" value="${savoir.home}" />
+
+					<!-- Set the local properties -->
+					<entry key="savoir.deploy.server" value="${prebuild.deploy.server}" />
+
+					<entry key="savoir.release.ver" value="${prebuild.release.ver}" />
+
+					<entry key="savoir.repo.home" value="${prebuild.repo.home}" />
+
+					<entry key="savoir.java.source.ver" value="${prebuild.java.source.ver}" />
+					<entry key="savoir.java.target.ver" value="${prebuild.java.target.ver}" />
+
+					<entry key="savoir.flash.major.version" value="${prebuild.flash.major.version}" />
+					<entry key="savoir.flash.minor.version" value="${prebuild.flash.minor.version}" />
+					<entry key="savoir.flash.revision.version" value="${prebuild.flash.revision.version}" />
+
+					<entry key="savoir.ivy.install.version" value="${prebuild.ivy.install.version}" />
+	  				<entry key="savoir.ivy.jar.dir" value="${prebuild.ivy.jar.dir}" />
+	  				<entry key="savoir.ivy.jar.file" value="${prebuild.ivy.jar.file}" />
+	  				<entry key="savoir.ivy.url" value="${prebuild.ivy.url}" />
+
+					<entry key="savoir.cont.install.version" value="${prebuild.cont.install.version}" />
+	  				<entry key="savoir.cont.jar.dir" value="${prebuild.cont.jar.dir}" />
+	  				<entry key="savoir.cont.jar.file" value="${prebuild.cont.jar.file}" />
+	  				<entry key="savoir.cont.url" value="${prebuild.cont.url}" />
+
+					<entry key="FLEX_HOME" value="${prebuild.dev.FLEX_HOME}" />
+
+					<entry key="savoir.flash.ant.dir" value="${prebuild.dev.flash.ant.dir}" />
+
+					<entry key="savoir.activemq.url" value="${prebuild.dev.activemq.url}" />
+					<entry key="savoir.activemq.system.url" value="${prebuild.dev.activemq.system.url}" />
+
+					<entry key="savoir.pers.jdbc.driverClassName" value="${prebuild.pers.jdbc.driverClassName}" />
+					<entry key="savoir.pers.jdbc.url" value="${prebuild.pers.jdbc.url}" />
+					<entry key="savoir.pers.jdbc.testOnBorrow" value="${prebuild.pers.jdbc.testOnBorrow}" />
+					<entry key="savoir.pers.jdbc.testWhileIdle" value="${prebuild.pers.jdbc.testWhileIdle}" />
+					<entry key="savoir.pers.jdbc.timeBetweenEvictionRunsMillis" value="${prebuild.pers.jdbc.timeBetweenEvictionRunsMillis}" />
+					<entry key="savoir.pers.jdbc.minEvictableIdleTimeMillis" value="${prebuild.pers.jdbc.minEvictableIdleTimeMillis}" />
+					<entry key="savoir.pers.jdbc.removeAbandoned" value="${prebuild.pers.jdbc.removeAbandoned}" />
+					<entry key="savoir.pers.jdbc.removeAbandonedTimeout" value="${prebuild.pers.jdbc.removeAbandonedTimeout}" />
+
+					<entry key="savoir.pers.jdbc.username" value="${prebuild.dev.pers.jdbc.username}" />
+					<entry key="savoir.pers.jdbc.password" value="${prebuild.dev.pers.jdbc.password}" />
+
+					<entry key="savoir.oaut.compile.debug" value="${prebuild.oaut.compile.debug}" />
+					<entry key="savoir.oaut.compile.deprecation" value="${prebuild.oaut.compile.deprecation}" />
+					<entry key="savoir.oaut.compile.optimize" value="${prebuild.oaut.compile.optimize}" />
+
+					<!-- Note that the following are runtime properties and both prd and dev are required - this should be fixed -->
+					<entry key="savoir.prd.bus.mgmt.url" value="${prebuild.prd.bus.mgmt.url}/" />
+					<entry key="savoir.dev.bus.mgmt.url" value="${prebuild.dev.bus.mgmt.url}/" />
+
+					<entry key="savoir.bus.deploy.directory" value="${prebuild.dev.bus.deploy.directory}" />
+					<entry key="savoir.bus.config.directory" value="${prebuild.dev.bus.config.directory}" />
+					<entry key="savoir.bus.config.file" value="${prebuild.dev.bus.config.file}" />
+					<entry key="savoir.bus.deploy.host" value="${prebuild.dev.bus.deploy.host}" />
+
+					<entry key="savoir.sced.compile.debug" value="${prebuild.sced.compile.debug}" />
+					<entry key="savoir.sced.compile.deprecation" value="${prebuild.sced.compile.deprecation}" />
+					<entry key="savoir.sced.compile.optimize" value="${prebuild.sced.compile.optimize}" />
+					<entry key="savoir.sced.compile.verbose" value="${prebuild.sced.compile.verbose}" />
+
+					<entry key="savoir.sced.deploy.username" value="${prebuild.dev.sced.deploy.username}" />
+					<entry key="savoir.sced.deploy.password" value="${prebuild.dev.sced.deploy.password}" />
+					<entry key="savoir.sced.deploy.url" value="${prebuild.dev.sced.deploy.url}" />
+
+					<entry key="savoir.mgmt.compile.debug" value="${prebuild.mgmt.compile.debug}" />
+					<entry key="savoir.mgmt.compile.deprecation" value="${prebuild.mgmt.compile.deprecation}" />
+					<entry key="savoir.mgmt.compile.optimize" value="${prebuild.mgmt.compile.optimize}" />
+					<entry key="savoir.mgmt.compile.verbose" value="${prebuild.mgmt.compile.verbose}" />
+
+					<entry key="savoir.mgmt.deploy.username" value="${prebuild.dev.mgmt.deploy.username}" />
+					<entry key="savoir.mgmt.deploy.password" value="${prebuild.dev.mgmt.deploy.password}" />
+					<entry key="savoir.mgmt.deploy.url" value="${prebuild.dev.mgmt.deploy.url}" />
+
+					<entry key="savoir.mgmt.admin.name" value="${prebuild.dev.mgmt.admin.name}" />
+					<entry key="savoir.mgmt.admin.email" value="${prebuild.dev.mgmt.admin.email}" />
+
+					<entry key="savoir.mgmt.email.host" value="${prebuild.dev.mgmt.email.host}" />
+					<entry key="savoir.mgmt.email.port" value="${prebuild.dev.mgmt.email.port}" />
+					<entry key="savoir.mgmt.email.from" value="${prebuild.dev.mgmt.email.from}" />
+					<entry key="savoir.mgmt.email.replyto" value="${prebuild.dev.mgmt.email.replyto}" />
+					<entry key="savoir.mgmt.email.username" value="${prebuild.dev.mgmt.email.username}" />
+					<entry key="savoir.mgmt.email.password" value="${prebuild.dev.mgmt.email.password}" />
+					<entry key="savoir.mgmt.email.useSSL" value="${prebuild.dev.mgmt.email.useSSL}" />
+					<entry key="savoir.mgmt.email.useTLS" value="${prebuild.dev.mgmt.email.useTLS}" />
+
+					<entry key="savoir.mgmt.server.deployment" value="${prebuild.dev.mgmt.server.deployment}" />
+					<entry key="savoir.mgmt.repos.webPrefix" value="${prebuild.dev.mgmt.repos.webPrefix}" />
+					<entry key="savoir.mgmt.mule.server.url" value="${prebuild.dev.mgmt.mule.server.url}" />
+
+					<entry key="savoir.webr.compile.debug" value="${prebuild.webr.compile.debug}" />
+					<entry key="savoir.webr.compile.deprecation" value="${prebuild.webr.compile.deprecation}" />
+					<entry key="savoir.webr.compile.optimize" value="${prebuild.webr.compile.optimize}" />
+
+					<entry key="savoir.webr.deploy.username" value="${prebuild.dev.webr.deploy.username}" />
+					<entry key="savoir.webr.deploy.password" value="${prebuild.dev.webr.deploy.password}" />
+					<entry key="savoir.webr.deploy.url" value="${prebuild.dev.webr.deploy.url}" />
+
+					<entry key="savoir.fimg.deploy.directory" value="${prebuild.dev.fimg.deploy.directory}" />
+					<entry key="savoir.fimg.deploy.host" value="${prebuild.dev.fimg.deploy.host}" />
+
+					<entry key="savoir.flib.flash.name" value="${prebuild.flib.flash.name}" />
+
+					<entry key="savoir.logn.flash.name" value="${prebuild.logn.flash.name}" />
+					<entry key="savoir.logn.flash.html" value="${prebuild.logn.flash.html}" />
+					<entry key="savoir.logn.flash.title" value="${prebuild.logn.flash.title}" />
+
+					<entry key="savoir.logn.deploy.directory" value="${prebuild.dev.logn.deploy.directory}" />
+					<entry key="savoir.logn.deploy.host" value="${prebuild.dev.logn.deploy.host}" />
+
+					<entry key="savoir.main.flash.name" value="${prebuild.main.flash.name}" />
+					<entry key="savoir.main.flash.html" value="${prebuild.main.flash.html}" />
+					<entry key="savoir.main.flash.title" value="${prebuild.main.flash.title}" />
+
+					<entry key="savoir.main.deploy.directory" value="${prebuild.dev.main.deploy.directory}" />
+					<entry key="savoir.main.deploy.host" value="${prebuild.dev.main.deploy.host}" />
+
+					<entry key="savoir.auth.flash.name" value="${prebuild.auth.flash.name}" />
+					<entry key="savoir.auth.flash.html" value="${prebuild.auth.flash.html}" />
+					<entry key="savoir.auth.flash.title" value="${prebuild.auth.flash.title}" />
+
+					<entry key="savoir.auth.deploy.directory" value="${prebuild.dev.auth.deploy.directory}" />
+					<entry key="savoir.auth.deploy.host" value="${prebuild.dev.auth.deploy.host}" />
+
+					<entry key="savoir.skpx.signjar.password" value="${prebuild.skpx.signjar.password}" />
+					<entry key="savoir.skpx.signjar.alias" value="${prebuild.skpx.signjar.alias}" />
+					<entry key="savoir.skpx.signjar.key" value="${prebuild.skpx.signjar.key}" />
+
+					<entry key="savoir.skpx.activemq.version" value="${prebuild.dev.skpx.activemq.version}" />
+					<entry key="savoir.skpx.deploy.directory" value="${prebuild.dev.skpx.deploy.directory}" />
+					<entry key="savoir.skpx.deploy.host" value="${prebuild.dev.skpx.deploy.host}" />
+					<entry key="savoir.skpx.web.url" value="${prebuild.dev.skpx.web.url}" />
+
+					<entry key="savoir.lnch.deploy.resrc.directory" value="${prebuild.dev.lnch.deploy.resrc.directory}" />
+					<entry key="savoir.lnch.deploy.host" value="${prebuild.dev.lnch.deploy.host}" />
+
+					<entry key="savoir.docs.deploy.directory" value="${prebuild.dev.docs.deploy.directory}" />
+					<entry key="savoir.docs.deploy.host" value="${prebuild.dev.docs.deploy.host}" />
+
+					<entry key="savoir.ekgt.compile.debug" value="${prebuild.ekgt.compile.debug}" />
+					<entry key="savoir.ekgt.compile.deprecation" value="${prebuild.ekgt.compile.deprecation}" />
+					<entry key="savoir.ekgt.compile.optimize" value="${prebuild.ekgt.compile.optimize}" />
+
+					<entry key="savoir.ekgt.deploy.contact.name" value="${prebuild.dev.ekgt.deploy.contact.name}" />
+					<entry key="savoir.ekgt.deploy.contact.email" value="${prebuild.dev.ekgt.deploy.contact.email}" />
+					<entry key="savoir.ekgt.deploy.username" value="${prebuild.dev.ekgt.deploy.username}" />
+					<entry key="savoir.ekgt.deploy.password" value="${prebuild.dev.ekgt.deploy.password}" />
+					<entry key="savoir.ekgt.deploy.resrc.directory" value="${prebuild.dev.ekgt.deploy.resrc.directory}" />
+					<entry key="savoir.ekgt.deploy.host" value="${prebuild.dev.ekgt.deploy.host}" />
+					<entry key="savoir.ekgt.deploy.port" value="${prebuild.dev.ekgt.deploy.port}" />
+					<entry key="savoir.ekgt.deploy.url" value="${prebuild.dev.ekgt.deploy.url}" />
+
+					<entry key="savoir.vdrw.flash.name" value="${prebuild.vdrw.flash.name}" />
+					<entry key="savoir.vdrw.flash.html" value="${prebuild.vdrw.flash.html}" />
+					<entry key="savoir.vdrw.flash.title" value="${prebuild.vdrw.flash.title}" />
+
+					<entry key="savoir.vdrw.deploy.contact.name" value="${prebuild.dev.vdrw.deploy.contact.name}" />
+					<entry key="savoir.vdrw.deploy.contact.email" value="${prebuild.dev.vdrw.deploy.contact.email}" />
+					<entry key="savoir.vdrw.deploy.flex.directory" value="${prebuild.dev.vdrw.deploy.flex.directory}" />
+					<entry key="savoir.vdrw.deploy.resrc.directory" value="${prebuild.dev.vdrw.deploy.resrc.directory}" />
+					<entry key="savoir.vdrw.deploy.host" value="${prebuild.dev.vdrw.deploy.host}" />
+					<entry key="savoir.vdrw.services.config" value="${prebuild.dev.vdrw.services.config}" />
+					<entry key="savoir.vdrw.context.root" value="${prebuild.dev.vdrw.context.root}" />
+
+					<entry key="savoir.vadr.deploy.contact.name" value="${prebuild.dev.vadr.deploy.contact.name}" />
+					<entry key="savoir.vadr.deploy.contact.email" value="${prebuild.dev.vadr.deploy.contact.email}" />
+					<entry key="savoir.vadr.deploy.jar.directory" value="${prebuild.dev.vadr.deploy.jar.directory}" />
+					<entry key="savoir.vadr.deploy.resrc.directory" value="${prebuild.dev.vadr.deploy.resrc.directory}" />
+					<entry key="savoir.vadr.deploy.host" value="${prebuild.dev.vadr.deploy.host}" />
+
+			    </propertyfile>
+			</else>
+		</if>
+
+		<!-- Load in the new properties for use in this build file -->
+		<property file="${basedir}/build.properties" />
+
+		<!-- Create the property file for use by the SAVOIR Flex software -->
+		<propertyfile file="${basedir}/savoirFlex.properties"
+			comment="Please see the build.properties file or the SAVOIR_MasterBuild/localDefault.properties file for more details on the properties below">
+				<entry key="savoir.deploy.server" value="${savoir.deploy.server}" />
+				<entry key="savoir.activemq.system.url" value="${savoir.activemq.system.url}" />
+				<entry key="savoir.auth.deploy.host" value="${savoir.auth.deploy.host}" />
+		</propertyfile>
+		
+		<!-- Check for existing SAVOIR projects -->
+		<available type="dir" file="${savoir.pers.home}" property="has.pers" />
+		<available type="dir" file="${savoir.util.home}" property="has.util" />
+		<available type="dir" file="${savoir.oaut.home}" property="has.oaut" />
+		<available type="dir" file="${savoir.bus.home}" property="has.bus" />
+		<available type="dir" file="${savoir.sced.home}" property="has.sced" />
+		<available type="dir" file="${savoir.mgmt.home}" property="has.mgmt" />
+		<available type="dir" file="${savoir.webr.home}" property="has.webr" />
+		<available type="dir" file="${savoir.fimg.home}" property="has.fimg" />
+		<available type="dir" file="${savoir.flib.home}" property="has.flib" />
+		<available type="dir" file="${savoir.logn.home}" property="has.logn" />
+		<available type="dir" file="${savoir.main.home}" property="has.main" />
+		<available type="dir" file="${savoir.auth.home}" property="has.auth" />
+		<available type="dir" file="${savoir.skpx.home}" property="has.skpx" />
+		<available type="dir" file="${savoir.lnch.home}" property="has.lnch" />
+		<available type="dir" file="${savoir.docs.home}" property="has.docs" />
+		<available type="dir" file="${savoir.ekgt.home}" property="has.ekgt" />
+		<available type="dir" file="${savoir.vdrw.home}" property="has.vdrw" />
+		<available type="dir" file="${savoir.vadr.home}" property="has.vadr" />
+
+	</target>
+
+	<!-- **** Build **** -->
+	<target name = "build" depends="init" description="Calls only the build scripts of each project - this target should not be used for deployment">
+		<echo message="==== Savoir master build build target ====" />
+
+		<!-- Copy the properties files first -->
+		<copy-all-prop-files/>
+		
+		<build-project project="${savoir.pers.home}" hasProj="${has.pers}" />
+		<build-project project="${savoir.util.home}" hasProj="${has.util}" />
+		<build-project project="${savoir.oaut.home}" hasProj="${has.oaut}" />
+		<build-project project="${savoir.bus.home}" hasProj="${has.bus}" />
+		<build-project project="${savoir.sced.home}" hasProj="${has.sced}" />
+		<build-project project="${savoir.mgmt.home}" hasProj="${has.mgmt}" />
+		<build-project project="${savoir.webr.home}" hasProj="${has.webr}" />
+		<build-project project="${savoir.fimg.home}" hasProj="${has.fimg}" />
+		<build-project project="${savoir.flib.home}" hasProj="${has.flib}" />
+		<build-project project="${savoir.logn.home}" hasProj="${has.logn}" />
+		<build-project project="${savoir.main.home}" hasProj="${has.main}" />
+		<build-project project="${savoir.auth.home}" hasProj="${has.auth}" />
+		<build-project project="${savoir.skpx.home}" hasProj="${has.skpx}" />
+		<build-project project="${savoir.lnch.home}" hasProj="${has.lnch}" />
+		<build-project project="${savoir.docs.home}" hasProj="${has.docs}" />
+		<build-project project="${savoir.ekgt.home}" hasProj="${has.ekgt}" />
+		<build-project project="${savoir.vdrw.home}" hasProj="${has.vdrw}" />
+		<build-project project="${savoir.vadr.home}" hasProj="${has.vadr}" />
+
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" description="No target actions">
+		<echo message="==== Savoir master build package target ====" />
+
+		<echo message="Package target not supported." />
+	</target>
+
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="init" description="Deploy the SAVOIR system - call each project's deploy target">
+		<echo message="==== Savoir master build deploy target ====" />
+
+		<!-- Check if we need to get the user's credentials -->
+		<check-require-username/>
+		
+		<!-- Copy the properties files first -->
+		<copy-all-prop-files/>
+		
+		<deploy-project project="${savoir.pers.home}" hasProj="${has.pers}" />
+		<deploy-project project="${savoir.util.home}" hasProj="${has.util}" />
+		<deploy-project project="${savoir.oaut.home}" hasProj="${has.oaut}" />
+		<deploy-project project="${savoir.bus.home}" hasProj="${has.bus}" propSetId="savoir.bus.data" />
+		<deploy-project project="${savoir.sced.home}" hasProj="${has.sced}" />
+		<deploy-project project="${savoir.mgmt.home}" hasProj="${has.mgmt}" />
+		<deploy-project project="${savoir.webr.home}" hasProj="${has.webr}" />
+		<deploy-project project="${savoir.fimg.home}" hasProj="${has.fimg}" propSetId="savoir.fimg.data" />
+		<deploy-project project="${savoir.flib.home}" hasProj="${has.flib}" />
+		<deploy-project project="${savoir.logn.home}" hasProj="${has.logn}" propSetId="savoir.logn.data" />
+		<deploy-project project="${savoir.main.home}" hasProj="${has.main}" propSetId="savoir.main.data" />
+		<deploy-project project="${savoir.auth.home}" hasProj="${has.auth}" propSetId="savoir.auth.data" />
+		<deploy-project project="${savoir.skpx.home}" hasProj="${has.skpx}" propSetId="savoir.skpx.data" />
+		<deploy-project project="${savoir.lnch.home}" hasProj="${has.lnch}" propSetId="savoir.lnch.data" />
+		<deploy-project project="${savoir.docs.home}" hasProj="${has.docs}" propSetId="savoir.docs.data" />
+		<deploy-project project="${savoir.ekgt.home}" hasProj="${has.ekgt}" />
+		<deploy-project project="${savoir.vdrw.home}" hasProj="${has.vdrw}" propSetId="savoir.vdrw.data" />
+		<deploy-project project="${savoir.vadr.home}" hasProj="${has.vadr}" propSetId="savoir.vadr.data" />
+
+	</target>
+
+	<!-- **** Clean **** -->
+	<target name="clean" depends="init" description="Clean the SAVOIR system">
+		<echo message="==== Savoir master build clean target ====" />
+
+		<!-- Copy the properties files first to ensure that the project clean targets will run -->
+		<copy-all-prop-files/>
+		
+		<!-- Clean the Ivy repository and each SAVOIR project -->
+		<clean-ivy-repo/>
+		<clean-all-projs/>
+		
+		<!-- Delete the savoir build log file if it exists -->
+		<del-file file="${basedir}/savoirBuild.log" />
+
+		<!-- Delete the savoirFlex.properties and build.properties files -->
+		<del-all-prop-files/>
+
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir master build undeploy target ====" />
+
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir master build doc target ====" />
+
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir master build javadoc target ====" />
+
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" depends="init" description="No target actions">
+		<echo message="==== Savoir master build test target ====" />
+
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- **** Copy-build-properties **** -->
+	<target name = "copy-build-properties" depends="init" description="Copies the build.properties file to all the projects">
+		<echo message="==== Savoir master build copy-build-properties target ====" />
+
+		<!-- Copy the properties files -->
+		<copy-all-prop-files/>
+		
+	</target>
+
+	<!-- **** Check-host **** -->
+	<target name="check-host" description="Print out the hostname and the IP address">
+		<echo message="==== Savoir master build check-host target ====" />
+
+		<hostinfo prefix="checkhost" />
+
+		<echo message="Hostname = ${checkhost.NAME}" />
+		<echo message="IP address = ${checkhost.ADDR4}" />
+	</target>
+
+	<!-- **** Clean-code **** -->
+	<target name="clean-code" depends="init" description="Clean the SAVOIR system except for the ivy repository">
+		<echo message="==== Savoir master build clean-code target ====" />
+
+		<!-- Copy the properties files first to ensure that the project clean targets will run -->
+		<copy-all-prop-files/>
+		
+		<!-- Clean each SAVOIR project -->
+		<clean-all-projs/>
+		
+		<!-- Delete the savoir build log file if it exists -->
+		<del-file file="${basedir}/savoirBuild.log" />
+
+		<!-- Delete the savoirFlex.properties and build.properties files -->
+		<del-all-prop-files/>
+
+	</target>
+
+	<!-- **** Build-docs **** -->
+	<target name="build-docs" depends="init"
+		description="A specific target for calling the SAVOIR_Docs package target - should only be called from the installFiles build script">
+		<echo message="==== Savoir master build build-docs target ====" />
+		
+		<!-- The installFiles project needs to have the installation documents packaged so it can
+			add them to the distribution tar file, thus we build them here -->
+			
+		<!-- Copy the build.properties file for the SAVOIR_Docs project -->
+		<copy-prop-file file="build.properties" destination="${savoir.docs.home}" hasProj="${has.docs}" />
+		
+		<!-- Call the package target --> 
+		<if>
+			<istrue value="${has.docs}" />
+			<then>
+				<ant antfile="build.xml" dir="${savoir.docs.home}/" inheritAll="false" target="package" />
+			</then>
+		</if>
+
+	</target>
+
+	<!-- **** Clean-docs **** -->
+	<target name="clean-docs" depends="init"
+		description="A specific target for cleaning up after a call to build-docs - should only be called from the installFiles build script">
+		<echo message="==== Savoir master build clean-docs target ====" />
+		
+		<!-- Call the clean target in the SAVOIR_Docs project --> 
+		<if>
+			<istrue value="${has.docs}" />
+			<then>
+				<echo message="Has docs is true" />
+				<ant antfile="build.xml" dir="${savoir.docs.home}/" inheritAll="false" target="clean" />
+			</then>
+			<else>
+				<echo message="Has docs is false" />
+			</else>
+		</if>
+
+		<!-- Delete the properties files -->
+		<del-file file="${basedir}/savoirFlex.properties" />
+		<del-file file="${basedir}/build.properties" />
+		<del-file file="${savoir.docs.home}/build.properties" />
+		
+		<!-- Delete the local lib directory under SAVOIR_MasterBuild-->
+		<delete dir="${basedir}/localLib"  includeEmptyDirs="true" />
+
+	</target>
+
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- Continuous Integration -->
+
+	<!-- **** ConInt **** -->
+	<target name="conInt" description="No target actions">
+		<echo message="Continuous integration target not supported." />
+	</target>
+
+</project>

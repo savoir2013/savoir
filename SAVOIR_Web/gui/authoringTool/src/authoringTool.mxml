@@ -1,0 +1,1330 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	xmlns:degrafa="com.degrafa.*"
+	xmlns:geometry="com.degrafa.geometry.*"
+	xmlns:paint="com.degrafa.paint.*"
+	xmlns:skins="com.degrafa.skins.*"
+	xmlns:erno="erno.*"
+	xmlns:menus="erno.menus.*"
+	xmlns:local="*"
+    verticalScrollPolicy="off" horizontalScrollPolicy="off"
+    backgroundGradientAlphas="[1.0, 1.0]" backgroundGradientColors="[#3E3B3B, #333333]" width="100%" height="100%"
+	creationComplete="init()" resize="handleAuthorResize(event)" show="showhandler()" xmlns:extenders="authoringTool.extenders.*">
+
+	<mx:Metadata>
+		[ResourceBundle("savoirFlex")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+			import authoringTool.scenarioChart.components.RectangleEdgeDeviceComponent;
+			import authoringTool.extenders.EdgeDeviceControlComponentHBox;
+			import mx.core.UIComponent;
+			import mx.controls.Label;
+			import mx.controls.Image;
+			import mx.controls.Spacer;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			import com.degrafa.core.collections.GraphicsCollection;
+			import mx.events.PropertyChangeEvent;
+			import mx.events.SliderEvent;
+			import mx.events.ResizeEvent;
+		    import mx.utils.*;
+		    import mx.managers.PopUpManager;
+			import authoringTool.extenders.APNCanvas;
+			import mx.containers.VBox;
+			import authoringTool.extenders.RuleCanvas;
+			import authoringTool.scenarioChart.LinkPoint;
+			import com.degrafa.geometry.Circle;
+			import com.degrafa.paint.SolidFill;
+			import com.degrafa.GeometryGroup;
+			import com.degrafa.GraphicText;
+			import authoringTool.pieMenu.PieMenuEvent;
+			import com.degrafa.GraphicImage;
+			import com.degrafa.paint.SolidStroke;
+			import com.degrafa.paint.GradientStop;
+			import com.degrafa.paint.LinearGradientFill;
+			import authoringTool.pieMenu.PieMenu;
+			import authoringTool.pieMenu.MenuItem;
+			import authoringTool.pieMenu.linkCurveMenu;
+			import authoringTool.scenarioChart.components.LinkCurveEvent;
+			import mx.controls.Alert;
+			import authoringTool.scenarioChart.components.ComponentEvent;
+			import caurina.transitions.Tweener;
+			import authoringTool.scenarioChart.ComponentGroup;
+			import mx.collections.ArrayCollection;
+			import authoringTool.scenarioChart.components.CircleComponent;
+			import authoringTool.scenarioChart.components.RectangleComponent;
+			import authoringTool.scenarioChart.components.BooleanComponent;
+			import authoringTool.scenarioChart.components.StartComponent;
+			import authoringTool.scenarioChart.components.EndComponent;
+			import authoringTool.scenarioChart.components.EdgeDeviceComponent;
+			import authoringTool.scenarioChart.SurfaceComponent;
+			
+			import savoirComp.InfoPopupWindow;
+			import mx.utils.ObjectUtil;
+			import com.degrafa.skins.CSSSkin;
+			import flash.net.URLLoader;
+			import flash.net.URLLoaderDataFormat;
+			import flash.net.URLRequest;
+			import flash.net.URLRequestHeader;
+			import flash.net.URLRequestMethod;
+			import flash.net.URLVariables;
+			import flash.events.HTTPStatusEvent;
+	        import flash.events.IOErrorEvent;
+	        import flash.events.DataEvent;
+	        import flash.events.Event;
+	        import mx.managers.IBrowserManager;
+        	import mx.managers.BrowserManager;
+	
+	
+	        
+			
+			private var authHost:String = new String();
+			private var schemaLoc:String = new String();
+
+			public var surface:SurfaceComponent;
+			private var apnCas:APNCanvas;
+			
+			
+			private var linkMenu:PieMenu;
+			
+			private var operation:String = "load";
+			public var operationSO:SharedObject;
+			
+			
+			public var authoredScenario:XML = new XML();
+			public var authoredScenarioDispMetaData:XML = <components>
+			                                              </components>;
+			public var apnSetting:XML = <apn>
+			                            </apn>;
+			
+			public var maxNodeID:Number = 0;
+			
+			public var urlRequest:URLRequest;
+			public var urlLoader:URLLoader;
+			public var infoWindow:ScenarioInfoPopupWindow;
+			
+			public var resNodeIdsCol:ArrayCollection = new ArrayCollection();
+			
+			private var fullUrl:String;
+			private var appWidth:Number = 0;
+			private var appHeight:Number = 0;
+			public var serverNameText:String;
+			private var customContextMenu:ContextMenu;
+			private var menuItem:ContextMenuItem;
+			private function init():void{
+				 
+//	            var theContextObj:ComponentGroupContextMenu = new ComponentGroupContextMenu();
+//	            var theContextMenu:ContextMenu = theContextObj.compConextMenu;
+//				this.mainCanvas.contextMenu = theContextMenu;
+                
+				
+				var browserManager:IBrowserManager = BrowserManager.getInstance();
+
+ 				authHost = resourceManager.getString("savoirFlex", "savoir.auth.deploy.host");
+				schemaLoc = "http://" + authHost + "/xsd/scenario.xsd";
+				
+				// Most of these harcoded values are overridden when the scenario is saved
+				authoredScenario = <scenario
+										scenarioId="5" 
+										scenarioName="" 
+										authorId="" 
+										authorName="" 
+										lastModified="2010-06-30T16:15:47Z" 
+										xsi:noNamespaceSchemaLocation={schemaLoc} 
+										xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+										</scenario>;
+      
+            	browserManager.init("", "");
+            	fullUrl = browserManager.url;
+            	serverNameText = mx.utils.URLUtil.getServerName(fullUrl);
+
+            	getEdgeDevProfileFiles();
+//            	initEdgeDevProfile();
+            	
+				surface = new SurfaceComponent();
+				surface.id = "authoringSurface";
+				surface.name = "authoringSurface";
+				apnCas = new APNCanvas();
+				//surface.height = this.mainCanvas.height;
+				surface.percentHeight = 100;
+				//surface.width = this.mainCanvas.width;
+				surface.percentWidth = 100;
+				apnCas.percentHeight = 100;
+				//apnCas.width = this.mainCanvas.width;
+				apnCas.percentWidth = 100;
+				//var vb:VBox = new VBox();
+				//vb.percentHeight = 100;
+				//vb.percentWidth = 100;
+				
+				//vb.addChild(surface);
+				
+				//this.vb.setChildIndex(surface, 0);
+				//vb.addChild(apnCas);
+				//mainCanvas.removeAllChildren();
+				//this.mainCanvas.addChild(surface);
+				
+
+				mainVBox.addChild(surface);
+//				if(this.showAPNPanel.selected){
+//					apnPanel.visible = true;
+//					apnPanel.removeAllChildren();
+//					apnPanel.addChild(apnCas);
+//					apnPanel.percentWidth = 40;
+//					apnPanel.percentHeight = 100;
+//				}else{
+//					apnPanel.visible = false;
+//					apnPanel.width = 0;
+//					
+//				}
+				
+				//this.vb.setChildIndex(apnCas, 1);
+				
+				
+				//var circle1:CircleComponent = surface.addCircle(50,50);
+				//var circle2:CircleComponent = surface.addCircle(200,200);
+				//var rectangle1:RectangleComponent = surface.addRectangle(300,300);
+				//var boolean1:BooleanComponent = surface.addBoolean(500,500);
+				getActionFromSharedObject();
+				trace(operation);
+
+				//because surface dont have mouse down event we have to listen this
+				this.addEventListener(MouseEvent.MOUSE_DOWN, mouseDownOnMain);
+				this.addEventListener(MouseEvent.MOUSE_UP, mouseUpOnMain);
+				this.addEventListener(MouseEvent.CLICK, mouseClickOnMain);
+				
+				surface.addEventListener(ComponentEvent.COMPONENT_SELECTED, componentSelectedHandler);
+				surface.addEventListener(ComponentEvent.COMPONENT_UNSELECTED, componentUnselectedHandler);
+				surface.addEventListener(ComponentEvent.COMPONENT_MOVE, componentMoveHandler);
+				surface.addEventListener(ComponentEvent.REMOVE_COMPONENT, componentRemoveHandler);
+				surface.addEventListener(ComponentEvent.ADD_COMPONENT,componentAddHandler);
+				//surface.addEventListener(MouseEvent.CLICK, surfaceClickHandler);
+				//this.testTextInput.setFocus();
+				//addEventListener(KeyboardEvent.KEY_UP, deleteKeyPressHandler);
+				surface.setFocus();
+				this.showGrid();
+				
+				menuItem= new ContextMenuItem("Delete It");
+				menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,handleDelete);
+				
+				customContextMenu = new ContextMenu();
+				customContextMenu.hideBuiltInItems();
+				customContextMenu.builtInItems.print = false;
+				
+			    customContextMenu.customItems.push(menuItem);
+				this.surface.contextMenu = customContextMenu;
+			}
+			
+			private function surfaceClickHandler(event:MouseEvent):void{
+				if(!(event.target is ComponentGroup)){
+					//Alert.show("here::" + event.currentTarget.toString() + " : " + event.target.toString());
+					if(this.surface.selectedObject != null){
+        				this.surface.selectedObject.selected = false;
+        				this.surface.selectedObject = null;
+        				
+        				this.surface.unFocus(event.currentTarget as ComponentGroup);
+        				this.surface.dispatchEvent(new ComponentEvent(ComponentEvent.COMPONENT_UNSELECTED));
+	        				
+	        			//its unselected -> select it
+	        		}
+				}
+			}
+			
+			private function handleDelete(event:ContextMenuEvent):void{
+				trace("menuItemSelectHandler: " + event);
+				if(event.mouseTarget is ComponentGroup){
+		            var comp:ComponentGroup = ComponentGroup(event.mouseTarget);
+		            comp.remove();
+	            }
+	            this.surface.removeComponent(comp);
+			}
+			
+			private function getEdgeDevProfileFiles():void{
+				var httpServiceFiles:HTTPService = new HTTPService();
+				httpServiceFiles.resultFormat = "text";
+				httpServiceFiles.addEventListener(ResultEvent.RESULT, httpServiceFilesResultHandler);
+				httpServiceFiles.addEventListener(FaultEvent.FAULT, httpServiceFilesFaultHandler);
+				httpServiceFiles.url = "http://" + this.serverNameText + "/profileRepos/";
+				httpServiceFiles.send();
+			}
+			
+			private var filesXML:XML = <profFiles>
+			                           </profFiles>;
+			private function httpServiceFilesResultHandler(event:ResultEvent):void{
+				var fileListStr:String = event.result.toString();
+				var pattern:RegExp = /<a.*?<\/a>/g;
+				var fileListAry:Array = fileListStr.match(pattern);
+				for each(var fItem:String in fileListAry){
+					filesXML.appendChild(XML(fItem));
+				}
+				initEdgeDevProfile();
+				
+				
+			}
+			
+			private function findOutProfileName(edgeDevName:String):String{
+				var edLC:String = edgeDevName.toLowerCase();
+				var allFilesList:XMLList = filesXML.a;
+				var result:String = "";
+				for each (var item:XML in allFilesList){
+					var itemValue:String = item.toString();
+					var itemValueLC:String = itemValue.toLowerCase();
+					if(itemValueLC.indexOf(edLC) != -1){
+						
+						result = StringUtil.trim(itemValue) + ";" + result;
+					}
+				}
+				return result;
+			}
+			
+			private function httpServiceFilesFaultHandler(event:FaultEvent):void{
+   		    		var popupWindow:InfoPopupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to fetch edge device profile file List on server " + this.serverNameText +  
+   		    				"\nReason is " + event.message);
+   		    		
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+			}
+			
+			private function sendGetProfiles(profilesStr:String):void{
+				var httpService:HTTPService = new HTTPService();
+				httpService.resultFormat = "text";
+				httpService.addEventListener(ResultEvent.RESULT, httpServiceResultHandler);
+				httpService.addEventListener(FaultEvent.FAULT, httpServiceFaultHandler);
+				var profileList:Array = profilesStr.split(";");
+				for(var i:Number = 0; i < profileList.length; i++){
+					var result:String = profileList[i];
+					result = StringUtil.trim(result);
+					if(result != ""){
+						httpService.url = "http://" + this.serverNameText + "/profileRepos/" + result;
+						httpService.send();
+					}
+				}
+			}
+			
+			private function initEdgeDevProfile():void{
+                var allFilesList:XMLList = filesXML.a;
+                for each (var item:XML in allFilesList){
+                	var itemValue:String = StringUtil.trim(item.toString());
+                	if(itemValue.substr(itemValue.length-4) == ".xml"){
+					   sendGetProfiles(itemValue);
+                	}
+                }
+				
+			}
+			
+			private function httpServiceResultHandler(event:ResultEvent):void{
+				
+				var resultXML:XML = XML(event.result.toString());
+				
+				var resName:String = resultXML.service.@name;
+				var resId:String = resultXML.service.@ID;
+				var resProfiles:XML = <resources>
+				                      </resources>;
+				var orginalResName:String = resName;                      
+				resName = StringUtil.trim(resName);
+				resName = resName.toLowerCase();
+				//Alert.show(event.result.toString());
+				var activities:XMLList = resultXML.service.activities.activity;
+				//Alert.show(resName);
+				//Alert.show(activities.toXMLString());              
+                var resImageURI:String = "http://" + this.serverNameText + "/images/medium_"
+					+ resultXML.service.widget.icon.@name + "." + resultXML.service.widget.icon.@format;
+				var resIconURI:String = "http://" + this.serverNameText + "/images/small_"
+					+ resultXML.service.widget.icon.@name + "." + resultXML.service.widget.icon.@format;	
+                var resXml:XML = <resource id={resId} name={orginalResName} imageURI={resImageURI}>
+					              </resource>;
+					
+				resXml.appendChild(activities);
+				resProfiles.appendChild(resXml);
+				//Alert.show(resName);
+				this.addEdgeDevCompIntoControlPanel(resIconURI, orginalResName);
+				this.settings.resourceProfiles.appendChild(resProfiles.resource);
+				
+			}
+			
+			private function httpServiceFaultHandler(event:FaultEvent):void{
+   		    		var popupWindow:InfoPopupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to fetch edge device profile files on server " + this.serverNameText +  
+   		    				"\nReason is " + event.message);
+   		    		
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+			}
+			
+			private function componentAddHandler(event:ComponentEvent):void{
+				adjustSurface(event.component.x,event.component.y);
+			}
+			
+			private function componentMoveHandler(event:ComponentEvent):void{
+				adjustSurface(event.component.x,event.component.y);
+			}
+			
+			private function componentRemoveHandler(event:ComponentEvent):void{
+				
+			}
+			
+			private function handleAuthorResize(event:ResizeEvent):void{
+//don't auto scale
+//				var widthScale:Number = 1;
+//				var heightScale:Number = 1;
+//				if(this.appHeight == 0 || this.appWidth == 0){
+//					this.appWidth = this.width;
+//					this.appHeight = this.height;
+//					return;
+//				}
+//				widthScale = this.width / this.appWidth;
+//				heightScale = this.height / this.appHeight;
+//
+//				if(heightScale > widthScale){
+//				    slideri.value = widthScale;
+//				}else{
+//					slideri.value = heightScale;
+//				}
+				
+//				trace("slideri value is: " + slideri.value);
+//				trace("this.width = " + this.width);
+//				trace("this.appWidth = " + this.appWidth);
+//				trace("this.appHeight = " + this.appHeight);
+//				trace("this.height = " + this.height);
+//				trace("surface parent width and height: " + this.surface.parent.name + " : " + this.surface.parent.width + " : " + this.surface.parent.height);
+//				trace("surface.width = " + this.surface.width);
+//				trace("surface.height = " + this.surface.height);
+//				trace("slideri.value = " + slideri.value);
+                if(surface == null ){
+                	return;
+                }
+				for each(var item:ComponentGroup in surface.components){
+					
+					trace("Item parent " + item.parent.name + " : " + item.parent.width + " : " + item.parent.height);
+					trace("Item x and y are : " + item.x + " : " + item.y);
+					var scaledY:Number = item.y * this.surface.scaleY;
+					trace("scaledY = " + scaledY);
+					if(scaledY > this.surface.height){
+					this.surface.height = scaledY + 60;
+					}
+					var scaledX:Number = item.x * this.surface.scaleX;
+					trace("scaledX = " + scaledX);
+					if(scaledX > this.surface.width){
+					this.surface.width = scaledX + 60;
+					}
+					trace("surface.width = " + this.surface.width);
+				    trace("surface.height = " + this.surface.height);
+				}
+//				mainHBox.validateNow();
+//				mainHBox.invalidateProperties();
+//				mainHBox.invalidateSize();
+//				mainHBox.invalidateDisplayList();
+				//this.surface.parent.dispatchEvent();
+				trace(mainCanvas.parent.width);
+				trace(mainCanvas.width);
+				trace(this.surface.parent.width);
+				
+				this.invalidateSize();
+				this.invalidateDisplayList();
+				this.validateNow();
+				this.surface.updateLines();
+				
+				
+				//don't change scale
+//			    slideri.dispatchEvent(new SliderEvent(SliderEvent.CHANGE)); 
+				
+			}
+			
+			private function showhandler():void{
+				surface.setFocus();
+			}
+			
+			private function deleteKeyPressHandler(event:KeyboardEvent):void{
+        	  if(event.keyCode == 46){
+        	    surface.removeSelectedComponent();
+        	  }
+        	  surface.setFocus();
+            }
+			
+			private function getActionFromSharedObject():void{
+				operationSO = SharedObject.getLocal("authoringOperation","/");
+				if(operationSO != null){
+					operation  = operationSO.data.authoringOperation;
+				}else{
+					operation = "create";
+				}
+				
+			}
+			
+			private function componentSelectedHandler(event:ComponentEvent):void{
+				trace("component show!!!")
+				
+				var surfaceObj:SurfaceComponent = SurfaceComponent(event.currentTarget);
+				var edgeDevName:String = ""
+				if(surfaceObj.selectedObject is EdgeDeviceComponent){
+					edgeDevName = EdgeDeviceComponent(surfaceObj.selectedObject).edgeDeviceName;
+					settings.initialSetting(edgeDevName,surfaceObj.selectedObject);
+				}else if(surfaceObj.selectedObject is BooleanComponent){
+					settings.initialSetting("EdgeDeviceTransitionDiamond", surfaceObj.selectedObject);
+				}else if(surfaceObj.selectedObject is StartComponent){
+					settings.initialSetting("Start", surfaceObj.selectedObject);
+				}else if(surfaceObj.selectedObject is EndComponent ){
+					settings.initialSetting("End", surfaceObj.selectedObject);
+				}
+				settings.show();
+				mainHBox.setConstraintValue("right",600);
+				mainHBox.validateNow();
+				
+			}
+			private function componentUnselectedHandler(event:ComponentEvent):void{
+				settings.hide();
+				mainHBox.setConstraintValue("right",0);
+				//Alert.show("0");
+			}
+			
+			private function mouseDownOnMain(event:MouseEvent):void{
+				if(event.target == this || event.target == surface.lines){
+					this.addEventListener(MouseEvent.MOUSE_MOVE,mouseMoveOnMain);
+					surface.startDrag();
+				}
+			}
+			
+			private function mouseUpOnMain(event:MouseEvent):void{
+				this.removeEventListener(MouseEvent.MOUSE_MOVE,mouseMoveOnMain);
+				surface.stopDrag();
+			}
+			
+			private function mouseMoveOnMain(event:MouseEvent):void{
+				surface.updateLines();
+			}
+			
+			private function mouseClickOnMain(event:MouseEvent):void{
+				//Alert.show("unfocus" + event.target.toString() + " : " + event.currentTarget.toString());
+				if((event.target == mainVBox  || event.target is SurfaceComponent) && surface.selectedObject != null){
+					//Alert.show("unfocus");
+					surface.unFocus(surface.selectedObject);
+					
+				}
+				
+				if(event.target.toString().indexOf( "hideButton") != -1 ){
+					showButton.visible = true;
+					this.mainHBox.setConstraintValue("right",0);
+				}else if(event.target == mainVBox  || event.target is SurfaceComponent){
+					if(this.settings.isShown == true){
+						showButton.visible = true;
+						this.settings.hide();
+						this.mainHBox.setConstraintValue("right",0);
+					}
+				}
+				//Alert.show("0"+ event.target.toString() + ":" + event.currentTarget.toString());
+			}
+			
+			private function resizeSurface():void{
+				
+			}
+			
+			private function addCircle(event:MouseEvent):void{
+				
+				var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				var compY:Number = (event.stageY-surface.y)/surface.scaleY;
+				var newCircle:CircleComponent = surface.addCircle(compX,compY,true);
+				
+			}
+			
+			private function addRectangle(event:MouseEvent):void{
+				
+				var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				var compY:Number = (event.stageY-surface.y)/surface.scaleY;
+				var newCircle:RectangleComponent = surface.addRectangle(compX,compY,true);
+				
+			}
+			
+			private function addBoolean(event:MouseEvent):void{
+				
+				//var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				//var compY:Number = (event.stageY-surface.y)/surface.scaleX;
+				var compX:Number = event.stageX + this.mainCanvas.x;
+				var compY:Number = event.stageY - this.mainCanvas.y;
+				var newCircle:BooleanComponent = surface.addBoolean(compX,compY,true);
+				
+				
+			}
+			
+			private function addStart(event:MouseEvent):void{
+				//var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				//var compY:Number = (event.stageY-surface.y)/surface.scaleX;
+				var compX:Number = event.stageX + this.mainCanvas.x;
+				var compY:Number = event.stageY - this.mainCanvas.y;
+				var newStart:StartComponent = surface.addStart(compX,compY,true);
+				
+			}
+			
+			private function addEnd(event:MouseEvent):void{
+				//var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				//var compY:Number = (event.stageY-surface.y)/surface.scaleX;
+				var compX:Number = event.stageX + this.mainCanvas.x;
+				var compY:Number = event.stageY - this.mainCanvas.y;
+				var newEnd:EndComponent = surface.addEnd(compX,compY,true);
+				
+			}
+			
+			private function addRectEdgeDeviceComponent(edContComp:EdgeDeviceControlComponentHBox):void{
+				//var compX:Number = (event.stageX-surface.x)/surface.scaleX;
+				//var compY:Number = (event.stageY-surface.y)/surface.scaleX;
+				var compX:Number = edContComp.stage.x + this.mainCanvas.x;
+				var compY:Number = edContComp.stage.y - this.mainCanvas.y;
+				var edName:String = edContComp.edgeDeviceName;
+				var resProf:XML = this.settings.findOutResProfile(edName);
+				var newComp:RectangleEdgeDeviceComponent = surface.addRectEdgeDeviceComponent(compX,compY,resProf,true);
+				
+				newComp.edgeDeviceName = edName;
+			}
+			
+			private function adjustSurface(compX:Number, compY:Number):void{
+				
+				var scaledY:Number = compY * this.surface.scaleY;
+				trace((Canvas(this.surface.parent.parent)).verticalScrollBar);
+				if(scaledY > this.surface.height){
+					this.surface.height = scaledY + 60;
+					this.mainCanvas.invalidateProperties();
+					this.mainCanvas.invalidateSize();
+					this.mainCanvas.validateNow();
+					trace((Canvas(this.surface.parent.parent)).verticalScrollBar);
+					
+					//trace((VBox(this.surface.parent)).verticalScrollBar);
+					//(VBox(this.surface.parent)).verticalScrollBar.scrollPosition = this.surface.height;
+				}
+				var scaledX:Number = compX * this.surface.scaleX;
+				
+				if(scaledX > this.surface.width){
+					this.surface.width = scaledX + 60;
+					this.mainCanvas.invalidateProperties();
+					this.mainCanvas.invalidateSize();
+					this.mainCanvas.validateNow();
+					//(VBox(this.surface.parent)).horizontalScrollBar.scrollPosition = this.surface.width;
+				}
+				(Canvas(this.surface.parent.parent)).verticalScrollPosition = scaledY;
+				(Canvas(this.surface.parent.parent)).horizontalScrollPosition = scaledX;
+				
+			}
+			
+			private function saveData():void{
+				var saveArray:ArrayCollection = new ArrayCollection();
+				
+				for(var i:int=0;i<surface.components.length;i++){
+					
+					var component:ComponentGroup = surface.components.getItemAt(i) as ComponentGroup;
+					var tmpData:Object = new Object();
+					
+					tmpData.dbID = component.dbID;
+					tmpData.componentType = component.componentType;
+					tmpData.x = component.x;
+					tmpData.y = component.y;
+					
+				}
+			}
+			
+			private function showGrid():void{
+				surface.showGrid = showGridCheckBox.selected;
+				
+				if(showGridCheckBox.selected == true){
+					surface.snapToGrid = snapToGrid.selected;
+					snapToGrid.enabled = true;
+				}else{
+					snapToGrid.enabled = false;
+					surface.snapToGrid = false;
+				}
+			}
+			
+			private function snapGrid():void{
+				surface.snapToGrid = snapToGrid.selected;
+			}
+			
+			private function saveClickHandler(event:MouseEvent):void{
+				//Alert.show("The scenario has been saved into servr successfully!", "Save Result");
+                var despWindow:ScenarioDescriptionInputWindow = ScenarioDescriptionInputWindow(PopUpManager.createPopUp(this, ScenarioDescriptionInputWindow, true));
+                PopUpManager.centerPopUp(despWindow);
+//                Alert.show(authoredScenario.toString()); 
+                               
+			}
+			public var scenarioDesp:String = null;
+			public function generateScenarioAndShow():void{
+				var desp:XML = XML("<description>" + scenarioDesp + "</description>");
+				authoredScenario.appendChild(desp);
+				if(apnSetting.children().length() > 0){
+					authoredScenario.appendChild(this.apnSetting);
+				}
+				var nodes:XML = <nodes>
+				                </nodes>;
+				var links:XML = <links>
+				                </links>;                
+				var endNode:XML = null;                
+				for each(var comp:ComponentGroup in this.surface.components){
+					if(comp == null){
+					//Alert.show("comp is null");
+					continue;
+					}
+					var compX:Number = Math.round(comp.x);
+					var compY:Number = Math.round(comp.y);
+					if(comp is StartComponent){
+						var stNodeId:Number = (StartComponent(comp)).nodeID;
+						
+						var startNode:XML = <startNode nodeId={stNodeId} x={compX} y={compY}/>;
+						nodes.insertChildAfter(null,startNode);
+						if((StartComponent(comp)).getLowerNode() == null){
+							continue;
+						}
+						var lowerNodeId:Number = (StartComponent(comp)).getLowerNode().nodeID;
+						var stLink:XML = <link to={lowerNodeId} from={stNodeId}/>;
+						links.appendChild(stLink);
+//						var stX:Number = comp.x;
+//						var stY:Number = comp.y;
+//						var stCompDispMetaData:XML = <component componentType="start" nodeId={stNodeId} x={stX} y={stY}>
+//						                                 <link to={lowerNodeId} from={stNodeId}/>
+//						                             </component>    
+//						authoredScenarioDispMetaData.appendChild(stCompDispMetaData); 
+					}else if(comp is EndComponent){
+						var endNodeId:Number = (EndComponent(comp)).nodeID;
+						endNode = <endNode nodeId={endNodeId} x={compX} y={compY}/>;
+//						nodes.insertChildBefore(null,endNode);
+//						var upNodeId:Number = (EndComponent(comp)).getUpperNode().nodeID;
+                        var upperNodes:ArrayCollection = (EndComponent(comp)).getUpperNodes();
+                        if(upperNodes == null){
+                        	//Alert.show("upperNodes is null");
+                        	continue;
+                        }
+                        if(upperNodes.length == 0){
+                        	continue;
+                        }
+                        for each(var upperNode:EdgeDeviceComponent in upperNodes){
+                        	var upNodeId:Number = upperNode.nodeID;
+                        	var endLink:XML = <link to={endNodeId} from={upNodeId}/>;
+							links.appendChild(endLink);
+                        }
+						
+//						var endX:Number = comp.x;
+//						var endY:Number = comp.y;
+//						var endCompDispMetaData:XML = <component componentType="end" nodeId={endNodeId} x={endX} y={endY}>
+//						                                 <link to={endNodeId} from={upNodeId}/>
+//						                             </component>    
+//						authoredScenarioDispMetaData.appendChild(endCompDispMetaData); 
+					}else if(comp is BooleanComponent){
+						if((BooleanComponent(comp)).getUpperNode() == null || (BooleanComponent(comp)).getLowerNode() == null){
+							continue;
+						}
+						var upDevNodeId:Number = (BooleanComponent(comp)).getUpperNode().nodeID;
+						var downDevNodeId:Number = (BooleanComponent(comp)).getLowerNode().nodeID;
+						var tranLink:XML = <link to={downDevNodeId} from={upDevNodeId}>
+						                   </link>;
+						tranLink.appendChild((BooleanComponent(comp)).rulesXMLList);
+						links.appendChild(tranLink);
+//						var booleanX:Number = comp.x;
+//						var booleanY:Number = comp.y;
+//						var booleanNodeId:String = upDevNodeId.toString() + "-" + downDevNodeId.toString();
+//						var booleanCompDispMetaData:XML = <component componentType="boolean" nodeId={booleanNodeId} x={booleanX} y={booleanY}>
+//						                                 <link to={downDevNodeId} from={upDevNodeId}/>
+//						                             </component>    
+//						authoredScenarioDispMetaData.appendChild(booleanCompDispMetaData); 
+					}else{
+						//all else are edge device components
+						var resNodeXML:XML = (EdgeDeviceComponent(comp)).resourceNodeXML;
+						var edNodeId:Number = (EdgeDeviceComponent(comp)).nodeID;
+						var edCompType:String = (EdgeDeviceComponent(comp)).edgeDeviceName;
+						nodes.appendChild(resNodeXML);
+//						var edX:Number = comp.x;
+//						var edY:Number = comp.y;
+//						var edCompDispMetaData:XML = <component componentType={edCompType} nodeId={edNodeId} x={edX} y={edY}/>
+//						                                     
+//						authoredScenarioDispMetaData.appendChild(edCompDispMetaData);
+					}
+				}
+				nodes.insertChildBefore(null,endNode);
+				authoredScenario.appendChild(nodes);
+				authoredScenario.appendChild(links.link);
+				trace(authoredScenario.toXMLString());
+//				trace(authoredScenarioDispMetaData.toXMLString());
+				infoWindow = ScenarioInfoPopupWindow(PopUpManager.createPopUp(this, ScenarioInfoPopupWindow, true));
+                infoWindow.title = "Created Scenario";
+//                infoWindow.scenarioDispMetaData = authoredScenarioDispMetaData;
+                infoWindow.scenario = authoredScenario;
+                infoWindow.setMessage(authoredScenario.toXMLString());
+                //infoWindow.formatInfoBox();
+//                infoWindow.addEventListener(MouseEvent.CLICK,handleInfoWindowClick);;
+                PopUpManager.centerPopUp(infoWindow); 
+			}
+//			private var submitedFile:FileReference = new FileReference();
+//			
+//			private function submitClickHandler(event:MouseEvent):void{
+//				submitedFile.addEventListener(Event.SELECT, handleSubmitedFileSelect);
+//				submitedFile.addEventListener(Event.COMPLETE, handleSubmitedFileComplete);
+//				submitedFile.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, handleUploadCompData);
+//				
+//				// Have the user browse for the scenario file to upload
+//            	try
+//            	{
+//            		submitedFile.browse( [new FileFilter("XML File","*.xml")]);
+//            	}
+//				catch (error:Error)
+//				{
+//   		    		// Add the message to the popup window
+//   		    		var popupWindow:InfoPopupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+//   		    		popupWindow.title = "ERROR: File Browser Error";
+//   		    		popupWindow.setMessage("ERROR: The system was unable to browse "
+//   		    			+ "for scenario files.\n"
+//   		    			+ "Generated in the click handler for the submit scenario button.\n\n"
+//   		    			+ "Please contact your Savoir Admin regarding this issue and send\n"
+//   		    			+ "him/her the above error\n");
+//   		    	
+//					// Change the popup into an info only dialog box
+//					popupWindow.formatInfoBox();
+//				
+//   		    		// Popup the message
+//   		    		PopUpManager.centerPopUp(popupWindow);
+//				}
+//			}
+//			
+//			private function handleSubmitedFileSelect(event:Event):void{
+//				var uploadRequest:URLRequest;
+//    			
+//    			uploadRequest = new URLRequest("http://" + this.serverName.data.serverName
+//    				+ "/SAVOIR_WebBroker/SavoirScenarioAdmin");
+//    			uploadRequest.method = URLRequestMethod.POST;
+//    			
+//    			try
+//    			{
+//        			submitedFile.upload(uploadRequest);
+//    			}
+//    			catch (error:Error)
+//    			{
+//   		    		// Add the message to the popup window
+//   		    		var popupWindow:InfoPopupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+//   		    		popupWindow.title = "ERROR: File Browser Error";
+//   		    		popupWindow.setMessage("ERROR: The system was unable to upload "
+//   		    			+ "the selected scenario file.\n"
+//   		    			+ "Generated in the click handler for the open button of the scenario\n"
+//   		    			+ "file browser.\n\n"
+//   		    			+ "Please contact your Savoir Admin regarding this issue and send\n"
+//   		    			+ "him/her the above error\n");
+//   		    	
+//					// Change the popup into an info only dialog box
+//					popupWindow.formatInfoBox();
+//				
+//   		    		// Popup the message
+//   		    		PopUpManager.centerPopUp(popupWindow);
+//    			}
+//			}
+//			
+//			private function handleSubmitedFileComplete(event:Event):void{
+//				// Save this information in a string to be used in the handleUploadCompData function
+//    			// since that should be the only place that pops up a message - only want one pop up
+//    			scenarioUploadStatus = "The scenario file was uploaded successfully.";
+//			}
+			
+			private var openedFile:FileReference = new FileReference();
+			private function openClickHandler(event:MouseEvent):void{
+				//this.surface.cleanAllComponents();
+				openedFile.addEventListener(Event.SELECT, handleFileSelect);
+				openedFile.addEventListener(Event.COMPLETE, handleFileComplete);
+				openedFile.browse( [new FileFilter("XML File","*.xml")]);
+			}
+			
+			private function handleFileSelect(event:Event):void{
+				openedFile.load();
+			}
+			
+			private function handleFileComplete(event:Event):void{
+				XML.ignoreComments = false;
+				this.authoredScenario = XML(openedFile.data.readMultiByte(openedFile.data.bytesAvailable, "utf-8"));
+				var apnList:XMLList = this.authoredScenario.apn;
+				if(apnList != null){
+					if(apnList.length() > 0){
+				      this.apnSetting = XML(apnList[0]);
+				    }
+				}
+//				var comments:XMLList = authoredScenario.comments();
+//				var metaIndex:Number = comments.length() - 1;
+//				var dispMetaCommStr:String = (XML(comments[metaIndex])).toXMLString();
+//				var stIndex:Number = dispMetaCommStr.indexOf("<!--") + 4;
+//				var endIndex:Number = dispMetaCommStr.indexOf("-->");
+//				var dispMetaStr:String = dispMetaCommStr.substring(stIndex,endIndex);
+//				this.authoredScenarioDispMetaData = XML(dispMetaStr);
+//				trace("authoredScenarioDispMetaData:\n" + authoredScenarioDispMetaData.toXMLString());
+				formScenarioDispMeta();
+				//Alert.show("authoredScenarioDispMetaData:\n" + authoredScenarioDispMetaData.toXMLString());
+				constructScenarioDisplay();
+                
+			}
+			
+			private function formScenarioDispMeta():void{
+				var resNodeList:XMLList = this.authoredScenario.nodes.resourceNode;
+				var startNode:XML = XML((this.authoredScenario.nodes.startNode)[0]);
+				var endNode:XML = XML((this.authoredScenario.nodes.endNode)[0]);
+				var linkList:XMLList = this.authoredScenario.link;
+				for each (var res:XML in resNodeList){
+					var theNodeId:String = res.@nodeId;
+					var compX:String = res.@x;
+					var compY:String = res.@y;
+					var compType:String = res.resource.@name;
+					var comp:XML = <component componentType={compType} nodeId={theNodeId} x={compX} y={compY}/>;
+					this.authoredScenarioDispMetaData.appendChild(comp);
+					var currNodeId:Number = Number(theNodeId);
+					if(currNodeId > this.maxNodeID){
+						this.maxNodeID = currNodeId;
+					}
+				}
+				var stCompX:String = startNode.@x;
+				var stCompY:String = startNode.@y;
+				var stComp:XML = <component componentType="start" nodeId="0" x={stCompX} y={stCompY}>
+				                 </component>;
+				var endCompX:String = endNode.@x;
+				var endCompY:String = endNode.@y;
+				var endCompNodeId:Number = Number(endNode.@nodeId);
+				var endComp:XML = <component componentType="end" nodeId={endCompNodeId} x={endCompX} y={endCompY}>
+				                  </component>;
+				for each (var link:XML in linkList){
+					var fromNodeId:Number = Number(link.@from);
+					var toNodeId:Number = Number(link.@to);
+					if(fromNodeId == 0){
+						stComp.setChildren(link);
+					}else if(toNodeId == endCompNodeId){
+						endComp.appendChild(link);
+					}else{
+						var booleanCompX:Number =  calculateXForBooleanComponent(fromNodeId,toNodeId);
+						var booleanCompY:Number =  calculateYForBooleanComponent(fromNodeId, toNodeId);
+						var booleanNodeId:String = fromNodeId.toString() + "-" + toNodeId.toString();
+						var booleanComp:XML = <component componentType="boolean" nodeId={booleanNodeId} x={booleanCompX} y={booleanCompY}>
+						                      </component>;
+						booleanComp.setChildren(link);
+						this.authoredScenarioDispMetaData.appendChild(booleanComp);                      
+					}
+					
+				}
+				this.authoredScenarioDispMetaData.appendChild(stComp);
+				this.authoredScenarioDispMetaData.appendChild(endComp);
+				trace(authoredScenarioDispMetaData.toXMLString());                                   
+			}
+			
+			private function calculateXForBooleanComponent(fNodeId:Number, tNodeId:Number):Number{
+				var fX:Number = Number(this.authoredScenario.nodes.resourceNode.(@nodeId==fNodeId).@x);
+				var tX:Number = Number(this.authoredScenario.nodes.resourceNode.(@nodeId==tNodeId).@x);
+				var bX:Number = 0;
+				if(tX > fX){
+					bX = fX + ((tX - fX)/2);
+				}else{
+					bX = tX + ((fX - tX)/2);
+				}
+				return bX;
+			}
+			
+			private function calculateYForBooleanComponent(fNodeId:Number, tNodeId:Number):Number{
+				var fY:Number = Number(this.authoredScenario.nodes.resourceNode.(@nodeId==fNodeId).@y);
+				var tY:Number = Number(this.authoredScenario.nodes.resourceNode.(@nodeId==tNodeId).@y);
+				var bY:Number = 0;
+				if(tY > fY){
+					bY = fY + ((tY - fY)/2);
+				}else{
+					bY = tY + ((fY - tY)/2);
+				}
+				return bY;
+			}
+			public var componentProgressIndicator:int = 0;
+			public var isConstructScenarioFromFile:Boolean = false;
+			private var compDict:Dictionary;
+			
+			private function constructScenarioDisplay():void{
+				var components:XMLList = this.authoredScenarioDispMetaData.component;
+				compDict = new Dictionary();
+				isConstructScenarioFromFile = true;
+				for each(var comp:XML in components){
+					var compType:String = comp.@componentType;
+					var orginalCompType:String = compType;
+					compType = StringUtil.trim(compType);
+					var compX:Number = Number(comp.@x);
+					var compY:Number = Number(comp.@y);
+					var nodeIdStr:String = comp.@nodeId;
+					var nodeId:Number = -1;
+					
+					if(compType == "start"){
+						var stComp:StartComponent = this.surface.addStart(compX,compY);
+						nodeId = Number(nodeIdStr);
+						stComp.nodeID = nodeId;
+						compDict[nodeId] = stComp;
+					}else if(compType == "end"){
+						var endComp:EndComponent = this.surface.addEnd(compX,compY);
+						nodeId = Number(nodeIdStr);
+						endComp.nodeID = nodeId;
+						compDict[nodeId] = endComp;
+					}else if(compType == "boolean"){
+						
+						var booleanComp:BooleanComponent = this.surface.addBoolean(compX,compY);
+						compDict[nodeIdStr] = booleanComp;
+					}else {
+						
+						nodeId = Number(nodeIdStr);
+						var resNodes:XMLList = this.authoredScenario.nodes.resourceNode.(@nodeId==nodeId);
+					    var resNode:XML = resNodes[0];
+					    var resName:String = resNode.resource.@name;
+					    var actObj:Object = new Object();
+					    
+					    actObj.name = resNode.resource.activity.@name;
+					    actObj.id = resNode.resource.activity.@id;
+					    var variables:XMLList = resNode.resource.variable;
+					    var variablesAC:ArrayCollection = new ArrayCollection();
+					    for each(var theVar:XML in variables){
+					    	var varObj:Object = new Object();
+					    	varObj.name = theVar.@name;
+					    	varObj.parameter = theVar.@parameter;
+					    	varObj.keepUpdate = theVar.@keepUpdate;
+					    	variablesAC.addItem(varObj);
+					    }
+                        componentProgressIndicator = componentProgressIndicator - 1;
+                        var rectEDComp:RectangleEdgeDeviceComponent = this.surface.addRectEdgeDeviceComponent(compX,compY, this.settings.findOutResProfile(orginalCompType));
+						rectEDComp.nodeID = nodeId;
+						rectEDComp.activity = actObj;
+						rectEDComp.variables = variablesAC;
+						rectEDComp.edgeDeviceName = resName;
+						compDict[nodeId] = rectEDComp;
+						
+					}
+				}
+				
+//				for each(var theComp:XML in components){
+//					var theCompType:String = theComp.@componentType;
+//					theCompType = StringUtil.trim(theCompType);
+//					var nodeIdStr:String = theComp.@nodeId;
+//					Alert.show(theCompType + components.length());
+//					if(theCompType == "start" || theCompType == "end" || theCompType == "boolean"){
+//						var linkList:XMLList = theComp.link;
+//						var link:XML = linkList[0];
+//						var fNode:Number = Number(link.@from);
+//						var tNode:Number = Number(link.@to);
+//						var ruleList:XMLList = authoredScenario.link.(@from==fNode && @to==tNode).rule;
+//						
+//						var fComp:ComponentGroup = compDict[fNode];
+//						var tComp:ComponentGroup = compDict[tNode];
+//						
+//						if(theCompType == "start"){
+//							var stLinkDownPoint:LinkPoint = (StartComponent(fComp)).linkPointDown;
+//							var stToLinkUpPoint:LinkPoint = (EdgeDeviceComponent(tComp)).linkPointUp;
+//							Alert.show("Here draw start link");
+//							this.surface.drawLink(stLinkDownPoint,stToLinkUpPoint);
+//							
+//						}else if(theCompType == "end"){
+//							for each(var theLink:XML in linkList){
+//								var theFromNodeId:Number = Number(theLink.@from);
+//						        var theToNodeId:Number = Number(theLink.@to);
+//						        var theFromComp:ComponentGroup = compDict[theFromNodeId];
+//								var theToComp:ComponentGroup = compDict[theToNodeId];
+//								var endLinkUpPoint:LinkPoint = (EndComponent(theToComp)).linkPointUp;
+//								var endFromLinkDownPoint:LinkPoint = (EdgeDeviceComponent(theFromComp)).linkPointDown;
+//								this.surface.drawLink(endFromLinkDownPoint,endLinkUpPoint);
+//							}
+//						}else if(theCompType == "boolean"){
+//							Alert.show(nodeIdStr);
+//							var theBooleanComp:BooleanComponent = compDict[nodeIdStr];
+//							Alert.show("After Dict");
+//							
+//							var booleanLinkUpPoint:LinkPoint = theBooleanComp.linkPointUp;
+//							try{
+//							var devFromLinkDownPoint:LinkPoint = (EdgeDeviceComponent(fComp)).linkPointDown;
+//							}catch(error:Error){
+//					         Alert.show(error.message);
+//				            }
+//							this.surface.drawLink(devFromLinkDownPoint,booleanLinkUpPoint);
+//							
+//							Alert.show("Here draw boolean link" + nodeIdStr);
+//							var booleanLinkDownPoint:LinkPoint = theBooleanComp.linkPointDown;
+//							var devToLinkUpPoint:LinkPoint = (EdgeDeviceComponent(tComp)).linkPointUp;
+//							this.surface.drawLink(booleanLinkDownPoint,devToLinkUpPoint);
+//							if(ruleList.length() > 0){
+//								theBooleanComp.rulesXMLList = ruleList;
+//								var rulesAC:ArrayCollection =  new ArrayCollection();
+//								for(var i:Number = 0; i < ruleList.length(); i++){
+//									var ruleObj:Object = new Object();
+//									ruleObj.rule = (XML(ruleList[i])).toXMLString();
+//									rulesAC.addItem(ruleObj);
+//								}
+//								theBooleanComp.rules = rulesAC;
+//							}
+//						}
+//					}
+//				}
+				
+			}
+			
+			public function drawLinks():void{
+				var components:XMLList = this.authoredScenarioDispMetaData.component;
+				for each(var theComp:XML in components){
+					var theCompType:String = theComp.@componentType;
+					theCompType = StringUtil.trim(theCompType);
+					var nodeIdStr:String = theComp.@nodeId;
+					//Alert.show(theCompType + components.length());
+					if(theCompType == "start" || theCompType == "end" || theCompType == "boolean"){
+						var linkList:XMLList = theComp.link;
+						if(linkList.length() == 0){
+							continue;
+						}
+						var link:XML = linkList[0];
+						var fNode:Number = Number(link.@from);
+						var tNode:Number = Number(link.@to);
+						var ruleList:XMLList = authoredScenario.link.(@from==fNode && @to==tNode).rule;
+						
+						var fComp:ComponentGroup = compDict[fNode];
+						var tComp:ComponentGroup = compDict[tNode];
+						
+						if(theCompType == "start"){
+							var stLinkDownPoint:LinkPoint = (StartComponent(fComp)).linkPointDown;
+							var stToLinkUpPoint:LinkPoint = (EdgeDeviceComponent(tComp)).linkPointUp;
+							//Alert.show("Here draw start link");
+							this.surface.drawLink(stLinkDownPoint,stToLinkUpPoint);
+							
+						}else if(theCompType == "end"){
+							for each(var theLink:XML in linkList){
+								var theFromNodeId:Number = Number(theLink.@from);
+						        var theToNodeId:Number = Number(theLink.@to);
+						        var theFromComp:ComponentGroup = compDict[theFromNodeId];
+								var theToComp:ComponentGroup = compDict[theToNodeId];
+								var endLinkUpPoint:LinkPoint = (EndComponent(theToComp)).linkPointUp;
+								var endFromLinkDownPoint:LinkPoint = (EdgeDeviceComponent(theFromComp)).linkPointDown;
+								this.surface.drawLink(endFromLinkDownPoint,endLinkUpPoint);
+							}
+						}else if(theCompType == "boolean"){
+							//Alert.show(nodeIdStr);
+							var theBooleanComp:BooleanComponent = compDict[nodeIdStr];
+							//Alert.show("After Dict");
+							
+							var booleanLinkUpPoint:LinkPoint = theBooleanComp.linkPointUp;
+							try{
+							var devFromLinkDownPoint:LinkPoint = (EdgeDeviceComponent(fComp)).linkPointDown;
+							}catch(error:Error){
+					         Alert.show(error.message);
+				            }
+							this.surface.drawLink(devFromLinkDownPoint,booleanLinkUpPoint);
+							
+							//Alert.show("Here draw boolean link" + nodeIdStr);
+							var booleanLinkDownPoint:LinkPoint = theBooleanComp.linkPointDown;
+							var devToLinkUpPoint:LinkPoint = (EdgeDeviceComponent(tComp)).linkPointUp;
+							this.surface.drawLink(booleanLinkDownPoint,devToLinkUpPoint);
+							if(ruleList.length() > 0){
+								theBooleanComp.rulesXMLList = ruleList;
+								var rulesAC:ArrayCollection =  new ArrayCollection();
+								for(var i:Number = 0; i < ruleList.length(); i++){
+									var ruleObj:Object = new Object();
+									ruleObj.rule = (XML(ruleList[i])).toXMLString();
+									rulesAC.addItem(ruleObj);
+								}
+								theBooleanComp.rules = rulesAC;
+							}
+						}
+					}
+				}
+			}
+			
+//			private function handleInfoWindowClick(event:MouseEvent):void{
+//				if(event.target is Button){
+//					var theButton:Button = Button(event.target);
+//					if(theButton.label == "OK"){
+//						urlRequest = new URLRequest();
+//						urlRequest.url = "http://198.164.40.210" 
+//    				+ "/SAVOIR_WebBroker/SavoirScenarioAdmin";
+//						urlRequest.method = URLRequestMethod.POST;
+//						urlRequest.data = authoredScenario.toXMLString();
+//						urlLoader = new URLLoader();
+//						urlLoader.dataFormat = URLLoaderDataFormat.TEXT;
+//						urlLoader.addEventListener(Event.COMPLETE, urlLoaderCompleteHandler);
+//						urlLoader.addEventListener(HTTPStatusEvent.HTTP_STATUS, httpStatusHandler);
+//						urlLoader.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+//					}
+//				}
+//			}
+//			
+//			private function urlLoaderCompleteHandler(event:Event):void
+//			{
+//				
+//			}
+//			private function httpStatusHandler(event:HTTPStatusEvent):void{
+//				
+//			}
+//			private function ioErrorHandler(event:IOErrorEvent):void{
+//				
+//			}
+			
+			private function formScenarioXML():XML{
+				var scenario:XML;
+				return scenario;
+			}
+			
+			private function handleShowAPNPanelClick():void{
+//				if(this.showAPNPanel.selected){
+//					apnPanel.visible = true;
+//					apnPanel.percentWidth = 40;
+//					this.mainCanvas.percentWidth = 60;
+//				}else{
+//					apnPanel.visible = false;
+//					apnPanel.width = 0;
+//					this.mainCanvas.percentWidth = 100;
+//					this.validateDisplayList();
+//					this.mainCanvas.validateProperties();
+//				}
+			}
+			
+			private function handleShowClick(event:MouseEvent):void{
+				if(this.settings.isShown == false){
+					this.settings.initAPNSetting();
+					showButton.visible = false
+					mainHBox.setConstraintValue("right",600);
+					this.settings.show();
+					
+					
+				}
+			}
+			
+			private function resetClickHandler(event:MouseEvent):void{
+				//Alert.show("Before fullUrl is:" + fullUrl);
+				if(fullUrl.indexOf("#") != -1){
+				fullUrl = fullUrl.substring(0,fullUrl.length - 1);
+				}
+            	//Alert.show("After fullUrl is:" + fullUrl);
+            	
+            	var u:URLRequest = new URLRequest(fullUrl);
+            	
+                navigateToURL(u,"_self");
+			}
+			
+//			private function handleMainCasValid(event:Event):void{
+//				if(this.surface.selectedObject == null){
+//				   if(this.surface.lastAddedObject != null){
+//				   	var comp:ComponentGroup = this.surface.lastAddedObject;
+//				   	var globalPoint:Point = comp.localToGlobal(new Point(comp.x,comp.y));
+//				   	this.mainCanvas.verticalScrollPosition = globalPoint.y - this.mainCanvas.y;
+//				   } 
+//				}
+//			}
+            public function handleEdgeDevCompClick(edContComp:EdgeDeviceControlComponentHBox):void{
+            	//Alert.show("handleEdgeDevCompClick");
+//           	var edName:String = "";
+            	//Alert.show(event.target.toString());
+//            	edName = edContComp.edgeDeviceName;
+            	//Alert.show(edName);
+//            	if(event.target is EdgeDeviceControlComponentHBox){
+//            		edName = EdgeDeviceControlComponentHBox(event.target).edgeDeviceName;
+//            		Alert.show(edName);
+//            			
+//            	}else if((UIComponent(event.target)).parent is EdgeDeviceControlComponentHBox){
+//            		edName = EdgeDeviceControlComponentHBox((UIComponent(event.target)).parent).edgeDeviceName;
+//            		Alert.show(edName);
+//            	}
+//            	edName = StringUtil.trim(edName);
+            	
+                this.addRectEdgeDeviceComponent(edContComp);
+                
+            }
+            private function addEdgeDevCompIntoControlPanel(iconSrc:String, edName:String):void{
+            	var edContComp:EdgeDeviceControlComponentHBox = new EdgeDeviceControlComponentHBox();
+            	try{
+            	edContComp.init(iconSrc,edName);
+            	}
+            	catch (error:Error)
+				{
+					Alert.show(error.message);
+				}
+
+            	//Alert.show(iconSrc);
+            	//edContComp.addEventListener(MouseEvent.CLICK,handleEdgeDevCompClick);
+            	var theSpace:Spacer = new Spacer();
+            	theSpace.percentWidth = 100;
+            	theSpace.height = 5;
+            	controlPanelVB.addChild(edContComp);
+            	controlPanelVB.addChild(theSpace);
+            	controlPanelVB.validateDisplayList();
+            	controlPanelVB.validateNow();
+            	try{
+            	edContComp.loadImageIconAndSetLabel();
+            	}catch(error:Error){
+            		Alert.show(error.getStackTrace());
+            	}
+            }
+			
+		]]>
+	</mx:Script>
+	<mx:Style source="savoirStyles.css"/>
+	<mx:HBox x="0" y="0" width="100%" height="40" borderStyle="solid" cornerRadius="8" borderThickness="0" styleName="header" horizontalAlign="right">
+		<mx:filters> 
+		    <flash.filters:BevelFilter id='bevelFilter' xmlns:flash.filters='flash.filters.*' 
+		      angle='270'
+		          blurX='0' blurY='0'
+		          distance='1'
+		          highlightAlpha='0.3' highlightColor='#ffffff' 
+		          knockout='false' quality='0'
+		          shadowAlpha='0.3' shadowColor='#000000' strength='255' type='inner'/>
+		</mx:filters>
+		<extenders:EdgeDeviceImageCache id="edgeDeviceImageCache"/>
+	</mx:HBox>
+	
+	
+	<mx:Canvas color="#FFFFFF" width="186" x="2" bottom="10" top="48">
+	   <mx:VBox id="controlPanelVB" width="100%" height="100%">
+	   	
+	   
+	    <mx:HBox width="100%" height="40" >
+	        <mx:Text height="100%"  width="100%" text="Devices" styleName="smallHeader"/>
+	    </mx:HBox>
+		<mx:HBox x="10" y="10" width="142" height="65" verticalAlign="middle" horizontalAlign="center">
+			<mx:Button label="Start" icon="@Embed(source='/assets/widgets/start.png')" height="50" width="50" click="addStart(event)" fillAlphas="[1.0, 1.0]" fillColors="[#2E2A2A, #2E2A2A]"/>
+			<mx:Button label="End" icon="@Embed(source='/assets/widgets/end.png')" height="50" width="50" click="addEnd(event)" fillAlphas="[1.0, 1.0]" fillColors="[#2E2A2A, #181717]"/>
+		</mx:HBox>
+		<mx:HBox x="10" y="83" width="142" height="55" horizontalAlign="center" verticalAlign="middle">
+			<!--<mx:Button id="addboolean" click="addBoolean(event)" styleName="addBooleanButton" height="40" width="40"/>-->
+			<mx:Button id="addboolean" click="addBoolean(event)"  icon="@Embed(source='/assets/widgets/smallIcons/small_dimandRule.png')" height="50" width="50"/>
+		</mx:HBox>
+		<mx:HRule x="10" y="146" width="142" height="10" strokeColor="#000000" strokeWidth="5"/>
+		<mx:Label x="10" y="156" text="Edge Devices" width="142" height="29" color="#000000" fontSize="15"/>
+		</mx:VBox>
+	</mx:Canvas>
+	<mx:ApplicationControlBar x="0" y="0" width="100%" height="45" fillAlphas="[1.0, 1.0]" fillColors="[#365762, #365762]">
+		<mx:Label text="Authoring Tool" height="37" width="174" color="#FFFFFF" textAlign="center" fontSize="18" fontWeight="normal" paddingLeft="5" paddingRight="5" paddingTop="2"/>
+		<mx:Canvas width="232" height="33">
+			<mx:CheckBox x="10" y="5" visible="true" id="showGridCheckBox" label="Show grid" color="#FFFFFF" selected="false" change="showGrid()"/>
+			<mx:CheckBox x="96" y="5" id="snapToGrid" label="Snap to grid" color="#FFFFFF" visible="false" change="snapGrid()"/>
+			<mx:CheckBox x="96" y="5" label="Show APN Panel" color="#FFFFFF" selected="true" visible="false" click="handleShowAPNPanelClick()" id="showAPNPanel"/>
+		</mx:Canvas>
+		<mx:Canvas height="100%" width="172">
+			<mx:Text text="Zoom:" color="#FFFFFF" y="2"/>
+			<mx:HSlider id="slideri" minimum="0.1" maximum="1.9" value="1" change="{surface.scale(slideri.value)}" snapInterval="0.1" y="15"/>
+		</mx:Canvas>
+		<mx:Button id="addrectangle" click="addRectangle(event)" styleName="addRectangleButton" visible="false"  width="51" height="38"/>
+		<mx:LinkButton label="Open" height="30" color="#FFFFFF" fontSize="11" click="openClickHandler(event)"/>
+		<mx:LinkButton label="Save" height="30" id="saveLinkButton" color="#FFFFFF" fontSize="11" click="saveClickHandler(event)"/>
+		<mx:LinkButton label="Reset All" height="30" id="resetLinkButton" color="#FFFFFF" fontSize="11" click="resetClickHandler(event)"/>
+		<!--<mx:LinkButton label="Submit" height="30" color="#FFFFFF" fontSize="11" click="submitClickHandler(event)"/>-->
+		<mx:Button id="addcircle" click="addCircle(event)" styleName="addCircleButton" visible="false" height="38" width="50"/>
+		<mx:TextInput visible="false" id="testTextInput" />
+	</mx:ApplicationControlBar>
+	
+	<mx:HBox id="mainHBox" bottom="10" top="48" left="194" right="0">
+		
+		<mx:Canvas id="mainCanvas" width="100%" height="100%" backgroundColor="0x000000" >
+		<mx:VBox id="mainVBox" bottom="5" top="5" left="5" right="10">
+			<mx:HBox width="100%" height="40">
+				<mx:Text height="100%"  width="100%" text="Scenario" styleName="smallHeader"/>
+				<mx:Button id="showButton" label="&lt;&lt; APN Setting" click="handleShowClick(event)" toolTip="Show APN Setting"/>
+			</mx:HBox>
+		</mx:VBox>
+		</mx:Canvas>
+		<!--<mx:Panel id="apnPanel" title="APN Setting" width="40%" height="100%">
+		</mx:Panel>-->
+	</mx:HBox>
+	<local:componentSettings id="settings" width="600" right="-610" bottom="5"/>
+
+</mx:Application>

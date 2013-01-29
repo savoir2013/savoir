@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	initialize="initializeApp()" defaultButton="{loginBut}">
+    <mx:Script>
+        <![CDATA[
+
+			// ======================= External Modules =============================
+
+        	import mx.controls.HRule;
+            import mx.collections.ArrayCollection;
+            import mx.collections.SortField;
+            import mx.collections.Sort;
+            import mx.controls.Spacer;
+            import mx.controls.Text;
+            import mx.controls.LinkButton;
+            import mx.controls.Button;
+            import mx.controls.TextInput;
+            import mx.controls.ComboBox;
+            import mx.containers.GridItem;
+            import mx.controls.Label;
+            import mx.containers.GridRow;
+            import mx.containers.Grid;
+            import mx.containers.HBox;
+            import mx.containers.Tile;
+            import mx.controls.Image;
+            import mx.containers.VBox;
+            import mx.controls.Alert;
+            
+            import events.SavoirEvent;
+            import events.AuthEvent;
+            import events.FaultEvent;
+  	        import savoiroauth.OAuthDelegate;
+  	        import savoiroauth.OAuthClient;
+
+        	import mx.utils.URLUtil;
+        	import mx.managers.IBrowserManager;
+        	import mx.managers.BrowserManager;
+            
+			// ======================= Public Members ===============================
+
+            public var oAuthTokenKey:SharedObject;
+            public var oAuthTokenSecret:SharedObject;
+            public var SavoirUserName:SharedObject;
+            public var SavoirUserPassword:SharedObject;
+            public var SavoirUserSite:SharedObject;           
+            public var serverName:SharedObject;
+            public var lastLogTime:SharedObject;           
+            public var client:OAuthClient;
+
+        	public var browserManager:IBrowserManager;
+
+			// ======================= Private Members ==============================
+
+            private var savoiroAuthDelegate:OAuthDelegate = null
+            
+            private var serverNameText:String = new String();	// Name of the Savoir server
+
+            private var mainBox:VBox = null;            // Contains the entire main page
+            private var logoBox:VBox =  null;           // Container for the logo
+            private var logo:Image = null;              // Image of the logo
+            private var loginBox:HBox = null;           // Container for the login text areas
+            private var mainGrid:Grid = null;           // Grid to contain login components
+            private var titleRow:GridRow = null;        // Row to contain title label
+            private var loginRow:GridRow = null;        // Row to contain login input components
+            private var forgotRow:GridRow = null;       // Row to contain fogot password label
+            private var titleLabel:Label = null;        // Locations label
+            private var loctnBox:ComboBox = null;       // Locations from which user can login from
+            private var usernameText:TextInput = null;  // Username text entry box
+            private var passwordText:TextInput = null;  // Password text entry box
+            [Bindable]
+            private var loginBut:Button = null;         // Login push button
+            private var forgotLink:LinkButton = null;   // Link button to for forgot password featuure
+            private var titleItem:GridItem = null;      // Item for the location title row
+            private var loginItem1:GridItem = null;     // Item for the login row
+            private var loginItem2:GridItem = null;     // Item for the login row
+            private var loginItem3:GridItem = null;     // Item for the login row
+            private var loginItem4:GridItem = null;     // Item for the login row
+            private var forgotItem:GridItem = null;     // Item for the forgot password row
+            private var introBox:VBox = null;           // Container for introduction text
+            private var introText:Text = null;          // Introduction text
+            private var rule:HRule = null;				// Horizontal rule
+            private var partnerTile:Tile = null;		// Container for partner logos
+            private var partnerLogo1:Image = null;      // partner logo
+            private var partnerLogo2:Image = null;      // partner logo
+            private var partnerLogo3:Image = null;      // partner logo
+            private var partnerLogo4:Image = null;      // partner logo
+            private var partnerLogo5:Image = null;      // partner logo
+            private var partnerLogo6:Image = null;      // partner logo
+            private var partnerLogo7:Image = null;      // partner logo
+            private var partnerLogo8:Image = null;      // partner logo
+            private var partnerLogo9:Image = null;      // partner logo
+
+            private var locations:ArrayCollection = null;
+            private var introTextStr:String = new String();	// Introduction text
+            private var logoFile:String = new String();		// Path to the logo file
+            private var loctnTitle:String = new String();	// Title for the location box 
+            private var defaultUser:String = new String();	// Default username
+            private var defaultPass:String = new String();	// Default password
+            private var loginButText:String = new String();	// Text for login button
+            private var forgotText:String = new String();	// Text for forgot password link
+            private var partnerFile1:String = new String();	// Path to partner logo
+            private var partnerFile2:String = new String();	// Path to partner logo
+            private var partnerFile3:String = new String();	// Path to partner logo
+            private var partnerFile4:String = new String();	// Path to partner logo
+            private var partnerFile5:String = new String();	// Path to partner logo
+            private var partnerFile6:String = new String();	// Path to partner logo
+            private var partnerFile7:String = new String();	// Path to partner logo
+            private var partnerFile8:String = new String();	// Path to partner logo
+            private var partnerFile9:String = new String();	// Path to partner logo
+           
+			private const DARK_BLUE:String = "0x365762";	// Dark blue RGB values
+			private const LIGHT_BLUE:String = "0xF2F8FE";	// Light blue RGB values
+			private const WHITE:String = "0xFFFFFF";		// White RGB values
+			private const OFF_WHITE:String = "0xEEEEEE";	// Off white RGB values
+			private const ORANGE:String = "0xF79121";		// Orange RGB values
+			private const GREY:String = "0xB6BCC3";			// Grey RGB values
+			
+			private const FONT_FAMILY:String = "Helvetica Neue, Arial, Helvetica, sans-serif";
+
+			// ======================= Public Functions =============================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	initializeApp
+            // Author:       	Justin Hickey
+            // Purpose:      	To instantiate the Savoir login page - in the future this may become
+            //               	a more substantial welcome page
+            // Input Vars:		none
+            // Return Vars:  	none
+            // Date Created:	Dec 05, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function initializeApp():void
+            {
+            	// Add a listener for a data event that is generated in the getData() function
+                // This ensures that the data is obtained before rendering the popup
+                this.addEventListener(DataEvent.DATA, handleRenderPage, false, 0, true);
+                getData();
+            }
+
+			// ======================= Private Functions ============================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	getData
+            // Author:       	Justin Hickey
+            // Purpose:      	To get the different types of data required to render the interface
+            //					before the interface is actually rendered 
+            // Input Vars:   	none
+            // Return Vars:  	none
+            // Date Created:	Dec 05, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function getData():void
+            {
+                var sort:Sort = null;
+                var fullUrl:String = new String();
+                
+                // Initialize the shared objects
+                this.oAuthTokenKey = SharedObject.getLocal("oauthkey","/");
+                this.oAuthTokenSecret = SharedObject.getLocal("oauthsecret","/");
+                this.SavoirUserName = SharedObject.getLocal("username","/");
+                this.SavoirUserPassword = SharedObject.getLocal("userpassword","/");
+                this.lastLogTime = SharedObject.getLocal("lastLogTime","/");
+                this.SavoirUserSite = SharedObject.getLocal("site","/");
+                this.serverName = SharedObject.getLocal("serverName","/");
+
+            	// Get the server name from the browser
+            	browserManager = BrowserManager.getInstance();
+            	browserManager.init("", "");
+            	fullUrl = browserManager.url;
+            	serverNameText = mx.utils.URLUtil.getServerName(fullUrl);
+
+				// Create the shared object for the server name
+				this.serverName.clear();
+				this.serverName.data.serverName = serverNameText;
+            	this.serverName.flush();
+
+                // Set the locations - should come from database
+                locations  = new ArrayCollection(
+                    [{label:"Fredericton", data:1},
+                        {label:"Ottawa", data:2},
+                        {label:"Sunnyvale", data:3},
+                        {label:"Barcelona", data:4},
+                        {label:"NRC-IIT", data:5},
+                        {label:"CRC-BADLab", data:6},
+                        {label:"CRC-FS", data:7},
+                        {label:"Mcgill-Montreal", data:8},
+                        {label:"Mcgill2-Montreal", data:9},
+                        {label:"Sudbury", data:10},
+                        {label:"Steve", data:11},
+                        {label:"Stanford", data:12},
+                        {label:"Toronto", data:13},
+                        {label:"Thunderbay", data:14},
+                        {label:"Sudbury", data:15},
+                        {label:"Montreal", data:16},
+                        {label:"CRC-Ottawa", data:17},
+                        {label:"Cork, Ireland", data:18},
+                    ]
+                );                
+                
+                sort = new Sort();
+                sort.fields = [new SortField("label", true)];
+                locations.sort = sort;
+                locations.refresh();
+                
+                // Set the short descriptive text - should get this from a file or database
+                introTextStr = "The goal of SAVOIR is to enable data sharing between devices "
+                	+ "that would not normally share data, using a specific messaging format.";
+                
+                // Set the values required for the interface
+                logoFile = "assets/images/savoirLogoDarkLargeTrans.png";
+                loctnTitle = "Log in from:";
+                defaultUser = "username";
+                defaultPass = "password";
+                loginButText = "LOGIN";
+                forgotText = "Forgot your password?";
+                partnerFile1 = "assets/images/nosmLogo.jpg";
+                partnerFile2 = "assets/images/lakeheadLogo.jpg";
+                partnerFile3 = "assets/images/nrcLogo.jpg";
+                partnerFile4 = "assets/images/crcLogo.jpg";
+                partnerFile5 = "assets/images/mcgillLogo.jpg";
+                partnerFile6 = "assets/images/stanfordLogo.jpg";
+                partnerFile7 = "assets/images/idealLogo.jpg";
+                partnerFile8 = "assets/images/iilLogo.jpg";
+                partnerFile9 = "assets/images/wisconsinLogo.jpg";
+				
+                // Dispatch the event to render the popup window
+                dispatchEvent (new DataEvent(DataEvent.DATA, false, false, ""));
+            }
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleUserFocusIn
+            // Author:       	Justin Hickey
+            // Purpose:      	To handle the action of the user gaining focus of the username
+            //               	text entry box. It clears the text and sets the text color to
+            //               	a darker color for easier readability only the first time.
+            // Input Vars:   	event - the gain focus event
+            // Return Vars:  	none
+            // Date Created: 	Dec 05, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleUserFocusIn(event:FocusEvent):void
+            {
+                // Clear the text field and set the color
+                if (usernameText.getStyle("color") == GREY)
+                {
+                    usernameText.text = "";
+                    usernameText.setStyle("color", DARK_BLUE);
+                }
+            }
+ 
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handlePasswordFocusIn
+            // Author:       	Justin Hickey
+            // Purpose:      	To handle the action of the user gaining focus of the password
+            //               	text entry box. It clears the text and sets the text area to mask
+            //               	the password only the first time.
+            // Input Vars:   	event - the gain focus event
+            // Return Vars:  	none
+            // Date Created: 	Dec 05, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handlePasswordFocusIn(event:FocusEvent):void
+            {
+                // Clear the text field and set the color
+                if (passwordText.getStyle("color") == GREY)
+                {
+                    passwordText.text = "";
+                    passwordText.displayAsPassword = true;
+                    passwordText.setStyle("color", DARK_BLUE);
+                }
+            }
+ 
+			// =================== Application Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRenderPage
+            // Author:       	Justin Hickey
+            // Purpose:      	To render the main application page
+            // Input Vars:   	event - the data event that indicates the data has been obtained
+            // Return Vars:  	none
+            // Date Created: 	Dec 05, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRenderPage(event:DataEvent):void
+            {
+                // Build the static components of the popup window
+                // First create the main container
+                mainBox = new VBox();
+                mainBox.percentWidth = 100;
+                mainBox.percentHeight = 100;
+                mainBox.setStyle("verticalGap", 0);
+                this.addChild(mainBox);
+
+                // Create the next level of containers and separators
+                logoBox = new VBox();
+                logoBox.percentWidth = 100;
+                logoBox.setStyle("paddingTop", 100);
+                logoBox.setStyle("paddingBottom", 100);
+                logoBox.setStyle("backgroundColor", LIGHT_BLUE);
+                
+                loginBox = new HBox();
+                loginBox.percentWidth = 100;
+                loginBox.setStyle("paddingLeft", 300);
+                loginBox.setStyle("paddingBottom", 50);
+                loginBox.setStyle("backgroundColor", LIGHT_BLUE);
+                
+                introBox = new VBox();
+                introBox.percentWidth = 100;
+                introBox.setStyle("paddingLeft", 300);
+                introBox.setStyle("paddingTop", 50);
+                introBox.setStyle("paddingBottom", 50);
+                introBox.setStyle("backgroundColor", WHITE);
+                
+                rule = new HRule();
+                rule.percentWidth = 100;
+                
+                partnerTile = new Tile();
+                partnerTile.percentWidth = 100;
+                partnerTile.percentHeight = 100;
+                partnerTile.direction = "horizontal";
+                partnerTile.setStyle("borderStyle", "none");
+                partnerTile.setStyle("paddingTop", 10);
+                partnerTile.setStyle("paddingBottom", 10);
+                partnerTile.setStyle("paddingLeft", 10);
+                partnerTile.setStyle("paddingRight", 10);
+                partnerTile.setStyle("horizontalGap", 10);
+                partnerTile.setStyle("verticalGap", 10);
+                partnerTile.setStyle("backgroundColor", WHITE);
+
+                // Add these to the main container
+                mainBox.addChild(logoBox);
+                mainBox.addChild(loginBox);
+                mainBox.addChild(introBox);
+                mainBox.addChild(rule);
+                mainBox.addChild(partnerTile);
+                
+				// Add the logo to the logo box
+				logo = new Image();
+				logo.source = logoFile;
+				logoBox.addChild(logo);
+
+                // Create the grid container for the grid box
+                mainGrid = new Grid();
+                
+                // Add this to the grid box
+                loginBox.addChild(mainGrid);
+                
+                // Create the rows of the login feature
+                titleRow = new GridRow();
+                loginRow = new GridRow();
+                forgotRow = new GridRow();
+                
+                // Add the rows to the grid
+                mainGrid.addChild(titleRow);
+                mainGrid.addChild(loginRow);
+                mainGrid.addChild(forgotRow);
+
+// DO NOT DELETE - not implemented yet                
+//                // Create the title label
+//                titleLabel = new Label();
+//                titleLabel.text = loctnTitle;
+//                titleLabel.setStyle("fontFamily", FONT_FAMILY);
+//                titleLabel.setStyle("color", DARK_BLUE);
+//                titleLabel.setStyle("fontSize", 16);
+//                titleLabel.setStyle("fontWeight", "bold");
+//                
+//                // Add it to the row
+//                titleItem = new GridItem();
+//                titleItem.addChild(titleLabel);
+//                titleRow.addChild(titleItem);
+//               
+//                // Create the login components
+//                // First the combo box
+//                loctnBox = new ComboBox();
+//                loctnBox.dataProvider = locations;
+//                loctnBox.setStyle("fontFamily", "Helvetica Neue");
+//                loctnBox.setStyle("color", DARK_BLUE);
+//                loctnBox.setStyle("fontSize", 12);
+                
+                // Now the text boxes for the name and password
+                usernameText = new TextInput();
+                usernameText.text = defaultUser;
+                usernameText.setStyle("fontFamily", FONT_FAMILY);
+                usernameText.setStyle("color", GREY);
+                usernameText.setStyle("fontSize", 12);
+                usernameText.addEventListener(FocusEvent.FOCUS_IN,handleUserFocusIn, false, 0, true);
+                
+                passwordText = new TextInput();
+                passwordText.text = defaultPass;
+                passwordText.setStyle("fontFamily", FONT_FAMILY);
+                passwordText.setStyle("color", GREY);
+                passwordText.setStyle("fontSize", 12);
+                passwordText.addEventListener(FocusEvent.FOCUS_IN,handlePasswordFocusIn, false, 0, true);
+                
+                // Now the login push button
+                loginBut = new Button();
+                loginBut.label = loginButText;
+                loginBut.setStyle("color", WHITE);
+                loginBut.setStyle("textRollOverColor", ORANGE);
+                loginBut.setStyle("fillColors", [DARK_BLUE, DARK_BLUE]);
+                loginBut.setStyle("fillAlphas", [1, 1]);
+                loginBut.addEventListener(MouseEvent.CLICK,oAuthLoginProcess);
+                
+                // Add these items to the grid row
+                loginItem1 = new GridItem();
+// DO NOT DELETE - not implemented yet
+//                loginItem1.addChild(loctnBox);
+                loginItem2 = new GridItem();
+                loginItem2.addChild(usernameText);
+                loginItem3 = new GridItem();
+                loginItem3.addChild(passwordText);
+                loginItem4 = new GridItem();
+                loginItem4.addChild(loginBut);
+
+// DO NOT DELETE - not implemented yet             
+//                loginRow.addChild(loginItem1);
+                loginRow.addChild(loginItem2);
+                loginRow.addChild(loginItem3);
+                loginRow.addChild(loginItem4);
+                
+// DO NOT DELETE - not implemented yet
+//                // Create the forgot password link
+//                forgotLink = new LinkButton();
+//                forgotLink.label = forgotText;
+//                forgotLink.setStyle("fontFamily", FONT_FAMILY);
+//                forgotLink.setStyle("color", DARK_BLUE);
+//                forgotLink.setStyle("fontSize", 12);
+//                forgotLink.setStyle("textDecoration", "underline");
+//                forgotLink.setStyle("textAlign", "left");
+//                forgotLink.setStyle("paddingLeft", 0);
+//                
+//                // Add it to the row
+//                forgotItem = new GridItem();
+//                forgotItem.setStyle("horizontalAlign", "left");
+//                forgotItem.addChild(forgotLink);
+//
+//                // The link button needs to be the third item so add 2 empty items
+//                forgotRow.addChild(new GridItem());
+//                forgotRow.addChild(new GridItem());
+//                forgotRow.addChild(forgotItem);
+                
+                // Create the intro text component
+                introText = new Text();
+                introText.text = introTextStr;
+                introText.percentWidth = 60;
+                introText.setStyle("fontFamily", FONT_FAMILY);
+                introText.setStyle("color", DARK_BLUE);
+                introText.setStyle("fontSize", 16);
+                introBox.addChild(introText);
+
+                // Add the partner logos to the partner box
+                partnerLogo1 = new Image();
+                partnerLogo1.source = partnerFile1;
+                partnerTile.addChild(partnerLogo1);
+                
+                partnerLogo2 = new Image();
+                partnerLogo2.source = partnerFile2;
+                partnerTile.addChild(partnerLogo2);
+                
+                partnerLogo3 = new Image();
+                partnerLogo3.source = partnerFile3;
+                partnerTile.addChild(partnerLogo3);
+                
+                partnerLogo4 = new Image();
+                partnerLogo4.source = partnerFile4;
+                partnerTile.addChild(partnerLogo4);
+                
+                partnerLogo5 = new Image();
+                partnerLogo5.source = partnerFile5;
+                partnerTile.addChild(partnerLogo5);
+                
+                partnerLogo6 = new Image();
+                partnerLogo6.source = partnerFile6;
+                partnerTile.addChild(partnerLogo6);
+                
+                partnerLogo7 = new Image();
+                partnerLogo7.source = partnerFile7;
+                partnerTile.addChild(partnerLogo7);
+                
+                partnerLogo8 = new Image();
+                partnerLogo8.source = partnerFile8;
+                partnerTile.addChild(partnerLogo8);
+                
+                partnerLogo9 = new Image();
+                partnerLogo9.source = partnerFile9;
+                partnerTile.addChild(partnerLogo9);                
+            }
+            
+            
+            // ==== added oAuth Login process
+            private function oAuthLoginProcess(event:Event):void{
+            	
+            	client = new OAuthClient(this.usernameText.text,this.passwordText.text,null,false,"xml"); 
+            	           	
+            	client.addEventListener(AuthEvent.REQUEST_TOKEN, requestTokenHandler);
+				client.addEventListener(AuthEvent.ACCESS_TOKEN, accessTokenHandler);
+            	savoiroAuthDelegate = client.getRequestToken();
+            	
+            	savoiroAuthDelegate.addEventListener(FaultEvent.FAULT,savoiroAuthFaultHandler);
+            	//client.authorizeUser("_blank");
+            	//client.getAccessToken();
+            	
+            }
+            
+            protected function savoiroAuthFaultHandler(event:FaultEvent):void{
+            	
+            	Alert.show("Either your user name or password is wrong! If you believe " +
+            		"that these are correct, please make sure your computer system time " +
+            		"is correct, which is required for security reasons.", "Login Error");
+            }
+            
+            protected function requestTokenHandler(event:AuthEvent):void
+			{
+				
+				trace("request token received: "+event.token.key+", "+event.token.secret);
+				client.authorizeUser();
+				//client.getAccessToken();
+			}
+			
+			protected function accessTokenHandler(event:AuthEvent):void
+			{
+				var currTime:Date;
+				
+				trace("access token received: "+event.token.key+", "+event.token.secret);
+				this.oAuthTokenKey.clear();
+				this.oAuthTokenSecret.clear();
+				this.SavoirUserName.clear();
+				this.SavoirUserPassword.clear();
+				this.SavoirUserSite.clear();
+				this.oAuthTokenKey.data.key = client.accessToken.key;
+				this.oAuthTokenSecret.data.secret = client.accessToken.secret;
+				this.SavoirUserName.data.userName = this.usernameText.text;
+				this.SavoirUserPassword.data.userPassword = this.passwordText.text;
+// DO NOT DELETE - not implemented yet
+//				this.SavoirUserSite.data.userSite = this.loctnBox.selectedItem.label;
+//				this.SavoirUserSite.data.userSite = "";
+				this.oAuthTokenKey.flush();
+				this.oAuthTokenSecret.flush();
+				this.SavoirUserName.flush();
+				this.SavoirUserPassword.flush();
+            	this.SavoirUserSite.flush();
+            	
+            	currTime = new Date();
+            	this.lastLogTime.data.lastLogTime = currTime.getTime();
+            	this.lastLogTime.flush();
+            	
+            	var u:URLRequest = new URLRequest("http://" + this.serverName.data.serverName
+            		+ "/mySavoir/mySavoir.html");
+                navigateToURL(u,"_self");
+			}
+        ]]>
+    </mx:Script>
+
+</mx:Application>

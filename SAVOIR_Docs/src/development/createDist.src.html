@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- IMPORTANT NOTE - since this file contains Ant property keys (like ${savoir.release.ver}) you
+	need to use the HTML ASCII codes to literally represent property key strings that are meant to
+	be displayed on this page. Otherwise, Ant will try to replace them with property values. For
+	example, to display ${user.home} as is done for the "savoir.inst.dist.home" property, you need
+	to encode the string as follows &#36;&#123;user.home&#125; -->
+
+<html>
+<head>
+	<link href="../css/savoirDocs.css" rel="stylesheet" type="text/css">
+	<title>SAVOIR ${savoir.release.ver} Distribution Tar File Creation</title>
+</head>
+
+<body>
+
+<img src="/images/savoirLogoDarkLargeTrans.png" />
+
+<center><h1>Create the SAVOIR ${savoir.release.ver} Distribution Tar File</h1></center>
+
+<h2>Table of Contents</h2>
+
+<ol>
+	<li><a href="#intro">Introduction</a></li>
+	<li><a href="#prep">Initial Preparation</a></li>
+	<li><a href="#build">Run the Build Script</a></li>
+</ol>
+
+<h2><a name="intro">Introduction</a></h2>
+
+This page describes the procedure for creating the SAVOIR distribution tar file. It is intended for
+use by SAVOIR developers who have access to the SVN repository. In general, a developer would
+checkout the distribution build scripts, verify the property settings in the properties file, then
+run the build script which would create the distribution tar file.
+
+<p>
+
+The build script will set several properties in the
+<tt>SAVOIR_MasterBuild/localDefaults.properties</tt> file to generic values so that they match the
+installation instructions. Please see <a href="genericProps.html">the list of generic properties</a>
+for a detailed list	of these properties and their generic values.
+
+<p>
+
+<strong>Note 1:</strong> even though the distribution project is part of the SAVOIR repository, it
+should <strong>never</strong> be included with the distribution itself. A developer should always
+need to checkout the <strong>installFiles</strong> project from SVN in order to use it.
+
+<p>
+
+<strong>Note 2:</strong> <span class="editText">magenta text</span> in this document indicates
+text that is generic in nature since its value is dependent on the development environment.
+Typically, these values are IP addresses or domain names.
+
+<h2><a name="prep">Initial Preparation</a></h2>
+
+In order to prepare to use the build script, the developer should perform the following steps.
+
+<ol>
+	<li>Checkout the <strong>installFiles</strong> project from the SVN
+		repository
+		<dl>
+			<dd><tt>svn co
+				<span class="editText">https://svnhost.domain.org/svn/</span>savoir/installFiles/trunk
+				installFiles</tt></dd>
+		</dl>
+	</li>
+	<li>Edit and verify the property values in the <tt>build.properties</tt>
+		file - see the table below
+	</li>
+</ol>
+
+<h3>Property Values</h3>
+
+The following is a list of the property values for the <strong>installFiles</strong> project. The
+values listed in the table are currently found in the <tt>build.properties</tt> file and you may
+need to change them to suit your preferences and your development environment.
+
+<p>
+
+<strong>Note:</strong> the properties have the sequence <em>inst</em> within them to avoid any
+conflicts with properties from the main SAVOIR distribution.
+
+<p>
+
+<table>
+
+	<tr>
+		<th colspan="3">SAVOIR Distribution Properties
+
+	<tr>
+		<th>Property
+		<th>Value
+		<th>Purpose
+
+	<tr>
+		<td>savoir.inst.dist.home
+		<td>&#36;&#123;user.home&#125;/savoirDist
+		<td>This property defines the location of the SAVOIR distribution directory. The tar file
+			will eventually be stored under this directory, and the distribution files will be
+			stored in a subdirectory called <tt>savoir-<em>ver</em></tt>, where <em>ver</em> is the
+			SAVOIR release version. <strong>Note:</strong> this directory should never be located
+			under an SVN repository.
+
+	<tr>
+		<td>savoir.inst.release.ver
+		<td>2.0
+		<td>The SAVOIR release version. It should be the same version as that defined in the
+			<tt>SAVOIR_MasterBuild/localDefault.properties</tt> file.
+
+	<tr>
+		<td>savoir.inst.code.repo
+		<td><span class="editText">https://svnhost.domain.org/svn/</span>savoir
+		<td>The URL for the SAVOIR code repository. This URL is used for the SVN checkout
+			commands.
+
+	<tr>
+		<td>savoir.inst.cont.install.version
+		<td>1.0b3
+		<td rowspan="4">These properties are used to install the <em>Ant-Contrib</em> extension to
+			<em>Apache Ant</em>. There should be no need to change these properties.
+
+	<tr>
+		<td>savoir.inst.cont.jar.dir
+		<td>&#36;&#123;basedir&#125;/localLib
+
+	<tr>
+		<td>savoir.inst.cont.jar.file
+		<td>ant-contrib-1.0b3.jar
+
+	<tr>
+		<td>savoir.inst.cont.url
+		<td>http://repo2.maven.org/maven2/ant-contrib/ant-contrib
+
+</table>
+
+<h2><a name="build">Run the Build Script</a></h2>
+
+Once the <tt>build.properties</tt> file is verified, the next step is to run the build script. The
+script will perform the following tasks:
+
+<ol>
+	<li>Checkout all the source code for SAVOIR</li>
+	<li>Check that the release version listed in the <tt>build.properties</tt> file matches that
+		found in the SAVOIR source code
+	</li>
+	<li>Set properties in the <tt>SAVOIR_MasterBuild/localDefault.properties</tt> file to generic
+		values
+	</li>
+	<li>Remove all the <tt>.svn</tt> directories from the source code</li>
+	<li>Remove the <tt>SAVOIR_Web/SocketProxy/test</tt> directory<sup>*</sup></li>
+	<li>Copy the <tt>NOTICE</tt>, <tt>LICENSE</tt>, <tt>README</tt> and
+		other similar files to the distribution root directory
+	</li>
+	<li>Copy the installation instructions to the distribution root
+		directory
+	</li>
+	<li>Copy the support scripts and resources to the distribution
+		directory
+	</li>
+	<li>Create the distribution tar file</li>
+</ol>
+
+To run the script use the following command from the <tt>installFiles</tt> directory
+
+<ul>
+	<dl>
+		<dd><tt>ant package</tt></dd>
+	</dl>
+</ul>
+
+<strong><sup>*</sup>Note:</strong> the <tt>SAVOIR_Web/SocketProxy/test</tt> directory needs to be verified
+before it can be included in the distribution, thus it is removed at this time.
+
+<h2></h2>
+
+<center>
+	<small>Copyright &copy; <script type="text/javascript">
+		document.write(new Date().getFullYear());
+		</script>, National Research Council of Canada
+	</small>
+</center>
+
+</body>
+</html>

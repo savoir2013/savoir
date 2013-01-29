@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jaxws="http://cxf.apache.org/jaxws"
+	xmlns:util="http://www.springframework.org/schema/util"       
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+						http://cxf.apache.org/jaxws 
+						http://cxf.apache.org/schemas/jaxws.xsd
+						http://www.springframework.org/schema/util
+						http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-extension-soap.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+
+	<bean id="maxConcurrentSessions" class="ca.gc.nrc.iit.savoir.scheduler.impl.MaxConcurrentSessions" />
+	<bean id="maxConcurrentUsers" class="ca.gc.nrc.iit.savoir.scheduler.impl.MaxConcurrentUsers" />
+
+	<bean id="scenariosScheduler" class="ca.gc.nrc.iit.savoir.scheduler.impl.ScenariosNRManager" />
+	<bean id="chronosScheduler" class="ca.gc.nrc.iit.savoir.scheduler.impl.ChronosNRManager" />
+	<bean id="harmonyScheduler" class="ca.gc.nrc.iit.savoir.scheduler.impl.HarmonyNRManager" />
+
+	<bean id="edgeDevicesManager" class="ca.gc.nrc.iit.savoir.scheduler.impl.EDManager">
+		<property name="requirementCheckers">
+			<map>
+				<entry key="MAX_CONCURRENT_SESSIONS" value-ref="maxConcurrentSessions" />
+				<entry key="MAX_CONCURRENT_USERS" value-ref="maxConcurrentUsers" />				
+			</map>
+		</property>
+	</bean>
+
+	<bean id="onlineProblem" class="ca.gc.nrc.iit.savoir.scheduler.impl.OnlineProblem">
+		<property name="edgeDevicesManager" ref="edgeDevicesManager" />
+		<property name="networkResourcesManager" ref="scenariosScheduler" />
+		<property name="networkManagers">
+			<map>
+				<entry key="SCENARIO_RESERVATION" value-ref="scenariosScheduler" />
+				<entry key="CHRONOS_RESERVATION" value-ref="chronosScheduler" />
+				<entry key="HARMONY_RESERVATION" value-ref="harmonyScheduler" />
+			</map>
+		</property>
+	</bean>
+
+	<jaxws:server id="service"
+		serviceClass="ca.gc.nrc.iit.savoir.scheduler.SavoirScheduler"
+		address="/schedulerService">
+		<jaxws:dataBinding>
+			<bean class="org.apache.cxf.jaxb.JAXBDataBinding">
+				<property name="contextProperties">
+					<map>
+						<entry>
+							<key><util:constant static-field="com.sun.xml.bind.api.JAXBRIContext.ANNOTATION_READER"/></key>
+							<bean class="ca.gc.nrc.iit.savoir.scheduler.spring.QSJaxbAnnotationReader" />
+						</entry>
+					</map>
+				</property>
+			</bean>
+		</jaxws:dataBinding>
+		<jaxws:serviceBean>
+			<bean class="ca.gc.nrc.iit.savoir.scheduler.SavoirSchedulerImpl">
+				<property name="onlineProblem" ref="onlineProblem" />
+			</bean>
+		</jaxws:serviceBean>
+	</jaxws:server>
+
+
+
+</beans>

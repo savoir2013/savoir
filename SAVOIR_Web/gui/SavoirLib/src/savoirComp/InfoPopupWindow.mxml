@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- savoirComp/InfoPopupWindow.mxml -->
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	height="100%" width="100%" showCloseButton="false" title="Information" titleStyleName="popupTitleText"
+	initialize="initPopup()">
+	
+	<mx:VBox id="mainVBox" height="100%" width="100%">
+
+		<mx:HRule id="rule1" width="100%"/>
+
+		<mx:HBox id="buttonBox" width="100%" paddingBottom="10" paddingLeft="10" paddingRight="10">
+			<mx:Button id="okBut" label="OK"/>
+			<mx:Spacer id="space1" width="100%"/>
+			<mx:Button id="cancelBut" label="Cancel" click="handleCancel(event)"/>
+		</mx:HBox>
+		
+	</mx:VBox>
+	
+	<mx:Script>
+        <![CDATA[
+
+			// ======================= External Modules =============================
+
+            import mx.managers.PopUpManager;
+            import mx.controls.Text;
+        	import mx.events.CloseEvent;
+   			import mx.controls.Alert;
+            
+			// ======================= Public Members ===============================
+			
+			// none
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+			private var content:Text;
+			
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleCancel
+            // Author:       	Justin Hickey
+            // Purpose:      	To close down the popup window and return to the main application
+            // Input Vars:   	event - mouse event triggered by clicking the "Cancel" button
+            // Return Vars:  	none
+            // Date Created: 	Aug 25, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleCancel(event:MouseEvent):void
+            {
+                // Remove the pop up window
+                PopUpManager.removePopUp(this);
+            }
+			
+			// =================== Application Event Handlers =======================
+
+			// none
+			
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		initPopup
+			// Author:			Justin Hickey
+			// Purpose:			To create and add the content Text object. There are display issues
+			//					under certain circumstances that require us to have full control
+			//					over the content of the message (see the comments for the
+			//					"setMessage" function). In order to ensure this control we have
+			//					made the content component a private variable which can only be
+			//					set through the "setMessage" function.  
+			// Input Vars:		none
+			// Return Vars:		none
+			// Date Created:	Aug 27, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initPopup():void
+			{
+				// Create the text component for the message content
+				content = new Text();
+				content.text = "No message provided.";
+				content.percentHeight = 100;
+				content.percentWidth = 100;
+				
+				// Add the content to the popup window
+				mainVBox.addChildAt(content, 0);
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		formatInfoBox
+			// Author:			Justin Hickey
+			// Purpose:			To change the popup window to only have an OK button that
+			//					removes the popup window. This is achieved by removing the OK
+			//					button and changing the label of the cancel button to "OK"
+			// Input Vars:		none
+			// Return Vars:		none
+			// Date Created:	Aug 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function formatInfoBox():void
+			{
+   		    	// Remove the ok button and the spacer - the index is 0 for both since
+   		    	// the second child will be at index 0 after the first child is removed
+   		    	buttonBox.removeChildAt(0);
+   		    	buttonBox.removeChildAt(0);
+   		    	
+   		    	// Change the label of the cancel button to the typical "OK"
+   		    	cancelBut.label = "OK";
+   		    	
+   		    	// Set the horizontal align to center the cancel button
+   		    	buttonBox.setStyle("horizontalAlign", "center");
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		setMessage
+			// Author:			Justin Hickey
+			// Purpose:			To set the message of the popup window and add new lines to the
+			//					submitted text. The text sometimes does not display properly for
+			//					a single line so we need to ensure there are at least 2 new lines
+			//					at the end of the text.
+			// Input Vars:		msgStr - text to display in the popup box
+			// Return Vars:		none
+			// Date Created:	Aug 26, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function setMessage(msgStr:String):void
+			{
+				var pattern:RegExp;
+				
+				// Set the pattern to be 0 or more occurrences of a new line at the end of the
+				// message
+				pattern = /\n*$/;
+				
+				// Replace 0 or more new lines at the end of the string with 2 new lines
+				content.text = msgStr.replace(pattern, "\n\n");
+			}
+			
+			// ======================= Private Functions ============================
+
+			// none
+
+        ]]>
+    </mx:Script>
+</mx:TitleWindow>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Utils
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		This Ivy file indicates three aspects for compiling this
+*				project: configurations, publications, and dependencies.
+*
+*				Configurations allows for separate compile configurations. For
+*				example, a master configuration and a test configuration. The
+*				test configuration would add testing code to the compile.
+*
+*				Publications indicate the libraries and/or executables that are
+*				created by the compile.
+*
+*				The dependedncies list all the libraries that the project
+*				depend on.
+* DATE CREATED:	Feb 22, 2011
+*
+********************************************************************************
+-->
+
+<ivy-module version="2.1">
+	<info organisation="ca.nrc.iit" module="savoirUtils" revision="${savoir.release.ver}"/>
+
+<!--   
+	<configurations defaultconfmapping="default" >
+		<conf name="compile" visibility="private"/>
+		<conf name="test" extends="compile" visibility="private"/>
+		<conf name="master" />
+		<conf name="runtime" extends="compile" />
+		<conf name="default" extends="master,runtime"/>
+	</configurations>
+-->
+
+	<configurations>
+		<conf name="master" />
+	</configurations>
+
+	<!-- Tell Ivy to publish the utilities jar file -->
+	<publications>
+		<artifact name="${util.name}" conf="master" />
+	</publications>
+    
+	<dependencies>
+		
+	</dependencies>
+</ivy-module>

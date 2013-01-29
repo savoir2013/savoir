@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="WINDOWS-1252" standalone="no"?>
+<jardesc>
+    <jar path="SAVOIR_Bus/release/savoir-esb.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/SAVOIR_Bus/mulejar.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
+        <file path="/SAVOIR_Bus/.classpath"/>
+        <file path="/SAVOIR_Bus/.classpath.r428"/>
+        <file path="/SAVOIR_Bus/.project"/>
+        <file path="/SAVOIR_Bus/.classpath.r354"/>
+        <file path="/SAVOIR_Bus/pom.xml"/>
+        <file path="/SAVOIR_Bus/index.html"/>
+        <javaElement handleIdentifier="=SAVOIR_Bus/conf"/>
+        <file path="/SAVOIR_Bus/build.xml"/>
+        <javaElement handleIdentifier="=SAVOIR_Bus/src"/>
+        <file path="/SAVOIR_Bus/test.html"/>
+        <file path="/SAVOIR_Bus/add.xml"/>
+        <file path="/SAVOIR_Bus/README.txt"/>
+        <file path="/SAVOIR_Bus/add.json"/>
+        <javaElement handleIdentifier="=SAVOIR_Bus/resources"/>
+        <file path="/SAVOIR_Bus/update.xml"/>
+        <file path="/SAVOIR_Bus/.classpath.mine"/>
+    </selectedElements>
+    <fatjar builder="org.eclipse.jdt.ui.plain_jar_builder" launchConfig=""/>
+</jardesc>

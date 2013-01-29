@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="HSVOMessage" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="message">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="service" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="activityParameters" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="activityParameter" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="ID" type="xs:string" use="required"/>
+                        <xs:attribute name="value" type="xs:string" />
+                        <xs:attribute name="name" type="xs:string" />
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="notification" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                  <xs:attribute name="messageID" type="xs:string" use="required"/>
+                  <xs:attribute name="messageAction" type="xs:string" use="required" />
+                  <xs:attribute name="success" type="xs:string" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="ID" type="xs:string" use="required" />
+            <xs:attribute name="name" type="xs:string" />
+            <xs:attribute name="activityID" type="xs:string" use="required"/>
+            <xs:attribute name="activityName" type="xs:string" />
+            <xs:attribute name="serviceUserID" type="xs:string" />
+            <xs:attribute name="servicePassword" type="xs:string" />
+            <xs:attribute name="path" type="xs:string" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="action" type="xs:string" use="required"/>
+      <xs:attribute name="ID" type="xs:string" use="required"/>
+      <xs:attribute name="sessionID" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

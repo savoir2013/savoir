@@ -1,0 +1,43 @@
+===============================================================================
+Registration Ticket Database Parameter Names
+===============================================================================
+
+This document describes the mapping between the XML elements and attributes of 
+the registration ticket and the fields that that data is stored in in the 
+database.
+
+========================================    ===================================
+Ticket Element                              Parameter Name [Notes]
+========================================    ===================================
+service/@ID                                 RESOURCE_ID [field in RESOURCE]
+----------------------------------------    -----------------------------------
+service/@name                               RESOURCE_NAME [field in RESOURCE]
+----------------------------------------    -----------------------------------
+service/@type                               RESOURCE_TYPE_ID
+                                            [field in RESOURCE]
+----------------------------------------    -----------------------------------
+service/description                         DESCRIPTION [field in RESOURCE]
+----------------------------------------    -----------------------------------
+service/contact                             CONTACT_PERSON_ID 
+                                            [field in RESOURCE]
+----------------------------------------    -----------------------------------
+network/toService/@protocol                 PROTOCOL [one of "TCP", "JMS"; 
+                                            parameter in RESOURCE_PARAMETER]
+----------------------------------------    -----------------------------------
+network/toService/tcpSocket/ipAddress       SERVICE_IP_ADDRESS
+                                            [parameter in RESOURCE_PARAMETER]
+----------------------------------------    -----------------------------------
+network/toService/tcpSocket/portNumber      SERVICE_PORT_NUMBER
+                                            [parameter in RESOURCE_PARAMETER]
+----------------------------------------    -----------------------------------
+network/toService/jms                       SERVICE_TOPIC
+    /jmsTransportConnector/topic            [parameter in RESOURCE_PARAMETER]
+----------------------------------------    -----------------------------------
+device/@maxSimultaneousUsers                MAX_CONCURRENT_USERS 
+                                            [parameter in RESOURCE_CONSTRAINT]
+----------------------------------------    -----------------------------------
+device/authentication/@type                 CREDENTIAL_SCHEMA_ID [field in 
+                                            RESOURCE_CREDENTIAL_SCHEMA; 
+                                            "1" is no authentication, "2" is 
+                                            username/password]
+----------------------------------------    -----------------------------------

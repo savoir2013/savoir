@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+						http://www.springframework.org/schema/tx
+						http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+						http://www.springframework.org/schema/aop
+        				http://www.springframework.org/schema/aop/spring-aop-2.5.xsd">
+
+	<!--
+		========================= GENERAL DEFINITIONS
+		=================================
+	-->
+	<!--
+		Configuration that replaces ${...} place holders with values from
+		properties files
+	-->
+
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:jdbc.properties</value>
+			</list>
+		</property>
+	</bean>
+
+
+
+	<!--
+		========================= DATABASE RELATED DEFINITIONS
+		=========================
+	-->
+	<!--
+    -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" >
+
+		<property name="driverClassName">
+			<value>${savoir.pers.jdbc.driverClassName}</value>
+		</property>
+		<property name="url">
+			<value>${savoir.pers.jdbc.url}</value>
+		</property>
+		<property name="username">
+			<value>${savoir.pers.jdbc.username}</value>
+		</property>		
+		<property name="password">
+			<value>${savoir.pers.jdbc.password}</value>
+		</property>
+		 <property name="validationQuery">
+			<value>SELECT 1</value>
+		</property>	
+<!--		<property name="testOnBorrow">-->
+<!--			<value>${savoir.pers.jdbc.testOnBorrow}</value>-->
+<!--		</property>-->
+		<property name="testWhileIdle">
+			<value>${savoir.pers.jdbc.testWhileIdle}</value>
+		</property>
+		<property name="timeBetweenEvictionRunsMillis">
+			<value>${savoir.pers.jdbc.timeBetweenEvictionRunsMillis}</value>
+		</property>
+		<property name="minEvictableIdleTimeMillis">
+			<value>${savoir.pers.jdbc.minEvictableIdleTimeMillis}</value>
+		</property>
+<!--		<property name="defaultReadOnly">-->
+<!--		    <value>false</value>-->
+<!--		</property>-->
+<!--		<property name="defaultAutoCommit">-->
+<!--		    <value>true</value>-->
+<!--		</property>-->
+		<!-- <property name="removeAbandoned">
+			<value>${savoir.pers.jdbc.removeAbandoned}</value>
+		</property>
+		<property name="removeAbandonedTimeout">
+			<value>${savoir.pers.jdbc.removeAbandonedTimeout}</value>
+		</property> -->
+
+
+
+
+		<!--
+			You have to set this value, otherwise even though you've asked
+			connections to be tested while idle, the idle evicter thread will
+			never run
+		-->
+
+
+		<!--
+			Don't allow connections to hang out idle too long, never longer than
+			what wait_timeout is set to on the server...A few minutes or even
+			fraction of a minute is sometimes okay here, it depends on your
+			application and how much spikey load it will see
+		-->
+
+		<!--
+			<property name="driverClass"> <value>${savoir.pers.jdbc.driverClassName}</value>
+			</property> <property name="jdbcUrl"> <value>${savoir.pers.jdbc.url}</value>
+			</property> <property name="user" value="${savoir.pers.jdbc.username}" />
+			<property name="password" value="${savoir.pers.jdbc.password}" /> <property
+			name="initialPoolSize" value="0" /> <property name="maxPoolSize"
+			value="1" /> <property name="minPoolSize" value="1" /> <property
+			name="acquireIncrement" value="1" /> <property
+			name="acquireRetryAttempts" value="0" /> <property
+			name="acquireIncrement" value="1" /> <property
+			name="idleConnectionTestPeriod" value="100" /> <property
+			name="maxStatements" value="0" /> <property name="maxIdleTime"
+			value="200" />
+		-->
+
+
+	</bean>
+
+
+
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+
+	<tx:annotation-driven />
+
+
+	<!--
+		========================= DAO RELATED DEFINITIONS
+		=========================
+	-->
+	<!--
+    -->
+
+	<bean id="constraintDAO" class="ca.gc.nrc.iit.savoir.dao.impl.ConstraintDAO">
+		<property name="dataSource" ref="dataSource" />			
+	</bean>
+
+	<bean id="endPointDAO" class="ca.gc.nrc.iit.savoir.dao.impl.EndPointDAO">
+		<property name="dataSource" ref="dataSource" />	
+		<property name="personDAO" ref="personDAO" />
+		<property name="resourceDAO" ref="resourceDAO" />
+	</bean>
+
+	<bean id="connectionDAO" class="ca.gc.nrc.iit.savoir.dao.impl.ConnectionDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="endPointDAO" ref="endPointDAO" />	
+		<property name="resourceDAO" ref="resourceDAO" />
+	</bean>
+	
+	<bean id="calendarDAO" class="ca.gc.nrc.iit.savoir.dao.impl.CalendarDAO">
+		<property name="dataSource" ref="dataSource" />	
+		<property name="personDAO" ref="personDAO" />
+		<property name="resourceDAO" ref="resourceDAO" />
+		<property name="sessionDAO" ref="sessionDAO" />
+	</bean>
+
+	<bean id="siteDAO" class="ca.gc.nrc.iit.savoir.dao.impl.SiteDAO">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="typesDAO" class="ca.gc.nrc.iit.savoir.dao.impl.TypesDAO">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="parametersDAO" class="ca.gc.nrc.iit.savoir.dao.impl.ParametersDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="lookUpDAO" ref="typesDAO" />
+		<property name="siteDAO" ref="siteDAO" />
+	</bean>
+
+	<bean id="resourceDAO" class="ca.gc.nrc.iit.savoir.dao.impl.ResourceDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="paramDAO" ref="parametersDAO" />
+		<property name="personDAO" ref="personDAO" />
+		<property name="lookUpDAO" ref="typesDAO" />
+		<property name="siteDAO" ref="siteDAO" />	
+		<property name="constraintDAO" ref="constraintDAO"></property>	
+	</bean>
+	
+	<bean id="personDAO" class="ca.gc.nrc.iit.savoir.dao.impl.PersonDAO">
+		<property name="dataSource" ref="dataSource" />		
+	</bean>
+	
+	<bean id="userDAO" class="ca.gc.nrc.iit.savoir.dao.impl.UserDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="personDAO" ref="personDAO" />
+		<property name="roleDAO" ref="roleDAO" />		
+	</bean>
+	
+	<bean id="groupDAO" class="ca.gc.nrc.iit.savoir.dao.impl.GroupDAO">
+		<property name="dataSource" ref="dataSource" />	
+		<property name="roleDAO" ref="roleDAO" />	
+	</bean>
+	
+	<bean id="roleDAO" class="ca.gc.nrc.iit.savoir.dao.impl.RoleDAO">
+		<property name="dataSource" ref="dataSource" />		
+	</bean>
+	
+	<bean id="credentialDAO" class="ca.gc.nrc.iit.savoir.dao.impl.CredentialDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="lookUpDAO" ref="typesDAO" />
+		<property name="resourceDAO" ref="resourceDAO" />
+	</bean>
+
+	<bean id="sessionDAO" class="ca.gc.nrc.iit.savoir.dao.impl.SessionDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="userDAO" ref="userDAO" />
+		<property name="groupDAO" ref="groupDAO" />
+		<property name="connectionDAO" ref="connectionDAO" />
+ 		<property name="roleDAO" ref="roleDAO" />
+	</bean>
+	
+	<bean id="scenarioDAO" class="ca.gc.nrc.iit.savoir.dao.impl.ScenarioDAO">
+		<property name="dataSource" ref="dataSource" />
+		<property name="userDAO" ref="userDAO" />
+	</bean>
+
+	<bean id="daoFactory" class="ca.gc.nrc.iit.savoir.dao.impl.DAOFactory">
+		<property name="parametersDAO" ref="parametersDAO" />
+		<property name="resourceDAO" ref="resourceDAO" />
+		<property name="siteDAO" ref="siteDAO" />
+		<property name="sessionDAO" ref="sessionDAO" />
+		<property name="scenarioDAO" ref="scenarioDAO" />
+		<property name="calendarDAO" ref="calendarDAO" />
+		<property name="typesDAO" ref="typesDAO" />
+		<property name="connectionDAO" ref="connectionDAO" />
+		<property name="userDAO" ref="userDAO" />
+		<property name="personDAO" ref="personDAO" />
+		<property name="groupDAO" ref="groupDAO" />
+		<property name="roleDAO" ref="roleDAO" />
+		<property name="credentialDAO" ref="credentialDAO" />
+		<property name="constraintDAO" ref="constraintDAO" />		
+	</bean>
+
+
+
+</beans>

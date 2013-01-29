@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Launch Properties
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				This build file defines the targets for deploying the SAVOIR
+*				launch properties file.
+* DATE CREATED:	May 30, 2012
+*
+********************************************************************************
+-->
+
+<project name="SavoirLaunchProperties" default="deploy" xmlns="antlib:org.apache.tools.ant">
+	
+	<description>Build file for the SAVOIR launch properties</description>
+	
+	<!-- **************************** Properties *************************** -->
+	
+	<!-- Distribution directories -->
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="resrc.home" value="${basedir}/resources" />
+	
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+	
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.cont.jar.dir}" />
+	<get src="${savoir.cont.url}/${savoir.cont.install.version}/${savoir.cont.jar.file}"
+		dest="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+	
+	<!-- **************************** File Sets **************************** -->
+	
+	<fileset id="resrc.dist.files" dir="${dist.home}/resources" />
+
+	<fileset id="resrc.src.files" dir="${resrc.home}">
+		<include name="**/*.properties" />
+	</fileset>
+
+	<!-- *************************** Class Paths *************************** -->
+	
+	<!-- none -->
+	
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" />
+	
+	<!-- Get the user name and password for the remote SAVOIR server if necessary -->
+	<macrodef name="get-user-lnch" description="Prompt the user for his/her username and password for the web server">
+		<sequential>
+			<echo message="Macrodef: get-user-lnch" />
+			<echo message=" " />
+			<if>
+				<isset property="savoir.remote.server.lnch" />
+				<then>
+					<check-if-eclipse-lnch/>
+					<echo message=" " />
+					<echo message="IMPORTANT NOTE!!!" />
+					<echo message="The system has determined that the SAVOIR launch properties" />
+					<echo message="will be deployed to a remote SAVOIR server." />
+					<input message="Please enter your SAVOIR server username " addproperty="savoir.server.user.name"/>
+
+					<input message="Please enter your SAVOIR server password " addproperty="savoir.server.password">
+						<handler type="secure" />
+					</input>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the user is trying to deploy from Eclipse -->
+	<macrodef name="check-if-eclipse-lnch" description="Check if the user is calling this script from eclipse">
+		<sequential>
+			<echo message="Macrodef: check-if-eclipse-lnch" />
+			<echo message=" " />
+			<if>
+				<isset property="eclipse.running" />
+				<then>
+					<echo message=" " />
+					<echo message="ERROR - Build failed" />
+					<echo message="It appears you are trying to deploy the SAVOIR launch properties to a remote" />
+					<echo message="server. Unfortunately, remote deployment will only work from the command" />
+					<echo message="line since it prompts for a password and secure entry of your password" />
+					<echo message="is not supported in Eclipse." />
+					<echo message="To deploy from the command line, perform the following commands:" />
+					<echo message="cd &lt;workspace dir&gt;/SAVOIR_SampleDevices/ClientLaunchProps" />
+					<echo message="ant deploy" />
+					<fail>See message above for build failure explanation</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+					
+	<!-- Deploy the savoir launch properties on the same server as the build -->
+	<macrodef name="deploy-same-srv-lnch" description="Deploy the savoir launch properties on the same server">
+		<sequential>
+			<echo message="Macrodef: deploy-same-srv-lnch" />
+			<echo message=" " />
+			<!-- Copy the files to the web directory -->
+			<copy todir="${savoir.lnch.deploy.resrc.directory}">
+				<fileset refid="resrc.dist.files" />
+			</copy>
+		</sequential>
+	</macrodef>
+
+	<!-- Deploy the savoir launch properties on a remote server -->
+	<macrodef name="deploy-remote-srv-lnch" description="Deploy the savoir launch properties on the remote web server">
+		<sequential>
+			<echo message="Macrodef: deploy-remote-srv-lnch" />
+			<echo message=" " />
+			<!-- Copy the files to the web server -->
+			<scp todir="${savoir.server.user.name}:${savoir.server.password}@${savoir.lnch.deploy.host}:${savoir.lnch.deploy.resrc.directory}" sftp="true" trust="true">
+				<fileset refid="resrc.dist.files" />
+			</scp>
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+	
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the Savoir launch properties project">
+		<echo message="==== Savoir launch properties init target ====" />
+		
+		<!-- make the required diectories -->
+		<mkdir dir="${dist.home}/resources" />
+	
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" description="No target actions">		
+		<echo message="==== Savoir launch properties build target ====" />
+		<echo message="Build target not supported." />
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="clean" description="Copies default resources">
+		<echo message="==== Savoir launch properties package target ====" />
+
+		<!-- Copy the resource files to the ditribution directory -->
+		<copy todir="${dist.home}/resources" includeEmptyDirs="false">
+			<fileset refid="resrc.src.files" />
+		</copy>
+
+	</target>
+	
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="package" description="Publish the resource file">
+		<echo message="==== Savoir launch properties deploy target ====" />
+
+		<if>
+			<not>
+				<istrue value="${savoir.is.master.build}" />
+			</not>
+			<then>
+
+				<!-- Get the host information -->
+				<hostinfo prefix="host" />
+		
+				<!-- Check if we require a username and password -->
+				<condition property="savoir.remote.server.lnch">
+					<not>
+						<or>
+							<matches pattern="${host.ADDR4}" string="${savoir.lnch.deploy.host}" />
+							<matches pattern="${host.NAME}" string="${savoir.lnch.deploy.host}" />
+						</or>
+					</not>
+				</condition>
+
+				<!-- Get the user credentials if necessary -->
+				<get-user-lnch/>
+			</then>
+		</if>
+		
+		<if>
+			<istrue value="${savoir.remote.server.lnch}" />
+			<then>
+				<deploy-remote-srv-lnch/>
+			</then>
+			<else>
+				<deploy-same-srv-lnch/>
+			</else>
+		</if>
+
+	</target>
+	
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir launch properties clean target ====" />
+
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+		
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir launch properties undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir launch properties doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir launch properties javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir launch properties test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- none -->
+		
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+	
+</project>

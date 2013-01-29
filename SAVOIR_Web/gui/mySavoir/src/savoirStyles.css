@@ -1,0 +1,229 @@
+/* Licensed under Apache 2.0 */
+/* Copyright 2011, National Research Council of Canada */
+/* Property of Lakehead University */
+
+/* 
+	File:			savoirStyles.css
+	Author:			Justin Hickey
+	Purpose:		To provide default styles for the web interface to SAVOIR
+	Date Created:	Feb 08, 2010
+*/
+/* #F79121;*/					/* Orange */
+/****** Styles for the entire application ******/
+
+global
+{
+	fontFamily: Helvetica Neue, Tahoma, Helvetica, Arial, sans-serif;
+	fontSize: 11;
+	color: #464547;					/* Dark grey */
+}
+
+/****** Styles for various components ******/
+
+ApplicationControlBar
+{
+	fillAlphas: 1, 1;
+	fillColors: #365762, #365762;	/* Dark Blue, Dark Blue */
+	highlightAlphas: 0, 0;			/* Not listed as style for this component but it works - makes bar 2D */
+}
+
+Button
+{
+	color: #B6BCC3;					/* Dark Cyan */
+	textRollOverColor: #DAF0FB; 	/* Light Cyan */
+	fillColors: #365762, #365762;	/* Dark Blue, Dark Blue */
+	fillAlphas: 1, 1;
+	downSkin: Embed(source="/assets/images/skinBlueBkgrd.png");
+}
+
+CheckBox
+{
+	fontSize: 12;
+	color: #365762;					/* Dark blue */
+	textRollOverColor: #365762; 	/* Dark blue */
+	fillColors: #FFFFFF, #CCCCCC;	/* Flex default values */
+	fillAlphas: 0.6, 0.4;			/* Flex default values */
+}
+
+ComboBox
+{
+	color: #365762;					/* Dark blue */
+	textRollOverColor: #365762; 	/* Dark blue */
+	fontWeight: normal;
+	fillColors: #FFFFFF, #CCCCCC;	/* Flex default values */
+	fillAlphas: 0.6, 0.4;			/* Flex default values */
+}
+
+DataGrid
+{
+	themeColor: #009DFF;			/* Light blue  - for highlighted row */
+}
+
+DockableToolBar
+{
+	backgroundColor: #365762;		/* Dark Blue */
+}
+
+GridItem
+{
+	verticalAlign: middle;
+}
+
+HBox
+{
+	backgroundColor: #FFFFFF;		/* White */
+}
+
+Label
+{
+	fontSize: 12;
+}
+
+LinkButton
+{
+	overSkin: Embed(source="/assets/images/skinBlueBkgrd.png");
+	downSkin: Embed(source="/assets/images/skinBlueBkgrd.png");
+}
+
+List
+{
+	fontSize: 12;
+}
+
+ScrollBar
+{
+	fillColors: #FFFFFF, #CCCCCC;	/* Flex default values */
+	fillAlphas: 0.6, 0.4;			/* Flex default values */
+}
+
+Text
+{
+	fontSize: 12;
+}
+	
+TextArea
+{
+	fontSize: 12;
+}
+	
+TextInput
+{
+	backgroundColor: #FFFFFF;		/* White */
+	fontSize: 12;
+}
+
+TitleWindow
+{
+	backgroundColor: #FFFFFF;		/* White */ 
+	borderColor: #365762;			/* Dark Blue */ 
+	borderAlpha: 1;
+}
+
+VBox
+{
+	backgroundColor: #FFFFFF;		/* White */
+}
+
+WindowShade
+{
+	paddingTop: 0;
+	paddingBottom: 0;
+	openIcon: Embed(source="/assets/images/downIconTrans.png");
+	closeIcon: Embed(source="/assets/images/rightIconTrans.png");
+}
+
+/****** Styles for particular instances of components - style names ******/
+
+/* Styles for the application menu bar components */
+.appBarLabel
+{
+	color: #B6BCC3;					/* Dark Cyan */
+	fontSize: 10;
+}
+
+.menuLinkButUnselected
+{
+	color: #B6BCC3;					/* Dark Cyan */
+	themeColor: #365762;			/* Dark Blue */
+	rollOverColor: #365762;			/* Dark Blue */
+	textRollOverColor: #DAF0FB; 	/* Light Cyan */
+	downSkin: Embed(source="/assets/images/skinBlueBkgrd.png");
+}
+
+.menuLinkButSelected
+{
+	color: #F79121;					/* Orange */
+	disabledColor: #F79121;			/* Orange */
+	themeColor: #365762;			/* Dark Blue */
+	rollOverColor: #365762;			/* Dark Blue */
+	textRollOverColor: #DAF0FB;		/* Light Cyan */
+	downSkin: Embed(source="/assets/images/skinBlueBkgrd.png");
+}
+
+/* Styles for heading type labels */
+.sectionLabel
+{
+	fontWeight: bold;
+	fontSize: 16;
+}
+
+.headingLabel
+{
+	fontWeight: bold;
+	fontSize: 14;
+}
+
+/* Styles for text in title bars */
+.popupTitleText
+{
+	color: #B6BCC3;					/* Dark Cyan */
+	fontSize: 14;
+	fontWeight: bold;
+}
+
+/* Styles for window shade HBox */
+.winShadeHeaderHBox
+{
+	backgroundColor: #365762;		/* Dark Blue */
+}
+
+/* Styles for the window shade header text */
+.winShadeMouseOver
+{
+	color: #DAF0FB;		/* Light Cyan */
+	fontSize: 14;
+	fontWeight: bold;
+}
+
+.winShadeMouseOut
+{
+	color: #B6BCC3;		/* Dark Cyan */
+	fontSize: 14;
+	fontWeight: bold;
+}
+
+/* Styles for simulating HTML hyperlinks */
+.hyperLinkButton
+{
+	color: #365762;					/* Dark Blue */
+	textRollOverColor: #B6BCC3;		/* Dark Cyan */
+	textDecoration: underline;
+	fontSize: 13;
+	fontWeight:  bold;
+	downSkin: Embed(source="/assets/images/skinWhiteBkgrd.png");
+	overSkin: Embed(source="/assets/images/skinWhiteBkgrd.png");
+}
+
+/* Styles for headers */
+.header1
+{
+	fontSize: 18;
+	fontWeight: bold;
+}
+
+.header2
+{
+	fontSize: 15;
+	fontWeight: bold;
+	textDecoration: underline;
+}

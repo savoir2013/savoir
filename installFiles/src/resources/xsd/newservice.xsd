@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="NewService" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="NewService">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="service" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:attribute name="ID" type="xs:string" use="required"/>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="scheduleType" type="xs:string" use="required"/>
+            <xs:attribute name="authenticationType" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="SAVOIR" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:attribute name="ipAddress" type="xs:string" use="required"/>
+            <xs:attribute name="portNumber" type="xs:string" use="required"/>
+            <xs:attribute name="protocol" type="xs:string" use="required"/>
+            <xs:attribute name="SAVOIRTopic" type="xs:string" />
+            <xs:attribute name="serviceTopic" type="xs:string" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

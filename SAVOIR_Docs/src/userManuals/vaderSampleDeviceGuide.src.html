@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<html>
+<head>
+	<link href="../css/savoirDocs.css" rel="stylesheet" type="text/css">
+	<title>SAVOIR ${savoir.release.ver} Vader Sample Device Guide</title>
+</head>
+
+<body>
+
+<img src="/images/savoirLogoDarkLargeTrans.png" />
+
+<center><h1>SAVOIR ${savoir.release.ver} Vader Sample Device Guide</h1></center>
+
+<h2>Table of Contents</h2>
+
+<ol>
+	<li><a href="#intro">Introduction</a></li>
+	<li><a href="#init">Initial Preparation</a></li>
+	<li><a href="#vader">Running the Vader Desktop Application</a></li>
+	<li><a href="#testSession">Testing the Session</a></li>
+	<li><a href="#clean">Cleaning Up</a></li>
+</ol>
+
+<h2><a name="intro">Introduction</a></h2>
+
+In order to test SAVOIR sessions, a simple session has been stored within the default database named
+<strong>Vader Sample Device Demo</strong>. Running this session will demonstrate how a change in one
+device can start a second device. The two devices are
+
+<ol>
+	<li>The Vader Web Tutorial</li>
+	<li>The Vader Desktop</li>
+</ol>
+
+The <em>Vader Web Tutorial</em> is a simple Flash website that allows the user (for this demo) to
+enter in a respiration rate and send this to the <em>Vader Desktop</em> application.
+
+<p>
+
+The <em>Vader Desktop</em> application runs on your local computer and waits for a message from the
+<em>Vader Web Tutorial</em>. When the message arrives, it updates it's display and then plays a
+sound similar to Darth Vader breathing.
+
+<h2><a name="init">Initial Preparation</a></h2>
+
+The <em>Vader Web Tutorial</em> should have been installed on the SAVOIR server during the
+installation process. Therefore, there is no need for any further installation or configuration.
+
+<p>
+
+The <em>Vader Desktop</em> application will need to be downloaded from the SAVOIR server since it is
+required to run on your local computer. It is simply a jar file, and can be found at the following
+location.
+
+<ul>
+	<dl>
+		<dd><tt>http://${savoir.vadr.deploy.host}/sampleDevices/vaderDesktop/</tt></dd>
+	</dl>
+</ul>
+
+This website simply lists the <strong>VadarDesktop.jar</strong> file. Once you download the file, it
+can be stored in any convenient location.
+
+NEED TO MENTION SAVOIR LAUNCH FILE
+
+<h2><a name="vader">Running the Vader Desktop Application</a></h2>
+
+To run the the <em>Vader Desktop</em> application you should be able to just <em>double click</em>
+on the icon of the <strong>VadarDesktop.jar</strong> file. If this fails, you can alternatively run
+the application from the command line. Simply change directory to the folder containing the
+<strong>VadarDesktop.jar</strong> file and then run the following command
+
+<ul>
+	<dl>
+		<dd><tt>java -jar VaderDesktop.jar</tt></dd>
+	</dl>
+</ul>
+
+Once the application is running you should see a window similar to the one below:
+
+<p>
+
+<center><img src="images/vaderDesktop01.png"></center>
+
+<p>
+
+In order to start the application so that it is listening for messages, you need to <em>start the
+bus interface</em>. To do this, simply click on the <strong>File</strong> menu button and select
+<strong>Start BusInterface</strong> as shown below:
+
+<p>
+
+<center><img src="images/vaderDesktop02.png"></center>
+
+<p>
+
+When the application is listening, the status window will indicate that the bus interface has
+started, as shown below:
+
+<p>
+
+<center><img src="images/vaderDesktop03.png"></center>
+
+<p>
+
+<h2><a name="testSession">Testing the Session</a></h2>
+
+Before you can test the <strong>Vader Sample Device Demo</strong> session, you need to ensure that
+the <em>Vader Desktop</em> application is <a href="#vader">running and listening to the bus
+interface</a>
+
+<p>
+
+If you haven't already done so, log in to SAVOIR at the following URL:
+
+<ul>
+	<dl>
+		<dd><tt>http://${savoir.logn.deploy.host}/savoir/</tt></dd>
+	</dl>
+</ul>
+
+Once you're logged in, you should see a page similar to the following:
+
+<p>
+
+<center><img src="images/vaderDesktop04.png"></center>
+
+<p>
+
+Click the <strong>Vader Sample Device Demo 3904</strong> link and a window should pop up like the
+one below:
+
+<p>
+
+<center><img src="images/vaderDesktop05.png"></center>
+
+<p>
+
+Next, click the <strong>Start Session</strong> button and the <em>Vader Web Tutorial</em> website
+should start as indicated below:
+
+<p>
+
+<center><img src="images/vaderDesktop06.png"></center>
+
+<p>
+
+Type in a respiration rate greater than 30 as shown in the following and then click the <strong>Set
+Respiration Rate</strong> button
+
+<p>
+
+<center><img src="images/vaderDesktop07.png"></center>
+
+<p>
+
+If your computer speakers are working properly, then you should start to hear a breathing sound and
+the <em>Vader Desktop</em> application should have been updated similar to the following:
+
+<p>
+
+<center><img src="images/vaderDesktop08.png"></center>
+
+<p>
+
+<h2><a name="clean">Cleaning Up</a></h2>
+
+To stop the breathing sound simply quit the <em>Vader Desktop</em> application by clicking
+<strong>File</strong> then <strong>Exit</strong> as indicated below:
+
+<p>
+
+<center><img src="images/vaderDesktop09.png"></center>
+
+<p>
+
+Then you can close the now <em>paused</em> Flash web page for the <em>Vader Web Tutorial</em> and
+then click the <strong>End Session</strong> button on the session pop up window as shown in the
+following:
+
+<p>
+
+<center><img src="images/vaderDesktop10.png"></center>
+
+<p>
+
+<h2></h2>
+
+<center>
+	<small>Copyright &copy; <script type="text/javascript">
+		document.write(new Date().getFullYear());
+		</script>, National Research Council of Canada
+	</small>
+</center>
+
+</body>
+</html>

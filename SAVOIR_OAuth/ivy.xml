@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR OAuth
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		This Ivy file indicates three aspects for compiling this
+*				project: configurations, publications, and dependencies.
+*
+*				Configurations allows for separate compile configurations. For
+*				example, a master configuration and a test configuration. The
+*				test configuration would add testing code to the compile.
+*
+*				Publications indicate the libraries and/or executables that are
+*				created by the compile.
+*
+*				The dependedncies list all the libraries that the project
+*				depend on.
+* DATE CREATED:	Feb 23, 2011
+*
+********************************************************************************
+-->
+
+<ivy-module version="2.1">
+	<info organisation="ca.nrc.iit" module="savoirOauth" revision="${savoir.release.ver}"/>
+
+<!--   
+	<configurations defaultconfmapping="default" >
+		<conf name="compile" visibility="private"/>
+		<conf name="test" extends="compile" visibility="private"/>
+		<conf name="master" />
+		<conf name="runtime" extends="compile" />
+		<conf name="default" extends="master,runtime"/>
+	</configurations>
+-->
+
+	<configurations>
+		<conf name="master" />
+	</configurations>
+
+	<!-- Tell Ivy to publish the savoir OAuth jar files -->
+	<publications>
+		<artifact name="${jar.name}" conf="master" />
+		<artifact name="${base.jar.name}" conf="master" />
+		<artifact name="${provider.jar.name}" conf="master" />
+		<artifact name="${consumer.jar.name}" conf="master" />
+	</publications>
+    
+	<dependencies>
+		
+		<!-- Dependencies for master configuration --> 
+		<dependency org="commons-codec" name="commons-codec" rev="1.3" conf="master" />
+		<dependency org="commons-httpclient" name="commons-httpclient" rev="3.1" conf="master" />
+		<dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="master" />
+		<dependency org="ca.nrc.iit" name="cxf" rev="2.2.3" conf="master->default" />
+		<dependency org="org.apache.httpcomponents" name="httpclient" rev="4.0" conf="master" />
+		<dependency org="org.apache.httpcomponents" name="httpcore" rev="4.0.1" conf="master" />
+		<dependency org="net.jcip" name="jcip-annotations" rev="1.0" conf="master" />
+		<dependency org="log4j" name="log4j" rev="1.2.15" conf="master" />
+		<dependency org="javax.servlet" name="servlet-api" rev="2.5" conf="master" />
+		
+		<!-- Note springframeworks does not work with "conf" attributes -->
+		<dependency org="org.springframework" name="org.springframework.core" rev="2.5.5.A">
+			<exclude module="com.springsource.org.apache.commons.attributes" />
+		</dependency>
+		<dependency org="org.springframework.security" name="org.springframework.security" rev="2.0.4.A">
+			<exclude module="com.springsource.org.apache.commons.attributes" />
+		</dependency>
+		
+	</dependencies>
+</ivy-module>

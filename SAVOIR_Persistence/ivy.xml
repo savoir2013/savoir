@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Persistence
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		This Ivy file indicates three aspects for compiling this
+*				project: configurations, publications, and dependencies.
+*
+*				Configurations allows for separate compile configurations. For
+*				example, a master configuration and a test configuration. The
+*				test configuration would add testing code to the compile.
+*
+*				Publications indicate the libraries and/or executables that are
+*				created by the compile.
+*
+*				The dependedncies list all the libraries that the project
+*				depend on.
+* DATE CREATED:	Feb 17, 2011
+*
+********************************************************************************
+-->
+
+<ivy-module version="2.1">
+	<info organisation="ca.nrc.iit" module="savoirPersistence" revision="${savoir.release.ver}"/>
+
+<!--   
+	<configurations defaultconfmapping="default" >
+		<conf name="compile" visibility="private"/>
+		<conf name="test" extends="compile" visibility="private"/>
+		<conf name="master" />
+		<conf name="runtime" extends="compile" />
+		<conf name="default" extends="master,runtime"/>
+	</configurations>
+-->
+
+	<configurations>
+		<conf name="master" />
+		<conf name="test" extends="master" visibility="private"/>
+	</configurations>
+
+	<!-- Tell Ivy to publish the savoir persistence and domain objects jar files -->
+	<publications>
+		<artifact name="${pers.name}" conf="master" />
+		<artifact name="${domObj.name}" conf="master" />
+	</publications>
+    
+	<dependencies>
+		
+		<!-- Dependencies for master configuration --> 
+		<dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="master" />
+		<dependency org="log4j" name="log4j" rev="1.2.15" conf="master" />
+		<dependency org="commons-dbcp" name="commons-dbcp" rev="1.2.2" conf="master" />
+		<dependency org="commons-pool" name="commons-pool" rev="1.4" conf="master" />
+		<dependency org="mysql" name="mysql-connector-java" rev="5.1.8" conf="master"/>
+		
+		<!-- Note springframeworks does not work with "conf" attributes -->
+		<dependency org="org.springframework" name="org.springframework.core" rev="2.5.5.A">
+			<exclude module="com.springsource.org.apache.commons.attributes" />
+		</dependency>
+		<dependency org="org.springframework" name="org.springframework.jdbc" rev="2.5.5.A">
+			<exclude module="com.springsource.org.apache.commons.attributes" />
+		</dependency>
+		
+		<!-- Dependencies for test configuration -->
+		<dependency org="junit" name="junit" rev="4.4" conf="test->default" />
+		
+	</dependencies>
+</ivy-module>

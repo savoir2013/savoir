@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<InfoPopupWindow xmlns="savoirComp.*" xmlns:mx="http://www.adobe.com/2006/mxml">
+  <mx:Script>
+  	<![CDATA[
+  	    import mx.core.Application;
+  	    import mx.controls.Alert;
+  		import mx.controls.TextArea;
+  		import mx.managers.PopUpManager;
+  		import flash.net.FileReference;
+  		private var _scenarioDispMetaData:XML = <components>
+  		                                       </components>;
+  		public  function set scenarioDispMetaData(value:XML):void{
+  			_scenarioDispMetaData = value;
+  		}
+  		private var _scenario:XML;
+  		public function set scenario(value:XML):void{
+  			_scenario = value;
+  		}                                      
+  	    private var content:TextArea;
+  		override public function initPopup():void
+		{
+			// Create the text component for the message content
+			//mainVBox.top = 10;
+			//mainVBox.bottom = 10;
+			content = new TextArea();
+			content.wordWrap = true;
+			content.percentHeight = 90;
+			content.percentWidth = 100;
+			content.text = "No message provided.";
+			this.okBut.label = "Save";
+			this.okBut.addEventListener(MouseEvent.CLICK,handleSaveClick);
+			//content.percentHeight = 100;
+			//content.percentWidth = 100;
+			
+			// Add the content to the popup window
+			super.mainVBox.addChildAt(content, 0);
+		}
+		
+		override public function setMessage(msgStr:String):void
+		{
+			var pattern:RegExp;
+			
+			// Set the pattern to be 0 or more occurrences of a new line 
+			//pattern = /\n*$/;
+			//content.text = msgStr.replace(pattern, "\n\n");
+			content.text = msgStr;
+			// Replace 0 or more new lines at the end of the string with 2 new lines
+			
+			content.validateNow();
+//			var textHeight:Number = content.textHeight;
+//			var textWidth:Number = content.textWidth;
+//			
+//			var appHeight:Number = Application.application.height;
+//			var appWidth:Number = Application.application.width;
+//			trace(Application.application.height);
+//			if(textHeight < appHeight && textWidth < appWidth){
+//			   content.height = textHeight - okBut.height;
+//               content.width = textWidth - 20;
+//			}else{
+//			   content.height = Application.application.height - 50;
+//			   content.width = Application.application.width - 50;
+//			}
+			this.height = Application.application.height;
+			this.width = Application.application.width;
+			this.invalidateDisplayList();
+		}
+		private var file:FileReference = new FileReference();
+		private function handleSaveClick(event:MouseEvent):void{
+		    var data:ByteArray = new ByteArray();
+		    XML.ignoreComments = false;
+		    try{
+		        this._scenario = XML(this.content.text)
+		    }catch(err:Error){
+		    	Alert.show("Your scenario is not right!\n please check the XML content!");
+		    	return;
+		    }
+		    //instead write into the scenario file. we form it from the formal senario part when loading it
+		    //_scenario.appendChild(XML("<!--" + this._scenarioDispMetaData.toXMLString() + "-->"));
+		    
+		    data.writeMultiByte(_scenario.toXMLString(),"utf-8");
+		    file.save(data,"scenario.xml"); 
+		    PopUpManager.removePopUp(this);
+		    
+		}
+			
+  	]]>
+  </mx:Script>
+	
+</InfoPopupWindow>

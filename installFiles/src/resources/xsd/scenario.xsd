@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2009 (http://www.altova.com) by Sandy Liu (NATIONAL RESEARCH COUNCIL CA) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="scenario">
+		<xs:annotation>
+			<xs:documentation>Describes a scenario</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="description" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>A textual description for the scenario, can be used for the UI. </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="apn" type="apn" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>APN sites needed for session</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="nodes">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="startNode" type="simpleNode"/>
+							<xs:choice maxOccurs="unbounded">
+								<xs:element name="resourceNode" type="resourceNode"/>
+								<xs:element name="splitNode" type="simpleNode"/>
+								<xs:element name="joinNode" type="simpleNode"/>
+							</xs:choice>
+							<xs:element name="endNode" type="simpleNode" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="link" type="link" minOccurs="2" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Connections between nodes</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="scenarioId" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>scenario ID, it is defined as optional here, so that the user doesn't need to have a scenario ID in the xml when it was submitted to SAVOIR, this should be changed back to "required" when the authoring interface is done </xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="scenarioName" type="xs:string" use="required"/>
+			<xs:attribute name="lastModified" type="xs:dateTime" use="optional"/>
+			<xs:attribute name="authorId" type="xs:string" use="required">
+				<xs:annotation>
+					<xs:documentation>user ID of the scenario author</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="authorName" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>The author&apos;s name of the scenario</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="rule">
+		<xs:annotation>
+			<xs:documentation>A rule in the form �when conditions, then perform actions�</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>When all these conditions are satisfied, the rule will fire.</xs:documentation>
+				</xs:annotation>
+				<xs:element name="or" type="or"/>
+				<xs:element name="not" type="not"/>
+				<xs:element name="when" type="when"/>
+			</xs:choice>
+			<xs:element name="then">
+				<xs:annotation>
+					<xs:documentation>An action to perform of the form &quot;perform ACTION on RESOURCE with PARAMETERS&quot;</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="resource" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:complexContent>
+									<xs:extension base="resource">
+										<xs:sequence>
+											<xs:element name="action" maxOccurs="unbounded">
+												<xs:annotation>
+													<xs:documentation>Action to perform</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="parameter" type="parameter" minOccurs="0" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:documentation>Parameters for the action</xs:documentation>
+															</xs:annotation>
+														</xs:element>
+													</xs:sequence>
+													<xs:attribute name="actionName" type="actionType" use="required"/>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:extension>
+								</xs:complexContent>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="or">
+		<xs:annotation>
+			<xs:documentation>A union of conditions</xs:documentation>
+		</xs:annotation>
+		<xs:choice minOccurs="2" maxOccurs="unbounded">
+			<xs:annotation>
+				<xs:documentation>When any of these conditions are satisfied, the or is satisfied.</xs:documentation>
+			</xs:annotation>
+			<xs:element name="and" type="and"/>
+			<xs:element name="not" type="not"/>
+			<xs:element name="when" type="when"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="and">
+		<xs:annotation>
+			<xs:documentation>An intersection of conditions</xs:documentation>
+		</xs:annotation>
+		<xs:choice minOccurs="2" maxOccurs="unbounded">
+			<xs:annotation>
+				<xs:documentation>When all these conditions are satisfied, the and is satisfied.</xs:documentation>
+			</xs:annotation>
+			<xs:element name="or" type="or"/>
+			<xs:element name="not" type="not"/>
+			<xs:element name="when" type="when"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="not">
+		<xs:annotation>
+			<xs:documentation>A negation the union of conditions</xs:documentation>
+		</xs:annotation>
+		<xs:choice maxOccurs="unbounded">
+			<xs:annotation>
+				<xs:documentation>When none of these conditions are satisfied, the not is satisfied.</xs:documentation>
+			</xs:annotation>
+			<xs:element name="or" type="or"/>
+			<xs:element name="and" type="and"/>
+			<xs:element name="not" type="not"/>
+			<xs:element name="when" type="when"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="when">
+		<xs:annotation>
+			<xs:documentation>A condition of the form:  �RESOURCE PARAMETER OPERATOR VALUE�</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:annotation>
+				<xs:documentation>Satisfied if the comparison VALUE to (PARAMETER on RESOURCE) using OPERATOR returns true</xs:documentation>
+			</xs:annotation>
+			<xs:element name="resource" type="resource"/>
+			<xs:element name="parameter" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Name of parameter on resource to compare value to</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="operator">
+				<xs:annotation>
+					<xs:documentation>Operator to compare parameter to value with</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="eq"/>
+						<xs:enumeration value="ne"/>
+						<xs:enumeration value="lt"/>
+						<xs:enumeration value="le"/>
+						<xs:enumeration value="gt"/>
+						<xs:enumeration value="ge"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="value" type="xs:anySimpleType">
+				<xs:annotation>
+					<xs:documentation>Value to compare parameter to</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="simpleNode">
+		<xs:attribute name="nodeId" type="xs:int" use="required">
+			<xs:annotation>
+				<xs:documentation>The node&apos;s ID</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="x" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s x-coordinate</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="y" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s y-coordinate</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="width" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s width</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="height" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s height</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="resourceNode">
+		<xs:annotation>
+			<xs:documentation>A workflow node that contains a resource</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="resource">
+				<xs:annotation>
+					<xs:documentation>The resource encapsulated by this node</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="activity" minOccurs="0">
+							<xs:complexType>
+								<xs:sequence>
+									<xs:element name="parameter" type="parameter" minOccurs="0" maxOccurs="unbounded"/>
+								</xs:sequence>
+								<xs:attribute name="id" type="xs:string"/>
+								<xs:attribute name="name" type="xs:string"/>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="variable" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType>
+								<xs:attribute name="name" use="required">
+									<xs:simpleType>
+										<xs:restriction base="xs:string">
+											<xs:pattern value="[A-Za-z][A-Za-z0-9_]*"/>
+										</xs:restriction>
+									</xs:simpleType>
+								</xs:attribute>
+								<xs:attribute name="parameter" type="xs:string" use="required"/>
+								<xs:attribute name="keepUpdate" type="xs:boolean" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+					<xs:attribute name="id" type="xs:string">
+						<xs:annotation>
+							<xs:documentation>Resource ID</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+					<xs:attribute name="name" type="xs:string" use="optional">
+						<xs:annotation>
+							<xs:documentation>Resource Name</xs:documentation>
+						</xs:annotation>
+					</xs:attribute>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="nodeId" type="xs:int" use="required">
+			<xs:annotation>
+				<xs:documentation>The node&apos;s ID</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="x" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s x-coordinate</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="y" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s y-coordinate</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="width" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s width</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="height" type="xs:int">
+			<xs:annotation>
+				<xs:documentation>the node&apos;s height</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="link">
+		<xs:annotation>
+			<xs:documentation>A connection between two nodes</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="rule" type="rule" minOccurs="0" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Rules active on this connection</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="from" type="xs:int" use="required">
+			<xs:annotation>
+				<xs:documentation>The ID of the node linked from</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="to" type="xs:int" use="required">
+			<xs:annotation>
+				<xs:documentation>The ID of the node linked to</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="apn">
+		<xs:annotation>
+			<xs:documentation>An APN site</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="connection" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="sourceSite">
+							<xs:complexType>
+								<xs:attribute name="id" type="xs:int" use="required"/>
+								<xs:attribute name="name" type="xs:string" use="required"/>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="destSite">
+							<xs:complexType>
+								<xs:attribute name="id" type="xs:int" use="required"/>
+								<xs:attribute name="name" type="xs:string" use="required"/>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+					<xs:attribute name="id" type="xs:int" use="required"/>
+					<xs:attribute name="maxBandwidth" type="xs:string" use="required"/>
+					<xs:attribute name="minBandwidth" type="xs:string" use="required"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="reservationMethod" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="CHRONOS_RESERVATION"/>
+					<xs:enumeration value="SCENARIO_RESERVATION"/>
+					<xs:enumeration value="HARMONY_RESERVATION"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:complexType name="parameter">
+		<xs:annotation>
+			<xs:documentation>A parameter</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="id" type="xs:string"/>
+		<xs:attribute name="value" type="xs:string" use="optional"/>
+		<xs:attribute name="variable" type="xs:string" use="optional"/>
+		<xs:attribute name="expression" type="xs:string" use="optional"/>
+	</xs:complexType>
+	<xs:complexType name="activity">
+		<xs:annotation>
+			<xs:documentation>An activity that can contain activity-specific parameters</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="parameter" type="parameter" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="xs:string"/>
+		<xs:attribute name="name" type="xs:string"/>
+	</xs:complexType>
+	<xs:simpleType name="actionType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="load"/>
+			<xs:enumeration value="start"/>
+			<xs:enumeration value="stop"/>
+			<xs:enumeration value="pause"/>
+			<xs:enumeration value="resume"/>
+			<xs:enumeration value="getStatus"/>
+			<xs:enumeration value="setParameter"/>
+			<xs:enumeration value="acknowlege"/>
+			<xs:enumeration value="authenticate"/>
+			<xs:enumeration value="endSession"/>
+			<xs:enumeration value="getProfile"/>
+			<xs:enumeration value="reportStatus"/>
+			<xs:enumeration value="reportProfile"/>
+			<xs:enumeration value="startResponse"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="resource">
+		<xs:attribute name="id" type="xs:string" use="required">
+			<xs:annotation>
+				<xs:documentation>Resource ID</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="name" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation>Resource Name</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="activityID" type="xs:int" use="optional"/>
+	</xs:complexType>
+</xs:schema>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<profileMessage action="reportProfile">
+	<service ID="168" name="EKGDeskTop_NRC" description="This is the EKG desktop device. The heartbeat sound was obtained from http://www.freesound.org/samplesViewSingle.php?id=21409" maxSimultaneousUsers="-1" ipAddress="" portNumber="" contactName="someone" contactEmail="somebody@some.com" timestamp="24082010:34:16">
+		
+		<widget title="EKG Desktop">
+			<description>EKG Desktop will launch an application that produces a heartbeat sound at the rate provided. Please note that you will need the EKG Desktop Application installed on your computer. It can be found at http://0.0.0.0/sampleDevices/EKGDesktop/ You will also need the SAVOIR launch properties file found at http://0.0.0.0/sampleDevices/resources/ For instructions on installing these files please see the EKG Sample Device Guide found at http://0.0.0.0/savoirDocs/ The heartbeat sound was obtained from http://www.freesound.org/samplesViewSingle.php?id=21409</description>
+			<icon name="EKG" format="png" />
+			<choices baseUri="savoir://EKGDeskTop_NRC">
+				<choice ID="heartRate" label="Heart Rate" type="userEntered" paramId="heartRate"/>
+			</choices>
+		</widget>		
+		
+		<activities>
+			<activity ID="1" name="Set heart rate" paramValue="78">
+				<activityParameters>
+					<activityParameter ID="1" name="heartBeat" dataType="xs:integer" />
+					
+				</activityParameters>
+			</activity>
+			
+		</activities>
+
+	</service>
+</profileMessage> 

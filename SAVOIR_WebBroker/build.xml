@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Web Broker
+* AUTHOR(S):	Justin Hickey, Aaron Moss, Yonghua You, Yosri Harzallah
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				This build file defines the targets for building the web broker
+*				service. It will build and deploy the web broker services.
+* DATE CREATED:	Apr 20, 2011
+*
+********************************************************************************
+-->
+
+<project name="savoirWebBroker" default="build" xmlns:ivy="antlib:org.apache.ivy.ant"
+	xmlns="antlib:org.apache.tools.ant">
+	
+	<description>Build file for the SAVOIR Web Broker service</description>
+	
+	<!-- **************************** Properties *************************** -->
+	
+	<!-- Load the environment since an environment variable is used below -->
+	<property environment="env" />
+	
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+	<property name="local.lib.home" value="${basedir}/localLib" />
+	<property name="war.lib.home" value="${basedir}/WebContent/WEB-INF/lib" />
+	
+	<!-- Software installation directories --> 
+	<property name="catalina.home" value="${env.CATALINA_HOME}" />
+	
+	<!-- Deployment files -->
+	<property name="web.app.name" value="SAVOIR_WebBroker" />
+	<property name="web.app.path" value="/${web.app.name}" />
+	
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+	
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- The ivy task def below requires the ivy.jar file so make sure it is downloaded
+		Download ivy from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.ivy.jar.dir}" />
+	<get src="${savoir.ivy.url}/${savoir.ivy.install.version}/${savoir.ivy.jar.file}"
+		dest="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- **************************** File Sets **************************** -->
+	
+	<fileset id="master.libs" dir="${lib.home}/master">
+		<include name ="**/*.jar" />
+	</fileset>
+	
+	<!-- There are jars in other directories besides the lib directory so 
+		set the lib root to the catalina root directory -->
+	<fileset id="catalina.libs" dir="${catalina.home}">
+		<include name ="**/*.jar" />
+	</fileset>
+	
+	<fileset id="war.src.files" dir="WebContent">
+		<exclude name="WEB-INF/web.xml" />
+	</fileset>
+	
+	<fileset id="misc.files" dir="${src.home}">
+		<exclude name="**/*.java" />
+	</fileset>
+	
+	<!-- *************************** Class Paths *************************** -->
+	
+	<path id="master.class.path">
+		<fileset refid="master.libs" />
+	</path>
+
+	<path id="catalina.class.path">
+		<fileset refid="catalina.libs" />
+	</path>
+
+	<!-- ************************* Task Definitions ************************ -->
+	
+	<!-- Define the ivy ant task -->
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+		uri="antlib:org.apache.ivy.ant" classpath="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" />
+	
+	<!-- Define the ant tasks for using the tomcat manager -->
+	<taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="list" classname="org.apache.catalina.ant.ListTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="reload" classname="org.apache.catalina.ant.ReloadTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="start" classname="org.apache.catalina.ant.StartTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="stop" classname="org.apache.catalina.ant.StopTask"
+		classpathref="catalina.class.path" />
+
+	<!-- ************************* Default Targets ************************* -->
+	
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the web broker project">
+		<echo message="==== Savoir web broker init target ====" />
+		
+		<!-- Make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${lib.home}" />
+		<mkdir dir="${savoir.repo.home}" />
+	
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init, retrieve-ivy-deps" description="Builds java classes">		
+		<echo message="==== Savoir web broker build target ====" />
+
+		<!-- Compile Java classes as necessary -->
+		<javac source="${savoir.java.source.ver}" target="${savoir.java.target.ver}" srcdir="${src.home}"
+			destdir="${build.home}" debug="${savoir.webr.compile.debug}"
+			deprecation="${savoir.webr.compile.deprecation}" optimize="${savoir.webr.compile.optimize}">
+				<classpath refid="master.class.path" />
+				<classpath refid="catalina.class.path" />
+		</javac>
+
+		<!-- Copy application resources -->
+		<copy todir="${build.home}">
+			<fileset refid="misc.files" />
+		</copy>
+		
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Copies default resources and calls jar target">
+		<echo message="==== Savoir web broker package target ====" />
+
+		<!-- Copy the libraries to the WEB-INF directory -->
+		<delete dir="${war.lib.home}" />
+		<mkdir dir="${war.lib.home}" />
+		
+		<copy todir="${war.lib.home}">
+			<fileset refid="master.libs" />
+		</copy>
+		
+		<!-- Create the war file -->
+		<war destfile="${dist.home}/${web.app.name}.war" webxml="WebContent/WEB-INF/web.xml" update="true">
+			<classes dir="${build.home}" />
+			<fileset refid="war.src.files" />
+		</war>
+	</target>
+	
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="undeploy, package" description="Deploys application on servlet container">
+		<echo message="==== Savoir web broker deploy target ====" />
+
+		<echo message="Deploying web application to ${savoir.webr.deploy.url}"/>
+		<deploy url="${savoir.webr.deploy.url}" username="${savoir.webr.deploy.username}"
+			password="${savoir.webr.deploy.password}" path="${web.app.path}"
+			war="${dist.home}/${web.app.name}.war" />
+
+	</target>
+	
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir web broker clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+		<delete dir="${lib.home}" includeEmptyDirs="true" />
+		
+		<!-- The bin directory is usually created by default -->
+		<delete dir="${basedir}/bin" includeEmptyDirs="true" />
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="Remove application on servlet container">
+		<echo message="==== Savoir web broker undeploy target ====" />
+
+		<echo message="Undeploying web application from ${savoir.webr.deploy.url}"/>
+		<undeploy url="${savoir.webr.deploy.url}" username="${savoir.webr.deploy.username}"
+			password="${savoir.webr.deploy.password}" path="${web.app.path}" failonerror="false" />		
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir web broker doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir web broker javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir web broker test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- **** Install-local-libs **** -->
+	<target name="install-local-libs"
+		description="Install any local libraries to the Savoir repository">
+			<echo message="==== Savoir web broker install-local-libs target ====" />
+		
+			<ivy:install organisation="ca.nrc.iit" module="cxf" overwrite="true"
+				revision="2.2.3" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-activation" overwrite="true"
+				revision="1.1" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-annotation" overwrite="true"
+				revision="1.0" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-javamail" overwrite="true"
+				revision="1.4" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-jaxws" overwrite="true"
+				revision="2.1" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-jms" overwrite="true"
+				revision="1.1" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-servlet" overwrite="true"
+				revision="2.5" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-stax-api" overwrite="true"
+				revision="1.0" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="geronimo-ws-metadata" overwrite="true"
+				revision="2.0" from="local-lib-repo" to="savoir-lib-repo" />
+			<ivy:install organisation="ca.nrc.iit" module="stax-api" overwrite="true"
+				revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+	</target>
+
+	<!-- **** Retrieve-ivy-deps **** -->
+	<target name="retrieve-ivy-deps" depends="install-local-libs"
+		description="Retreive all library dependencies using Ivy to the project lib directory">
+			<echo message="==== Savoir web broker retrieve-ivy-deps target ====" />
+		
+			<!-- Note that retrieve does a resolve as well thus, we don't have an ivy resolve target -->
+			<ivy:retrieve pattern="${lib.home}/[conf]/[artifact].[ext]" />
+	</target>
+
+	<!-- ********************* Project Specific Targets ******************** -->
+	
+	<!-- none -->
+	
+</project>

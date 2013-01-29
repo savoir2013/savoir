@@ -1,0 +1,77 @@
+/* Licensed under Apache 2.0 */
+/* Copyright 2011, National Research Council of Canada */
+/* Property of Lakehead University */
+
+/* CSS file */
+Application
+{
+    /*background-color:         "0xB6BCC3";
+    background-image:         Embed("/authoringTool/scenario/bg.gif");
+    background-repeat:         repeat;
+    background-position:     center;
+    background-blend:         multiply;
+    borderSkin:             ClassReference("com.degrafa.skins.CSSSkin");*/
+    themeColor: "#B6BCC3"; 
+    backgroundGradientAlphas: "[1.0, 1.0]"; 
+    backgroundGradientColors: "[#B0A8A8, #1A1212]";
+}
+
+Canvas.header
+{
+	background-color: "-90deg #333333 #494949 ";
+    borderSkin:             ClassReference("com.degrafa.skins.CSSSkin");
+	
+}
+
+Canvas.smallHeader
+{
+	background-color: "-90deg #333333 #494949 ";
+	borderBottomLeftRadius: 4;
+	borderBottomRightRadius: 4;
+	borderTopLeftRadius: 4;
+	borderTopRightRadius: 4;
+    borderSkin:             ClassReference("com.degrafa.skins.CSSSkin");
+	
+}
+
+Button.addCircleButton
+{
+	fillAlphas: 0.0, 0.0, 0.0, 0.0;
+	themeColor: #FF0000;
+	upIcon: Embed(source="/authoringTool/buttons/Images/circleUp.png");
+	cornerRadius: 0;
+	overIcon: Embed(source="/authoringTool/buttons/Images/circleOver.png");
+	downIcon: Embed(source="/authoringTool/buttons/Images/circleDown.png");
+}
+Button.addRectangleButton
+{
+	fillAlphas: 0.0, 0.0, 0.0, 0.0;
+	themeColor: #FFFFFF;
+	upIcon: Embed(source="/authoringTool/buttons/Images/rectangleUp.png");
+	cornerRadius: 0;
+	overIcon: Embed(source="/authoringTool/buttons/Images/rectangleOver.png");
+	downIcon: Embed(source="/authoringTool/buttons/Images/rectangleDown.png");
+}
+Button.addBooleanButton
+{
+	fillAlphas: 0.0, 0.0, 0.0, 0.0;
+	themeColor: #FFFFFF;
+	upIcon: Embed(source="/authoringTool/buttons/Images/booleanUp.png");
+	cornerRadius: 0;
+	overIcon: Embed(source="/authoringTool/buttons/Images/booleanOver.png");
+	downIcon: Embed(source="/authoringTool/buttons/Images/booleanDown.png");
+}
+CheckBox
+{
+	color: #000000;
+	textRollOverColor: #009DFF;
+	textSelectedColor: #007FD0;
+}
+
+ApplicationControlBar
+{
+	fillAlphas: 1, 1;
+	fillColors: #365762, #365762;	/* Dark Blue, Dark Blue */
+	highlightAlphas: 0, 0;			/* Not listed as style for this component but it works - makes bar 2D */
+}
+

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" label="Edge Device Settings" >
+    <mx:Script>
+    	<![CDATA[
+    		import authoringTool.scenarioChart.components.ComponentEvent;
+    		import authoringTool.scenarioChart.components.EdgeDeviceComponent;
+    		import mx.collections.ArrayCollection;
+    		import mx.events.DataGridEvent;
+    		import mx.controls.Alert;
+    		import mx.core.Application;
+    		[Bindable]
+    		private var variables:ArrayCollection = new ArrayCollection([
+    		                              {name:"", parameter:"", keepUpdate:false},
+    		                              
+    		                           ]);
+    		                           
+    	    public var activities:ArrayCollection = null;
+    		 
+    		                           
+    		                           
+    		[Bindable]
+    		public var parameters:XMLList = null;
+    		
+    		public var edgeDeviceComp:EdgeDeviceComponent; 
+    		
+    		public function initEdgeDeviceCanvas(edgeDevComp:EdgeDeviceComponent):void{
+    			if(edgeDevComp.variables != null){
+    				variables = edgeDevComp.variables;
+    			}
+    			if(edgeDevComp.resourceProfile != null){
+    				activityCombBox.labelField = "name";
+    				activities = edgeDevComp.getActivities();
+    				activityCombBox.dataProvider = activities;
+    			}
+    			if(edgeDevComp.activity != null){
+    				var selIndex:Number = findOutIndex( edgeDevComp.activity.name);
+    				if(selIndex != -1){
+    				    activityCombBox.selectedIndex = selIndex;
+    				}else{
+    					activityCombBox.selectedIndex = 0;
+    				}
+    			}else{
+    				activityCombBox.selectedIndex = 0;
+    			}
+    			edgeDevComp.activity = activityCombBox.selectedItem;
+    			
+    			parameters = edgeDevComp.getParameters();
+    			edgeDeviceComp = edgeDevComp;
+    			if(edgeDevComp.nodeID != -1){
+	    			nodeIDTI.text = edgeDevComp.nodeID.toString();
+    			}else{
+    				Application.application.maxNodeID = Application.application.maxNodeID + 1;
+    				nodeIDTI.text = Application.application.maxNodeID.toString();
+    				this.edgeDeviceComp.nodeID = Application.application.maxNodeID;
+    			}
+    		}
+    		
+    		public function saveSetting():void{
+    			edgeDeviceComp.variables = variables;
+    			edgeDeviceComp.activity = activities.getItemAt(activityCombBox.selectedIndex);
+    		}  
+    		
+    		private function findOutIndex(actName:String):Number{
+    			var index:Number = -1;
+    			for(var i:Number = 0; i < this.activities.length; i++){
+    				if(this.activities[i].name == actName){
+    					index = i;
+    				}
+    			}
+    			return index;
+    		}
+    		
+    		private function handleDoneClick(event:MouseEvent):void{
+    			edgeDeviceComp.variables = variables;
+    			edgeDeviceComp.activity = activities.getItemAt(activityCombBox.selectedIndex);
+    			this.edgeDeviceComp.dispatchEvent(new MouseEvent(MouseEvent.CLICK, true, false)); 
+    			//Application.application.settings.hide();
+    		} 
+    		
+    		private function handAddClick(event:MouseEvent):void{
+    			variables.addItem({name:"", parameter:"", keepUpdate:false});
+    		}
+    		
+    		private function handleDeleteClick(event:MouseEvent):void{
+    			variables.removeItemAt(varTableDataGrid.selectedIndex);
+    		}
+    		
+    		private function handleNodeIDChange(event:Event):void{
+    			var pattern:RegExp = /\d+/;
+    			var idStr:String = nodeIDTI.text;
+    			var result:Boolean = pattern.test(idStr);
+    			if(false){
+    				Alert.show("NonDigital characters should not be included!","Warning");
+    			}else{
+    				this.edgeDeviceComp.nodeID = new Number(idStr);
+    			} 
+    		}
+    		
+    		private function handleActivityCBClose(event:Event):void{
+    			if(activityCombBox.selectedItem == null){
+    				return;
+    			}
+    			edgeDeviceComp.activity = activityCombBox.selectedItem;
+    			
+    			parameters = edgeDeviceComp.getParameters();
+    			
+    		}
+    		                       
+    	]]>
+    </mx:Script>
+	<mx:VBox x="0" y="0" width="100%" height="100%">
+		<mx:Spacer width="100%" height="20"/>
+		<mx:HBox width="100%" height="20">
+			<mx:Label text="Activity:" fontSize="14"/>
+			<mx:Spacer height="20" width="30"/>
+			<mx:ComboBox width="206" id="activityCombBox" close="handleActivityCBClose(event)"></mx:ComboBox>
+			<mx:Spacer width="30" height="20"/>
+			<mx:Label text="Node ID:" fontSize="14"/>
+			<!--<mx:TextInput id="nodeIDTI" width="81" borderStyle="solid" change="handleNodeIDChange(event)"/>-->
+			<mx:Text id="nodeIDTI" width="81" />
+		</mx:HBox>
+		<mx:HRule width="100%" height="2"/>
+		<mx:Spacer width="100%" height="20"/>
+		<mx:Label text="Add variables in the following table:" fontSize="14"/>
+		<mx:DataGrid  width="100%" id="varTableDataGrid" editable="true" dataProvider="{variables}" textAlign="center">
+			<mx:columns>
+				<mx:DataGridColumn headerText="Name" dataField="name">
+				   <mx:itemEditor>
+				   	  <mx:Component>
+				   	  	 <mx:TextInput/>
+				   	  </mx:Component>
+				   </mx:itemEditor>
+				</mx:DataGridColumn>
+				<mx:DataGridColumn headerText="Parameter" dataField="parameter" editorDataField="selectedLabel">
+				   <mx:itemEditor>
+				   	  <mx:Component>
+				   	  	<mx:ComboBox dataProvider="{outerDocument.parameters}" labelField="@name">
+				   	  	</mx:ComboBox>
+				   	  </mx:Component>
+				   </mx:itemEditor>
+				</mx:DataGridColumn>
+				<mx:DataGridColumn headerText="keepUpDate" dataField="keepUpdate" textAlign="center" editorDataField="selected"  rendererIsEditor="true">
+				   <mx:itemRenderer>
+				   	  <mx:Component>
+				   	  	  <mx:CheckBox />
+				   	  </mx:Component>
+				   </mx:itemRenderer>
+				</mx:DataGridColumn>
+			</mx:columns>
+		</mx:DataGrid>
+		<mx:HBox width="100%">
+			
+			<mx:Button label="Add" click="handAddClick(event)"/>
+			<mx:Button label="Delete" click="handleDeleteClick(event)"/>
+		</mx:HBox>
+		<mx:Spacer width="100%" height="10"/>
+		<mx:Button label="Done" click="handleDoneClick(event)"/>
+	</mx:VBox>
+	
+</mx:Canvas>

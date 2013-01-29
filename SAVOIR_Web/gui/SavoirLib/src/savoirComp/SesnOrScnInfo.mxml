@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- savoirComp/SesnOrScnInfo.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" >
+	<mx:LinkButton id="link" styleName="hyperLinkButton" paddingBottom="0"
+		paddingLeft="0" paddingRight="0" paddingTop="0" />
+	<mx:Text id="description" maxWidth="400" selectable="false"/>
+	<mx:Spacer height="20"/>
+</mx:VBox>

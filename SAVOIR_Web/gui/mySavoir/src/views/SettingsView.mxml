@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/SettingsView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%">
+	
+	<mx:Label text="Settings page: under construction" styleName="sectionLabel"/>
+	
+	<mx:Script>
+    	<![CDATA[
+
+			// ======================= External Modules =============================
+
+			// none
+			
+			// ======================= Public Members ===============================
+			
+			// none
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+			// none
+			
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+			// none
+			
+			// =================== Application Event Handlers =======================
+
+			// none
+			
+			// ======================= Public Functions =============================
+
+			// none
+			
+			// ======================= Private Functions ============================
+
+			// none
+
+		]]>
+    </mx:Script>
+
+</mx:VBox>

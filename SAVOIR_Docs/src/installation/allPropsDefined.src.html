@@ -1,0 +1,1092 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<html>
+<head>
+	<link href="../css/savoirDocs.css" rel="stylesheet" type="text/css">
+	<title>SAVOIR ${savoir.release.ver} Build Properties</title>
+</head>
+
+<body>
+
+<img src="/images/savoirLogoDarkLargeTrans.png" />
+
+<h1><center>SAVOIR ${savoir.release.ver} All Build Properties</center></h1>
+
+<h2>Table of Contents</h2>
+
+<ol>
+	<li><a href="#intro">Introduction</a></li>
+	<li><a href="#props">SAVOIR Build Properties</a></li>
+</ol>
+
+<h2><a name="intro">Introduction</a></h2>
+
+This document details all the build properties found in the file
+<tt>/pathToSavoir/savoir-${savoir.release.ver}/src/SAVOIR_MasterBuild/localDefault.properties</tt>.
+It mostly consists of a table listing each property along with its description. The properties are
+presented in the same order that they appear in the file.
+
+<h2><a name="props">SAVOIR Build Properties</a></h2>
+
+The SAVOIR build infrastructure supports deployment to both a production server and a development
+server. The mechanism to implement this dual deployment system is through the use of
+<em>properties</em>. The properties file <em>localDefault.properties</em> contains all the
+properties that need to be defined to build SAVOIR.
+
+<p>
+
+The following table lists all the build properties along with a brief description for each property.
+Given that the file provides for both a production and development environment, many of the
+properties seem to be duplicated. However, they are listed in the table so that they can easily be
+matched to the properties within the <em>localDefault.properties</em> file.
+
+<p>
+
+<table>
+
+	<tr>
+		<th colspan="3">SAVOIR Build Properties
+
+	<tr>
+		<th>Property
+		<th>Description
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Global Properties
+
+	<tr>
+		<td>prebuild.deploy.server
+		<td>Indicates whether the build will deploy to the production server or to the development
+			server
+
+	<tr>
+		<td>prebuild.release.ver
+		<td>Current version of SAVOIR
+
+	<tr>
+		<td>prebuild.repo.home
+		<td>Location where <em>Ivy</em> will store all the libraries it downloads and publishes
+
+	<tr>
+		<td>prebuild.java.source.ver
+		<td rowspan="2">Version of <em>Java</em> that the compiler expects to use for source files
+			and target classes
+
+	<tr>
+		<td>prebuild.java.target.ver
+
+	<tr>
+		<td>prebuild.flash.major.version
+		<td rowspan="3">Minimum version of <em>Flash Player</em> required
+
+	<tr>
+		<td>prebuild.flash.minor.version
+
+	<tr>
+		<td>prebuild.flash.revision.version
+
+	<tr>
+		<td>prebuild.ivy.install.version
+		<td rowspan="4">Properties required for downloading and installing <em>Ivy</em>
+
+	<tr>
+		<td>prebuild.ivy.jar.dir
+
+	<tr>
+		<td>prebuild.ivy.jar.file
+
+	<tr>
+		<td>prebuild.ivy.url
+
+	<tr>
+		<td>prebuild.cont.install.version
+		<td rowspan="4">Properties required for downloading and installing <em>Ant-Contrib</em>
+
+	<tr>
+		<td>prebuild.cont.jar.dir
+
+	<tr>
+		<td>prebuild.cont.jar.file
+
+	<tr>
+		<td>prebuild.cont.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Server Specific Global Properties for the
+			Production Server
+
+	<tr>
+		<td>prebuild.prd.savoir.server.host
+		<td>IP address of the SAVOIR production server 
+
+	<tr>
+		<td>prebuild.prd.db.username
+		<td>Username for the SAVOIR MySQL database account on the production server
+
+	<tr>
+		<td>prebuild.prd.db.password
+		<td>Password for the SAVOIR MySQL database account on the production server
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.name
+		<td>Name of the SAVOIR administrator for the production server
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.email
+		<td>E-mail of the SAVOIR administrator for the production server
+
+	<tr>
+		<td>prebuild.prd.web.server.dir
+		<td>Web server document root directory on the production server
+
+	<tr>
+		<td>prebuild.prd.tomcat.username
+		<td>Username assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file on the production server
+
+	<tr>
+		<td>prebuild.prd.tomcat.password
+		<td>Password assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file on the production server
+
+	<tr>
+		<td>prebuild.prd.tomcat.port
+		<td>Port number that the Tomcat service listens to on the production server
+
+	<tr>
+		<td>prebuild.prd.tomcat.url
+		<td>URL for the Tomcat script manager interface on the production server
+
+	<tr>
+		<td>prebuild.prd.mule.lib.directory
+		<td>Location of the user library directory for Mule on the production server
+
+	<tr>
+		<td>prebuild.prd.mule.conf.directory
+		<td>SAVOIR bus configuration directory for Mule on the production server
+
+	<tr>
+		<td>prebuild.prd.mule.conf.file
+		<td>Savoir bus configuration file for the production server
+
+	<tr>
+		<td>prebuild.prd.smtp.host
+		<td>Hostname of an SMTP server for the production server
+
+	<tr>
+		<td>prebuild.prd.smtp.port
+		<td>SMTP port for the given SMTP server for the production server
+
+	<tr>
+		<td>prebuild.prd.smtp.email.address
+		<td>E-mail address that sends mail on behalf of SAVOIR for the production server. This
+			is usually your account on the SMTP server.
+
+	<tr>
+		<td>prebuild.prd.smtp.username
+		<td>Username of your SMTP account for the production server
+
+	<tr>
+		<td>prebuild.prd.smtp.password
+		<td>Password of your SMTP account for the production server
+
+	<tr>
+		<td>prebuild.prd.smtp.useSSL
+		<td>Whether or not SSL is used to communicate with your SMTP server for the production
+			server
+
+	<tr>
+		<td>prebuild.prd.smtp.useTLS
+		<td>Whether or not TLS is used to communicate with your SMTP server for the production
+			server
+
+	<tr>
+		<td>prebuild.prd.FLEX_HOME
+		<td>Directory path to your FLEX SDK installation on the production server
+
+	<tr>
+		<td>prebuild.prd.flash.ant.dir
+		<td>Location of the Ant tasks jar file (flexTasks.jar) for Flash on the production server
+
+	<tr>
+		<td>prebuild.prd.activemq.version
+		<td>Version of ActiveMQ that was installed on the production server
+
+	<tr>
+		<td>prebuild.prd.activemq.url
+		<td>IP address for your ActiveMQ server on the production server
+
+	<tr>
+		<td>prebuild.prd.activemq.system.url
+		<td>IP address and default port for your ActiveMQ server on the production server
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Server Specific Global Properties for the
+			Development Server
+
+	<tr>
+		<td>prebuild.dev.savoir.server.host
+		<td>IP address of the SAVOIR development server 
+
+	<tr>
+		<td>prebuild.dev.db.username
+		<td>Username for the SAVOIR MySQL database account on the development server
+
+	<tr>
+		<td>prebuild.dev.db.password
+		<td>Password for the SAVOIR MySQL database account on the development server
+
+	<tr>
+		<td>prebuild.dev.savoir.admin.name
+		<td>Name of the SAVOIR administrator for the development server
+
+	<tr>
+		<td>prebuild.dev.savoir.admin.email
+		<td>E-mail of the SAVOIR administrator for the development server
+
+	<tr>
+		<td>prebuild.dev.web.server.dir
+		<td>Web server document root directory on the development server
+
+	<tr>
+		<td>prebuild.dev.tomcat.username
+		<td>Username assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file on the development server
+
+	<tr>
+		<td>prebuild.dev.tomcat.password
+		<td>Password assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file on the development server
+
+	<tr>
+		<td>prebuild.dev.tomcat.port
+		<td>Port number that the Tomcat service listens to on the development server
+
+	<tr>
+		<td>prebuild.dev.tomcat.url
+		<td>URL for the Tomcat script manager interface on the development server
+
+	<tr>
+		<td>prebuild.dev.mule.lib.directory
+		<td>Location of the user library directory for Mule on the development server
+
+	<tr>
+		<td>prebuild.dev.mule.conf.directory
+		<td>SAVOIR bus configuration directory for Mule on the development server
+
+	<tr>
+		<td>prebuild.dev.mule.conf.file
+		<td>Savoir bus configuration file for the development server
+
+	<tr>
+		<td>prebuild.dev.smtp.host
+		<td>Hostname of an SMTP server for the development server
+
+	<tr>
+		<td>prebuild.dev.smtp.port
+		<td>SMTP port for the given SMTP server for the development server
+
+	<tr>
+		<td>prebuild.dev.smtp.email.address
+		<td>E-mail address that sends mail on behalf of SAVOIR for the development server. This
+			is usually your account on the SMTP server.
+
+	<tr>
+		<td>prebuild.dev.smtp.username
+		<td>Username of your SMTP account for the development server
+
+	<tr>
+		<td>prebuild.dev.smtp.password
+		<td>Password of your SMTP account for the development server
+
+	<tr>
+		<td>prebuild.dev.smtp.useSSL
+		<td>Whether or not SSL is used to communicate with your SMTP server for the development
+			server
+
+	<tr>
+		<td>prebuild.dev.smtp.useTLS
+		<td>Whether or not TLS is used to communicate with your SMTP server for the development
+			server
+
+	<tr>
+		<td>prebuild.dev.FLEX_HOME
+		<td>Directory path to your FLEX SDK installation on the development server
+
+	<tr>
+		<td>prebuild.dev.flash.ant.dir
+		<td>Location of the Ant tasks jar file (flexTasks.jar) for Flash on the development server
+
+	<tr>
+		<td>prebuild.dev.activemq.version
+		<td>Version of ActiveMQ that was installed on the development server
+
+	<tr>
+		<td>prebuild.dev.activemq.url
+		<td>IP address for your ActiveMQ server on the development server
+
+	<tr>
+		<td>prebuild.dev.activemq.system.url
+		<td>IP address and default port for your ActiveMQ server on the development server
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Persistence Project
+
+	<tr>
+		<td>prebuild.pers.jdbc.driverClassName
+		<td rowspan="8">Properties required for the JDBC interface to the MySQL database
+
+	<tr>
+		<td>prebuild.pers.jdbc.url
+
+	<tr>
+		<td>prebuild.pers.jdbc.testOnBorrow
+
+	<tr>
+		<td>prebuild.pers.jdbc.testWhileIdle
+
+	<tr>
+		<td>prebuild.pers.jdbc.timeBetweenEvictionRunsMillis
+
+	<tr>
+		<td>prebuild.pers.jdbc.minEvictableIdleTimeMillis
+
+	<tr>
+		<td>prebuild.pers.jdbc.removeAbandoned
+
+	<tr>
+		<td>prebuild.pers.jdbc.removeAbandonedTimeout
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.pers.jdbc.username
+		<td>Username for the SAVOIR MySQL database account on the production server
+
+	<tr>
+		<td>prebuild.prd.pers.jdbc.password
+		<td>Password for the SAVOIR MySQL database account on the production server
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server
+
+	<tr>
+		<td>prebuild.dev.pers.jdbc.username
+		<td>Username for the SAVOIR MySQL database account on the development server
+
+	<tr>
+		<td>prebuild.dev.pers.jdbc.password
+		<td>Password for the SAVOIR MySQL database account on the development server
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Utilities Project
+
+	<tr>
+		<td colspan="2">No properties are defined for this project at this time
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR OAuth Project
+
+	<tr>
+		<td>prebuild.oaut.compile.debug
+		<td rowspan="3">Compiler options for compiling Java source code
+
+	<tr>
+		<td>prebuild.oaut.compile.deprecation
+
+	<tr>
+		<td>prebuild.oaut.compile.optimize
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Bus Project
+
+	<tr>
+		<td>prebuild.prd.bus.mgmt.url
+		<td rowspan="2">Runtime properties that are both required at this time even though one is
+			for the production server and one is for the development server
+
+	<tr>
+		<td>prebuild.dev.bus.mgmt.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.bus.deploy.directory
+		<td rowspan="4">Properties required for deploying the SAVOIR bus software to the production
+			server
+
+	<tr>
+		<td>prebuild.prd.bus.config.directory
+
+	<tr>
+		<td>prebuild.prd.bus.config.file
+
+	<tr>
+		<td>prebuild.prd.bus.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.bus.deploy.directory
+		<td rowspan="4">Properties required for deploying the SAVOIR bus software to the development
+			server
+
+	<tr>
+		<td>prebuild.dev.bus.config.directory
+
+	<tr>
+		<td>prebuild.dev.bus.config.file
+
+	<tr>
+		<td>prebuild.dev.bus.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Scheduling Service Project
+
+	<tr>
+		<td>prebuild.sced.compile.debug
+		<td rowspan="4">Compiler options for compiling Java source code
+
+	<tr>
+		<td>prebuild.sced.compile.deprecation
+
+	<tr>
+		<td>prebuild.sced.compile.optimize
+
+	<tr>
+		<td>prebuild.sced.compile.verbose
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.sced.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR scheduling service software to
+			the production server
+
+	<tr>
+		<td>prebuild.prd.sced.deploy.password
+
+	<tr>
+		<td>prebuild.prd.sced.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.sced.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR scheduling service software to
+			the development server
+
+	<tr>
+		<td>prebuild.dev.sced.deploy.password
+
+	<tr>
+		<td>prebuild.dev.sced.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Management Services Project
+
+	<tr>
+		<td>prebuild.mgmt.compile.debug
+		<td rowspan="4">Compiler options for compiling Java source code
+
+	<tr>
+		<td>prebuild.mgmt.compile.deprecation
+
+	<tr>
+		<td>prebuild.mgmt.compile.optimize
+
+	<tr>
+		<td>prebuild.mgmt.compile.verbose
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.mgmt.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR management services software to
+			the production server
+
+	<tr>
+		<td>prebuild.prd.mgmt.deploy.password
+
+	<tr>
+		<td>prebuild.prd.mgmt.deploy.url
+
+	<tr>
+		<td>prebuild.prd.mgmt.admin.name
+		<td rowspan="2">Contact information for the SAVOIR administrator for the production server
+
+	<tr>
+		<td>prebuild.prd.mgmt.admin.email
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.host
+		<td rowspan="8">Properties identifying information for generating and sending email messages
+			on the production server
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.port
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.from
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.replyto
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.username
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.password
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.useSSL
+
+	<tr>
+		<td>prebuild.prd.mgmt.email.useTLS
+
+	<tr>
+		<td>prebuild.prd.mgmt.server.deployment
+		<td rowspan="3">Runtime properties for deploying the SAVOIR management services software to
+			the production server
+
+	<tr>
+		<td>prebuild.prd.mgmt.repos.webPrefix
+
+	<tr>
+		<td>prebuild.prd.mgmt.mule.server.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.mgmt.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR management services software to
+			the development server
+
+	<tr>
+		<td>prebuild.dev.mgmt.deploy.password
+
+	<tr>
+		<td>prebuild.dev.mgmt.deploy.url
+
+	<tr>
+		<td>prebuild.dev.mgmt.admin.name
+		<td rowspan="2">Contact information for the SAVOIR administrator for the development server
+
+	<tr>
+		<td>prebuild.dev.mgmt.admin.email
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.host
+		<td rowspan="8">Properties identifying information for generating and sending email messages
+			on the development server
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.port
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.from
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.replyto
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.username
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.password
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.useSSL
+
+	<tr>
+		<td>prebuild.dev.mgmt.email.useTLS
+
+	<tr>
+		<td>prebuild.dev.mgmt.server.deployment
+		<td rowspan="3">Runtime properties for deploying the SAVOIR management services software to
+			the development server
+
+	<tr>
+		<td>prebuild.dev.mgmt.repos.webPrefix
+
+	<tr>
+		<td>prebuild.dev.mgmt.mule.server.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Web Broker Project
+
+	<tr>
+		<td>prebuild.webr.compile.debug
+		<td rowspan="3">Compiler options for compiling Java source code
+
+	<tr>
+		<td>prebuild.webr.compile.deprecation
+
+	<tr>
+		<td>prebuild.webr.compile.optimize
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.webr.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR web broker software to the
+			production server
+
+	<tr>
+		<td>prebuild.prd.webr.deploy.password
+
+	<tr>
+		<td>prebuild.prd.webr.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.webr.deploy.username
+		<td rowspan="3">Properties required for deploying the SAVOIR web broker software to the
+			development server
+
+	<tr>
+		<td>prebuild.dev.webr.deploy.password
+
+	<tr>
+		<td>prebuild.dev.webr.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Front End Image Repository
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.fimg.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end image repository
+			to the production server
+
+	<tr>
+		<td>prebuild.prd.fimg.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.fimg.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end image repository
+			to the development server
+
+	<tr>
+		<td>prebuild.dev.fimg.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Front End Library Project
+
+	<tr>
+		<td>prebuild.flib.flash.name
+		<td>Name of the SAVOIR flex library package
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Front End Login Project
+
+	<tr>
+		<td>prebuild.logn.flash.name
+		<td rowspan="3">Various names and titles for the compiled flex package
+
+	<tr>
+		<td>prebuild.logn.flash.html
+
+	<tr>
+		<td>prebuild.logn.flash.title
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.logn.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end login software
+			to the production server
+
+	<tr>
+		<td>prebuild.prd.logn.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.logn.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end login software
+			to the development server
+
+	<tr>
+		<td>prebuild.dev.logn.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Front End Main Interface Project
+
+	<tr>
+		<td>prebuild.main.flash.name
+		<td rowspan="3">Various names and titles for the compiled flex package
+
+	<tr>
+		<td>prebuild.main.flash.html
+
+	<tr>
+		<td>prebuild.main.flash.title
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.main.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end main interface
+			software to the production server
+
+	<tr>
+		<td>prebuild.prd.main.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.main.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end main interface
+			software to the development server
+
+	<tr>
+		<td>prebuild.dev.main.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Front End Authoring Tool Interface Project
+
+	<tr>
+		<td>prebuild.auth.flash.name
+		<td rowspan="3">Various names and titles for the compiled flex package
+
+	<tr>
+		<td>prebuild.auth.flash.html
+
+	<tr>
+		<td>prebuild.auth.flash.title
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.auth.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end authoring tool
+			interface software to the production server
+
+	<tr>
+		<td>prebuild.prd.auth.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.auth.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR Flex front end authoring tool
+			interface software to the development server
+
+	<tr>
+		<td>prebuild.dev.auth.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Socket Proxy Project
+
+	<tr>
+		<td>prebuild.skpx.signjar.password
+		<td rowspan="3">Signjar options for signing Java Jar files
+
+	<tr>
+		<td>prebuild.skpx.signjar.alias
+
+	<tr>
+		<td>prebuild.skpx.signjar.key
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.skpx.activemq.version
+		<td rowspan="4">Properties required for deploying the SAVOIR socket proxy software to the
+			production server
+
+	<tr>
+		<td>prebuild.prd.skpx.deploy.directory
+
+	<tr>
+		<td>prebuild.prd.skpx.deploy.host
+
+	<tr>
+		<td>prebuild.prd.skpx.web.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.skpx.activemq.version
+		<td rowspan="4">Properties required for deploying the SAVOIR socket proxy software to the
+			development server
+
+	<tr>
+		<td>prebuild.dev.skpx.deploy.directory
+
+	<tr>
+		<td>prebuild.dev.skpx.deploy.host
+
+	<tr>
+		<td>prebuild.dev.skpx.web.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Launch Properties Project
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.lnch.deploy.resrc.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR launch properties software to
+			the production server
+
+	<tr>
+		<td>prebuild.prd.lnch.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.lnch.deploy.resrc.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR launch properties software to
+			the development server
+
+	<tr>
+		<td>prebuild.dev.lnch.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Documents Project
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.docs.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR documentation files to the
+			production server
+
+	<tr>
+		<td>prebuild.prd.docs.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.docs.deploy.directory
+		<td rowspan="2">Properties required for deploying the SAVOIR documentation files to the
+			development server
+
+	<tr>
+		<td>prebuild.dev.docs.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR EKG Tutorial Project
+
+	<tr>
+		<td>prebuild.ekgt.compile.debug
+		<td rowspan="3">Compiler options for compiling Java source code
+
+	<tr>
+		<td>prebuild.ekgt.compile.deprecation
+
+	<tr>
+		<td>prebuild.ekgt.compile.optimize
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.contact.name
+		<td rowspan="8">Properties required for deploying the SAVOIR EKG tutorial software to the
+			production server
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.contact.email
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.username
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.password
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.host
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.port
+
+	<tr>
+		<td>prebuild.prd.ekgt.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.contact.name
+		<td rowspan="8">Properties required for deploying the SAVOIR EKG tutorial software to the
+			development server
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.contact.email
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.username
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.password
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.host
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.port
+
+	<tr>
+		<td>prebuild.dev.ekgt.deploy.url
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Flex Vader Web Tutorial Project
+
+	<tr>
+		<td>prebuild.vdrw.flash.name
+		<td rowspan="3">Various names and titles for the compiled flex package
+
+	<tr>
+		<td>prebuild.vdrw.flash.html
+
+	<tr>
+		<td>prebuild.vdrw.flash.title
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.vdrw.deploy.contact.name
+		<td rowspan="7">Properties required for deploying the SAVOIR Flex vader web tutorial
+			software to the production server
+
+	<tr>
+		<td>prebuild.prd.vdrw.deploy.contact.email
+
+	<tr>
+		<td>prebuild.prd.vdrw.deploy.flex.directory
+
+	<tr>
+		<td>prebuild.prd.vdrw.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.prd.vdrw.deploy.host
+
+	<tr>
+		<td>prebuild.prd.vdrw.services.config
+
+	<tr>
+		<td>prebuild.prd.vdrw.context.root
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.vdrw.deploy.contact.name
+		<td rowspan="7">Properties required for deploying the SAVOIR Flex vader web tutorial
+			software to the development server
+
+	<tr>
+		<td>prebuild.dev.vdrw.deploy.contact.email
+
+	<tr>
+		<td>prebuild.dev.vdrw.deploy.flex.directory
+
+	<tr>
+		<td>prebuild.dev.vdrw.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.dev.vdrw.deploy.host
+
+	<tr>
+		<td>prebuild.dev.vdrw.services.config
+
+	<tr>
+		<td>prebuild.dev.vdrw.context.root
+
+	<tr>
+		<td colspan="2" class="subHeader">SAVOIR Vader Desktop Project
+
+	<tr>
+		<td colspan="2" class="subHeader2">Production Server 
+
+	<tr>
+		<td>prebuild.prd.vadr.deploy.contact.name
+		<td rowspan="5">Properties required for deploying the SAVOIR vader desktop software to the
+			production server
+
+	<tr>
+		<td>prebuild.prd.vadr.deploy.contact.email
+
+	<tr>
+		<td>prebuild.prd.vadr.deploy.jar.directory
+
+	<tr>
+		<td>prebuild.prd.vadr.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.prd.vadr.deploy.host
+
+	<tr>
+		<td colspan="2" class="subHeader2">Development Server 
+
+	<tr>
+		<td>prebuild.dev.vadr.deploy.contact.name
+		<td rowspan="5">Properties required for deploying the SAVOIR vader desktop software to the
+			development server
+
+	<tr>
+		<td>prebuild.dev.vadr.deploy.contact.email
+
+	<tr>
+		<td>prebuild.dev.vadr.deploy.jar.directory
+
+	<tr>
+		<td>prebuild.dev.vadr.deploy.resrc.directory
+
+	<tr>
+		<td>prebuild.dev.vadr.deploy.host
+
+</table>
+
+<h2></h2>
+
+<center>
+	<small>Copyright &copy; <script type="text/javascript">
+		document.write(new Date().getFullYear());
+		</script>, National Research Council of Canada
+	</small>
+</center>
+
+</body>
+</html>

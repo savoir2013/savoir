@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/"
+	layout="absolute" showCloseButton="true" close="handleClose(event)" titleStyleName="popupTitleText"
+	 title="SAVOIR Running Session" width="100%" height="100%" initialize="initializeApp()">
+	
+		<mx:VBox id="sessionPage" width="100%" height="100%" paddingBottom="20" paddingLeft="40" paddingRight="40"
+			paddingTop="20">
+		
+			<mx:Text id="headerText" maxWidth="800" text="{sessionHdrText}" styleName="header1"
+				selectable="false"/>
+			<mx:Text id="titleText" maxWidth="800" styleName="header2" selectable="false"/>
+			<mx:Text id="sessionDesc" maxWidth="800" selectable="false"/>
+			<mx:Text text="{sessionInfoText}" selectable="false"/>
+			<mx:Button id="startSessionBut" label="{startSessionText}" click="startSessionHandler(event)"/>
+			<mx:Button id="endSessionBut" label="{endSessionText}" enabled="false" click="endSessionHandler(event)"/>
+			<mx:Spacer height="40"/>
+			<mx:Label text="Message Log" styleName="header2"/>
+			<mx:TextArea id="logTextField" width="100%" minHeight="200" maxHeight="400" wordWrap="false" editable="false"
+				valueCommit="handleDataAppend(event)"/>
+		</mx:VBox>
+		
+	<mx:Script>
+		<![CDATA[
+			import savoirlib.Session;
+
+			// ======================= External Modules =============================
+            import mx.core.Application;
+   			import mx.controls.Alert;
+  			import mx.managers.PopUpManager;
+        	import mx.events.CloseEvent;
+        	import mx.events.FlexEvent;
+  			import events.LogEvent;
+//        	import savoirlib.Scenario;
+        	import handlers.LogMessageHandler;
+        	import savoiroauth.OAuthDelegate;
+
+			// ======================= Public Members ===============================
+
+//			public var scenarios:SharedObject;	// Scenario info - doesn't work - is it still needed
+            public var currSesnID:SharedObject;
+
+			public var logHandler:LogMessageHandler;
+			
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+			[Bindable]
+			private var sessionHdrText:String = "Run Scheduled Session";
+			[Bindable]
+			private var sessionInfoText:String = "When everything is ready, please click the " +
+				"'Start Session' button below and then click 'End Session' when you have " +
+				"finished the session.";
+			[Bindable]
+			private var startSessionText:String = "Start Session";
+			[Bindable]
+			private var endSessionText:String = "End Session";
+			
+//   			private var scenarioData:Scenario;
+			private var sessionID:String = new String();
+   			private var startSessionXmlStr:String;
+   			private var endSessionXmlStr:String;
+   			private var startSessionDelegate:OAuthDelegate;
+  			private var endSessionDelegate:OAuthDelegate;
+
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+			private function handleClose(e:CloseEvent):void
+            {
+                // Check credentials (not shown) then remove pop up.
+                PopUpManager.removePopUp(this);
+            }
+            
+            private function startSessionHandler(event:MouseEvent):void
+            {
+            	var parameterObj:Object;
+    	   		
+//    	   		Alert.show("In start session");	
+    			this.endSessionBut.enabled = true;
+    			this.startSessionBut.enabled = false;
+    			
+    			startSessionXmlStr = "<message action=\"start_authored_session\" sessionID=\"" + sessionID + "\">\n" +
+    	        	"<user_name>" + Application.application.userName + "</user_name>\n" +
+    	            "</message>";
+    	
+    			parameterObj = {savoirmsg:startSessionXmlStr};
+    			
+    			startSessionDelegate = Application.application.devicesMainBox.client.sendRequest("/SavoirWebBroker",
+    				URLRequestMethod.GET,parameterObj);
+            }
+
+            private function endSessionHandler(event:MouseEvent):void
+            {
+            	var parameterObj:Object;
+    	   			
+    			endSessionXmlStr = "<message action=\"end_session\" sessionID=\"" + sessionID + "\">\n" +
+    	        	"</message>";
+    	
+    			parameterObj = {savoirmsg:endSessionXmlStr};
+    			
+    			endSessionDelegate = Application.application.devicesMainBox.client.sendRequest("/SavoirWebBroker",
+    				URLRequestMethod.GET,parameterObj);
+    				
+    			// Remove the popup window
+                PopUpManager.removePopUp(this);
+            }
+
+			// =================== Application Event Handlers =======================
+	
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleRenderPage
+			// Author:       	Justin Hickey
+			// Purpose:      	To render the main application page
+			// Input Vars:   	event - the data event that indicates the data has been obtained
+			// Return Vars:  	none
+			// Date Created: 	Dec 07, 2009
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function handleRenderPage(event:DataEvent):void
+			{
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDataAppend
+			// Author:       	Justin Hickey
+			// Purpose:      	To make sure the text of the log file is scrolled to the bottom
+			//					when each new line is added to the Text component. Triggered by a 
+			//					valueCommit event.
+			// Input Vars:   	event - value committed event that indicates new data was added
+			// Return Vars:  	none
+			// Date Created: 	Apr 26, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function handleDataAppend(event:FlexEvent):void
+			{
+				// Send the scroll bar to the end of the text so new data is easily visible
+				logTextField.verticalScrollPosition = logTextField.maxVerticalScrollPosition;
+			}
+			
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     initializeApp
+			// Author:       Justin Hickey
+			// Purpose:      To instantiate the my Savoir page
+			// Input Vars:   none
+			// Return Vars:  none
+			// Date Created: Mar 22 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initializeApp():void
+			{
+				//Alert.show("In initializeApp");
+				initLog();
+				
+				// Create the shared objects for the current session ID
+				this.currSesnID = SharedObject.getLocal("currSesnID","/");
+				sessionID = currSesnID.data.currSesnID;
+				
+				// Add a listener for a data event that is generated in the getData() function
+				// This ensures that the data is obtained before rendering the popup
+				this.addEventListener(DataEvent.DATA, handleRenderPage, false, 0, true);
+				getData();
+			}
+			
+			protected function initLog():void{
+
+				/*
+
+				* Prototype of Log
+
+				*Log messages exchanged between savoir and edge devices
+
+				*/
+
+				logHandler = new LogMessageHandler();
+
+				logHandler.addEventListener(LogEvent.LOG, logMessagePresent,false, 0, true);
+
+			}
+
+			
+
+			protected function logMessagePresent(event:LogEvent):void{
+
+				//Alert.show(event.message.logMessage,"Received Log");
+
+				var preText:String = this.logTextField.text;
+
+				logTextField.text = preText + "\n" + event.message.logMessage;
+
+			}
+
+			// ======================= Private Functions ============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	getData
+			// Author:       	Justin Hickey
+			// Purpose:      	To get the different types of data required to render the interface
+			//					before the interface is actually rendered 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Mar 22 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function getData():void
+			{
+				var sessionItem:Session;
+				var found:Boolean;
+				
+				// getClassByAlias("savoirlib.Scenario");
+				
+				// Alert.show("In getData");
+/* This shared object access should work but it doesn't at the moment - is it still needed				
+				// Get the scenario data from the shared object
+				this.scenarios = SharedObject.getLocal("scenarios","/");
+    			scenarioData = this.scenarios.data.scenarios;
+
+				// Set the data to be displayed
+				titleText.text = scenarioData.title;
+				Alert.show("title = " + scenarioData.title);
+				
+				sessionDesc.htmlText = scenarioData.description + "<br><br>Tools & Devices: " +
+					scenarioData.devices + "<br>Author: " + scenarioData.author + "<br>Last Edited: " +
+					scenarioData.getLastEditedStr() + "<br><br>Next Scheduled Session:<br><b>" +
+					scenarioData.getNextSessionStr() + "</b>";
+*/
+				 
+   				// Get the session data from the session array - note that the sessionID
+   				// is used to find the correct session in the session array
+   				found = Application.application.sessionCursor.findAny({sessionID:sessionID});
+   				
+   				if (found)
+   				{
+   					sessionItem = Application.application.sessionCursor.current as Session;
+   				}
+
+				titleText.text = sessionItem.title;
+				sessionDesc.htmlText = sessionItem.createTextString();
+
+				// Make sure the log text is blank
+				logTextField.text = "";
+				
+				// Dispatch the event to render the window
+				dispatchEvent (new DataEvent(DataEvent.DATA, false, false, ""));
+            }
+
+		]]>
+	</mx:Script>
+</mx:TitleWindow>

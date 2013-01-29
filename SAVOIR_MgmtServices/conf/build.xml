@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<project name="AntDeploy" default="" basedir="..">
+
+	<!-- Configure the directory into which the web application is built -->
+	<property name="name"    value="axis"/>
+	
+	<!-- Configure the context path for this application -->
+	<property name="path"     value="/${name}"/>
+	
+	<!-- Configure properties to access the Manager application -->
+	<property name="tomcat.url" value="localhost"/>
+	<property name="manager.username"	value="admin"/>
+	<property name="manager.password"	value="admin"/>
+	
+	<property name="lib.home"      value="${basedir}/lib"/>
+		
+	<!-- Configure the custom Ant tasks for the Manager application -->
+	<taskdef name="deploy"   classname="org.apache.catalina.ant.DeployTask"/>
+	<taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask"/>
+	<!-- Executable Targets -->
+	<taskdef resource="axis-tasks.properties" classpathref="compile.classpath" />
+	
+	<path id="compile.classpath">
+		<fileset dir="${lib.home}">
+			<include name="**/*.jar"/>
+		</fileset>
+
+	</path>
+
+	<target name="test">
+		<echo message="Hello" />
+	</target>
+
+  	<target name="deployHD" 
+		description="Delete old build and dist directories">
+		<echo message="undeploy axis from ${tomcat.url}" />
+		<undeploy 
+			url="http://${tomcat.url}:8080/manager" 
+			username="${manager.username}" 
+			password="${manager.password}" 
+			path="${path}"
+			failonerror = "false">
+		</undeploy>
+				
+		<echo message="deploy axis to ${tomcat.url}" />	
+		<deploy url="http://${tomcat.url}:8080/manager" 
+			username="${manager.username}" 
+			password="${manager.password}" 
+			path="${path}" 
+			war="${basedir}/classes/${name}.war"
+			failonerror = "true">
+		</deploy>
+				
+		<echo message="now deploy UltraGrid web service to ${tomcat.url}" />	
+		<axis-admin
+			failonerror="true"
+			debug="true"
+			xmlfile="${basedir}/classes/deploy/ultragrid/deploy.wsdd"
+			username="admin"
+			password="admin" 
+			url= "http://${tomcat.url}:8080/axis/services/AdminService">
+		</axis-admin>
+	</target>
+	
+</project>

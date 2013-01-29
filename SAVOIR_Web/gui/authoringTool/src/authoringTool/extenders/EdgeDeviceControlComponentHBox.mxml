@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="66" verticalScrollPolicy="off" horizontalScrollPolicy="off" verticalAlign="middle">
+    <mx:Script>
+    	<![CDATA[
+    	    import mx.core.Application;
+    	    import mx.controls.Alert;
+    	    public var edgeDeviceName:String = "";
+    	    public var edgeDeviceIconSrc:String = "";
+    	    
+    		public function init(iconSrc:String, edName:String):void{
+    			//edNameLabel.text = edName;
+    			//edIcon.load(iconSrc);
+    			edgeDeviceName = edName;
+    			edgeDeviceIconSrc = iconSrc;
+    		}
+    		
+    		public function loadImageIconAndSetLabel():void{
+    			edIcon.load(edgeDeviceIconSrc);
+    			edNameLabel.text = edgeDeviceName;
+    		}
+    		
+    		private function handleEDIconClick(event:MouseEvent):void{
+    			//this.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+    			Application.application.handleEdgeDevCompClick(this);
+    			//Alert.show("dispatch clcik");
+    		}
+    	]]>
+    </mx:Script>
+	<!--<mx:Spacer width="5" height="100%"/>-->
+	<mx:Image id="edIcon" height="52" width="53" click="handleEDIconClick(event)"/>
+	<mx:Label id="edNameLabel" color="#000000" fontSize="15"/>
+</mx:HBox>

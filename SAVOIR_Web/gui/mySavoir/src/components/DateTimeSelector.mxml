@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()">
+<mx:Script>
+    <![CDATA[
+        import mx.events.FlexEvent;
+        import mx.formatters.DateFormatter;
+       
+        /**
+         * AM/PM format and 24Hrs format. Not yet implemented :)
+         * */
+        public var format:int;
+       
+        private function init():void {
+            date.selectedDate = new Date();
+        }
+       
+        [Bindable]
+        public function get selectedDate():Date {
+            if(date.selectedDate) {
+                var result:Date = date.selectedDate;
+                result.setHours(hours.value,minutes.value,seconds.value);
+                return result;
+            } else {
+                return null;
+            }
+        }
+       
+        public function set selectedDate(value:Date):void {
+            hours.value = value.getHours();
+            minutes.value = value.getMinutes();
+            seconds.value = value.getSeconds();
+            date.selectedDate = value;
+        }
+        
+        public function getDateAsNumber():Number
+        {
+        	var result:Date;
+        	
+        	if(date.selectedDate)
+        	{
+        		result = date.selectedDate;
+        		result.setHours(hours.value, minutes.value, seconds.value);
+        		return result.getTime();
+            }
+            else
+            {
+                return NaN;
+            }
+        }
+        
+        public function getDateString():String{
+        	if(date.selectedDate) {
+                var result:Date = date.selectedDate;
+                result.setHours(hours.value,minutes.value,seconds.value);
+                var formatter:DateFormatter =  new DateFormatter();
+   			    formatter.formatString = "YYYY-MM-DD HH:NN:SS";
+   			    var gmtIndex:Number = result.toTimeString().indexOf("GMT");
+   			    var gmtStr:String = result.toTimeString().substring(gmtIndex);
+                return formatter.format(result) + " " + gmtStr;
+            } else {
+                return null;
+            }
+        }
+       
+        private function onAnyChange(event:Event):void {
+            var new_event:Event = new Event(Event.CHANGE);
+            this.dispatchEvent(new_event);
+        }
+    ]]>
+</mx:Script>
+    <mx:Label text="Hour: "/>
+    <mx:NumericStepper minimum="0" maximum="24" stepSize="1" width="40" id="hours" change="onAnyChange(event)"/>
+    <mx:Label text="Min: "/>
+    <mx:NumericStepper minimum="0" maximum="59" stepSize="1" width="40" id="minutes" change="onAnyChange(event)"/>
+    <mx:Label text="Sec: "/>
+    <mx:NumericStepper minimum="0" maximum="59" stepSize="1" width="40" id="seconds" change="onAnyChange(event)"/>
+    <mx:Label text="Date (d/m/y): "/>
+    <mx:DateField width="90" id="date" change="onAnyChange(event)" showToday="true" formatString="DD/MM/YYYY"/>
+</mx:HBox>

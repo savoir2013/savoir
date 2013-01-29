@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" xmlns:ns1="savoirAutoComplete.*" initialize="init()" xmlns:extenders="authoringTool.extenders.*" >
+	<mx:Script>
+		<![CDATA[
+			import mx.events.ListEvent;
+		import authoringTool.scenarioChart.components.BooleanComponent;
+		import authoringTool.scenarioChart.components.EdgeDeviceComponent;
+		
+		import flash.events.MouseEvent;
+		
+		import mx.collections.ArrayCollection;
+		import mx.containers.Canvas;
+		import mx.containers.HBox;
+		import mx.containers.VBox;
+		import mx.controls.Button;
+		import mx.controls.DataGrid;
+		import mx.controls.Spacer;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.core.IFactory;
+		import mx.core.ClassFactory;
+		import mx.events.DataGridEvent;
+		import mx.controls.Alert;
+		import savoirAutoComplete.AutoComplete;
+		
+		//private var rulesDataGrid:DataGrid;
+		//private var ruleDataGridColumn:DataGridColumn;
+		[Bindable]
+		public var rules:ArrayCollection =  new ArrayCollection([{rule:""}]);
+		
+		[Bindable]
+		public var keywordXMLDic:XML = <keywords>
+		                                   <word id="0" wordType="NonOperator" description="rule"> &lt;rule&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="rule"> &lt;/rule&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="When"> &lt;when&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="When"> &lt;/when&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="Then"> &lt;then&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="Then"> &lt;/then&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="resource"> &lt;resource </word>
+		                                   <word id="0" wordType="NonOperator" description="resource"> &lt;/resource&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="action"> &lt;action </word>
+		                                   <word id="0" wordType="NonOperator" description="action"> &lt;/action&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="action"> &lt;parameter </word>
+		                                   <word id="0" wordType="NonOperator" description="action"> &lt;/parameter&gt; </word>
+		                                   <word id="0" wordType="NonOperator" description="id"> id </word>
+		                                   <word id="0" wordType="NonOperator" description="activityID"> activityID </word>
+		                                   <word id="0" wordType="NonOperator" description="actionName"> actionName </word>
+		                                   <word id="0" wordType="NonOperator" description="vale"> value </word>
+		                                   <word id="0" wordType="NonOperator" description="expression"> expression </word>
+		                                   <word id="0" wordType="NonOperator" description="variable"> variable </word>
+		                                   <word id="0" wordType="NonOperator" description="Start"> start </word>
+		                                   <word id="0" wordType="NonOperator" description="Stop"> stop </word>
+		                                   <word id="0" wordType="NonOperator" description="Set Parameter"> setParameter </word>
+		                                   <word id="0" wordType="NonOperator" description="Pause"> pause </word>
+		                                   <word id="0" wordType="NonOperator" description="Resume"> resume </word>
+		                                   <word id="0" wordType="Operator" description=""></word>
+		                                   <word id="0" wordType="Operator" description="lt"> &lt;</word>
+		                                   <word id="0" wordType="Operator" description="gt"> &gt;</word>
+		                                   <word id="0" wordType="Operator" description="eq"> == </word>
+		                                   <word id="0" wordType="Operator" description="ne"> != </word>
+		                                   <word id="0" wordType="Operator" description="le"> &lt;= </word>
+		                                   <word id="0" wordType="Operator" description="ge"> &gt;= </word>
+		                               </keywords>;
+		
+		[Bindable]
+		public var ruleXMLList:XMLList = new XMLList();
+		
+		public var upperNode:EdgeDeviceComponent;
+		
+		public var lowerNode:EdgeDeviceComponent;
+		
+//		private var mainVBox:VBox = new VBox();
+//		private var ruleGridVBox:VBox = new VBox();
+//		private var ruleGridCas:Canvas = new Canvas();
+//		private var interSpacer:Spacer = new Spacer();
+//		
+//		private var controlButtonHBox:HBox = new HBox();
+//		private var addButton:Button = new Button();
+//		private var deleteButton:Button = new Button();
+//		private var doneButton:Button = new Button();
+//		
+//		private var guiRuleCanvas:GUIRuleCanvas = null;
+		
+		
+		
+		private var preSelectedRuleIndex:Number = 0;
+		
+		private var booleanComp:BooleanComponent = null;
+		
+		 public function initRuleCanvas(comp:BooleanComponent):void{
+		 	this.invalidateDisplayList();
+        	booleanComp = comp;
+        	if(booleanComp.rules != null){
+        		this.rules = booleanComp.rules;
+        	}
+        	if(booleanComp.rulesXMLList != null){
+        		this.ruleXMLList = booleanComp.rulesXMLList;
+        	}
+        	
+        	this.upperNode = booleanComp.getUpperNode();
+        	this.lowerNode = booleanComp.getLowerNode();
+        	if(this.ruleXMLList != null && this.ruleXMLList.length() > 0){
+        		rulesDataGrid.rowCount = this.ruleXMLList.length();
+        		var validatedRule:XML = validateExistingRule(upperNode, lowerNode, XML(this.ruleXMLList[0]));
+        		this.guiRuleCanvas._currentRule = validatedRule;
+	        	var ruleStr:String = validatedRule.toXMLString();
+	        	this.rules.setItemAt({rule:ruleStr},0);
+	        	ruleXMLList[0] = validatedRule;
+	        	booleanComp.rules = this.rules;
+	        	booleanComp.rulesXMLList = ruleXMLList;
+	        	//Alert.show(validatedRule.toXMLString());
+	        	trace("in InitRuleCas" + this.guiRuleCanvas._currentRule.toXMLString());
+        	}else{
+        		rulesDataGrid.rowCount = 1;
+        	}
+        	var currentText:String = this.guiRuleCanvas._currentRule.toXMLString();
+        	var therRowHeight:Number = this.measureText(currentText).height;
+        	rulesDataGrid.rowHeight = therRowHeight;
+        	this.guiRuleCanvas.ruleCanvas = this;
+        	this.guiRuleCanvas.init();
+        }
+        
+        private function validateExistingRule(upper:EdgeDeviceComponent, lower:EdgeDeviceComponent, rule:XML):XML{
+        	var upperActId:String = upper.activityID;
+        	var upperResId:String = upper.resourceID;
+        	var lowerActId:String = lower.activityID;
+        	var lowerResId:String = lower.resourceID;
+        	var resInWhen:XMLList = rule.when.resource.(@id==upperResId && @activityID==upperActId);
+        	var upperResInThen:XMLList = rule.then.resource.(@id==upperResId && @activityID==upperActId);
+        	var lowerResInThen:XMLList = rule.then.resource.(@id==lowerResId && @activityID==lowerActId);
+        	var ruleAfterValidation:XML = <rule></rule>;
+        	if(resInWhen.length() > 0){
+        		ruleAfterValidation.appendChild(rule.when);
+        		
+        	}
+        	var thenAfterValidation:XML = <then></then>;
+        	if(upperResInThen.length() > 0){
+        		thenAfterValidation.appendChild(upperResInThen);
+        	}
+        	if(lowerResInThen.length() > 0){
+        		thenAfterValidation.appendChild(lowerResInThen);
+        	}
+        	ruleAfterValidation.appendChild(thenAfterValidation);
+        	return ruleAfterValidation;
+        }
+        
+        private function getCollectionOfKeyWords():ArrayCollection{
+        	var keyCol:ArrayCollection = new ArrayCollection();
+        	for each (var key:String in keywordXMLDic.word.(@wordType=="NonOperator")){
+        		var obj:Object = new Object();
+        		obj.name = key;
+        		keyCol.addItem(obj);
+        	}
+        	return keyCol;
+        }
+        [Bindable]
+        public var keysInCollection:ArrayCollection;
+		
+		private function init():void{
+			keysInCollection = this.getCollectionOfKeyWords();
+//            ruleDataGridColumn = new DataGridColumn();
+//			ruleDataGridColumn.dataField = "rule";
+//			ruleDataGridColumn.itemEditor = new ClassFactory(AutoComplete);
+//			
+//			ruleDataGridColumn.editorDataField = "text";
+//			ruleDataGridColumn.wordWrap = true;
+//			ruleDataGridColumn.editorUsesEnterKey = true;
+//			ruleDataGridColumn.editorHeightOffset = 50;
+//			//ruleDataGridColumn.labelFunction = ruleFunction;
+//			rulesDataGrid = new DataGrid();
+//			rulesDataGrid.columns.push(ruleDataGridColumn);
+//			rulesDataGrid.dataProvider = rules;
+//			rulesDataGrid.addEventListener(DataGridEvent.ITEM_FOCUS_IN, handleRuleGridFocusIn);
+//			
+//			
+//			this.visible = true;
+//			addButton.label = "Add Rule";
+//			addButton.addEventListener(MouseEvent.CLICK, addRuleHandler);
+//			deleteButton.label = "Delete Rule";
+//			deleteButton.addEventListener(MouseEvent.CLICK, deleteRuleHandler);
+//			doneButton.label = "Done";
+//			doneButton.addEventListener(MouseEvent.CLICK, doneClickHandler);
+//			//this.styleName = "Canvas.smallHeader";
+//			mainVBox.x = 0;
+//            mainVBox.y = 0;
+//            //mainVBox.width = 410;
+//            //mainVBox.height = 80;
+//            this.addChild(mainVBox);
+//            controlButtonHBox.x = 0;
+//            controlButtonHBox.y = 0;
+//            controlButtonHBox.width = 400;
+//            controlButtonHBox.height = 40;
+//            controlButtonHBox.addChild(addButton);
+//            controlButtonHBox.addChild(deleteButton);
+//            
+//            
+//
+//            guiRuleCanvas = new GUIRuleCanvas()
+//            guiRuleCanvas.ruleCanvas = this;
+//            mainVBox.addChild(guiRuleCanvas);
+//            interSpacer.percentWidth = 100;
+//            interSpacer.height = 20;
+//            mainVBox.addChild(interSpacer);
+//            ruleGridCas.percentWidth = 100;
+//            ruleGridCas.percentHeight = 100;
+//            ruleGridVBox.percentWidth = 100;
+//            ruleGridVBox.percentHeight = 100;
+//            ruleGridCas.addChild(ruleGridVBox);
+//            ruleGridVBox.addChild(rulesDataGrid);
+//            ruleGridVBox.addChild(controlButtonHBox);
+//            ruleGridVBox.addChild(doneButton);
+		}
+		
+		private function handleRuleGridChange(event:ListEvent):void{
+			if(preSelectedRuleIndex != rulesDataGrid.selectedIndex){
+				guiRuleCanvas.theRule = rulesDataGrid.selectedItem.rule;
+				guiRuleCanvas.currentRule = this.ruleXMLList[rulesDataGrid.selectedIndex]; 
+			    preSelectedRuleIndex = rulesDataGrid.selectedIndex;
+			    guiRuleCanvas.init();
+			}
+		}
+		
+		private function addRuleHandler(event:MouseEvent):void{
+			rules.addItem({rule:""});
+			rulesDataGrid.selectedIndex = rules.length -1;
+		}
+		
+		private function deleteRuleHandler(event:MouseEvent):void{
+			rules.removeItemAt(rulesDataGrid.selectedIndex);
+		}
+		
+		private function doneClickHandler(event:MouseEvent):void{
+			booleanComp.rules = this.rules;
+			booleanComp.rulesXMLList = this.ruleXMLList;
+			booleanComp.dispatchEvent(new MouseEvent(MouseEvent.CLICK, true, false));
+		}
+		
+		public function saveSetting():void{
+			booleanComp.rules = this.rules;
+			booleanComp.rulesXMLList = this.ruleXMLList;
+		}
+		
+		
+		
+		public function updateRule(ruleStr:String):void{
+			//rules.removeItemAt(preSelectedRuleIndex);
+			rules.setItemAt({rule:ruleStr},preSelectedRuleIndex);
+			rulesDataGrid.selectedIndex = preSelectedRuleIndex;
+		}
+		
+		public function updateRuleXML(ruleXML:XML):void{
+			if(ruleXMLList.length() == 0){
+			ruleXMLList = ruleXMLList + ruleXML;
+			}else{
+				ruleXMLList[preSelectedRuleIndex] = ruleXML;
+			}
+		}
+		
+		public function enlargeRuleGrid():void{
+			guiRuleCanvas.percentHeight = 20;
+			ruleGridVBox.percentHeight = 70;
+		}
+		
+		public function shrinkRuleGrid():void{
+			guiRuleCanvas.percentHeight = 40;
+			ruleGridVBox.percentHeight = 50;
+		}
+		
+		private function handleGuiRuleCasClick(event:MouseEvent):void{
+			//shrinkRuleGrid();
+		}
+		
+		private function handleRuleGridVBClick(event:MouseEvent):void{
+			//enlargeRuleGrid();
+		}
+			
+		]]>
+		
+	</mx:Script>
+	<mx:Component id="autocomplete">
+		<ns1:AutoComplete dataProvider="{ outerDocument.keysInCollection }" labelField="name"  />
+			
+	</mx:Component>
+	
+	<mx:VBox id="mainVBox" width="100%" height="100%">
+	    <mx:VBox width="100%" height="50%">
+	  	    <extenders:GUIRuleCanvas width="100%"  id="guiRuleCanvas" />
+			<!--<mx:Spacer width="100%" height="10%"/>-->
+		</mx:VBox>
+		<mx:VBox id="ruleGridVBox" width="100%" height="50%"  >
+			<mx:DataGrid id="rulesDataGrid" width="100%" height="100%" dataProvider="{rules}" variableRowHeight="true"  editable="true" change="handleRuleGridChange(event)">
+				<mx:columns>
+					<mx:DataGridColumn id="ruleDataGridColumn" editable="true" itemEditor="{autocomplete}" editorUsesEnterKey="true" editorDataField="text" dataField="rule" wordWrap="true" editorHeightOffset="50"/>
+				</mx:columns>
+			</mx:DataGrid>
+			<mx:VBox width="100%">	
+			
+				<mx:HBox width="100%" >
+					<mx:Button label="Add Rule" click="addRuleHandler(event)"/>
+					<mx:Button label="Delete Rule" click="deleteRuleHandler(event)"/>
+				</mx:HBox>
+				<mx:Button label="Done" click="doneClickHandler(event)"/>
+			</mx:VBox>
+		</mx:VBox>
+	</mx:VBox>
+	
+</mx:Canvas>

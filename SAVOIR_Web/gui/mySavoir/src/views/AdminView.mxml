@@ -1,0 +1,609 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/AdminView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%" verticalGap="10" paddingBottom="10" paddingLeft="10"
+	paddingRight="10" paddingTop="10">
+
+	<mx:Label text="Submit Completed Device Registration" styleName="sectionLabel"/>
+	<mx:Text text="Please ensure that the device registration ticket is filled in with any missing information, then submit the completed file." />
+    <mx:Button enabled="true" label="{submitDevRegText}" click="handleSubmitDevRegTicket(event)"/>
+
+	<mx:HRule width="100%" />
+	
+	<mx:Label text="SAVOIR Users" styleName="sectionLabel"/>
+	<mx:DataGrid id="usersDataGrid" selectable="true" dataProvider="{allUsersXMLList}" enabled="true">
+		<mx:columns>
+			<mx:DataGridColumn headerText="User Index Number" visible="false" dataField="userid"/>
+			<mx:DataGridColumn headerText="User ID" dataField="dgname" />
+			<mx:DataGridColumn headerText="Full Name" dataField="username"/>
+			<mx:DataGridColumn headerText="Group" dataField="group"/>
+			<mx:DataGridColumn headerText="Role" dataField="role"/>
+		</mx:columns>
+	</mx:DataGrid>
+	
+	<mx:HBox paddingBottom="10" paddingLeft="10" paddingRight="10" paddingTop="10" horizontalGap="10">
+		<mx:Button label="Add..." id="addUserButton" click="addUserHandler(event)"/>
+		<mx:Button label="Remove" id="removeUserButton" click="removeUserHandler(event)"/>
+	</mx:HBox>
+ 	
+ 	<mx:Form id="addUserForm">
+		<mx:FormItem label="Unique username:">
+			<mx:TextInput id="unqUserNameTextInput" editable="true" enabled="true"/>
+		</mx:FormItem>
+		<mx:FormItem label="First Name:">
+			<mx:TextInput id="firstNameInputText" enabled="true" editable="true"/>
+		</mx:FormItem>
+		<mx:FormItem label="Last Name:">
+			<mx:TextInput id="lastNameTextInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Choose a Password:">
+			<mx:TextInput id="firstPaswordTextInput"  displayAsPassword="true"/>
+		</mx:FormItem>
+		<mx:FormItem label="Re-enter Password:">
+			<mx:TextInput id="secondPasswordTextInput" displayAsPassword="true"/>
+		</mx:FormItem>
+		<mx:FormItem label="Email:">
+			<mx:TextInput id="emailTextInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Site Location:">
+			<mx:ComboBox id="siteLocationComboBox" dataProvider="{locations}" width="161"></mx:ComboBox>
+		</mx:FormItem>
+		<mx:FormItem label="Group:">
+			<mx:ComboBox id="groupComboBox" width="161" dataProvider="{groups}"></mx:ComboBox>
+		</mx:FormItem>
+		<mx:FormItem label="Role:">
+			<mx:ComboBox id="roleComboBox" width="161" dataProvider="{roles}"></mx:ComboBox>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Create the user" id="createUserButton"
+				click="submitCreateUserHandler(event)" width="161"/>
+		</mx:FormItem>
+	</mx:Form>
+    
+	<mx:Script>
+    	<![CDATA[
+
+			// ======================= External Modules =============================
+
+   	        import mx.core.Application;
+  			import mx.managers.PopUpManager;
+   			import mx.controls.Alert;
+           	import mx.collections.Sort;
+            import mx.collections.SortField;
+   			import mx.collections.ArrayCollection;
+        	import flash.net.URLRequestMethod;
+        	import flash.net.FileReference;
+  			import events.SavoirEvent;
+  			import savoirComp.InfoPopupWindow;
+  			import savoiroauth.OAuthDelegate;
+  			import savoiroauth.OAuthClient;
+
+			// ======================= Public Members ===============================
+
+            public var serverName:SharedObject;
+        	public var allUsersXMLDataGrid:XML = null;
+//   			public var SavoirUserName:SharedObject;
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+        	private var removeUserXMLStr:String;
+        	private var adminClient:OAuthClient;
+        	private var removeUserResp:XML;
+        	private var getAllUsersXmlStr:String;
+        	private var getAllUserDelegate:OAuthDelegate;
+        	private var getGroupsDelegate:OAuthDelegate;
+        	private var getRolesDelegate:OAuthDelegate;
+        	private var creatUserDelegate:OAuthDelegate;
+        	private var deleteUserDelegate:OAuthDelegate;
+        	private var allUsers:XML;
+        	private var allUsersDataProvidersXmlStr:String;
+        	private var createUserXMLStr:String;
+        	private var getGroupsXMLStr:String;
+        	private var groupsXML:XML;
+        	private var getRolesXMLStr:String;
+        	private var getRolesResp:XML;
+        	private var createUserResp:XML;
+			private var firstTime:Boolean = true;
+
+   			private var popupWindow:InfoPopupWindow;
+			private var fileRef:FileReference = new FileReference();
+
+			[Bindable]
+			private var submitDevRegText:String = new String();
+
+        	[Bindable]
+            private var groups:ArrayCollection = new ArrayCollection();
+
+            [Bindable]
+            private var roles:ArrayCollection = new ArrayCollection();
+            
+        	[Bindable]
+        	private var allUsersXMLList:XMLList;
+
+            [Bindable]
+            private var locations:ArrayCollection = new ArrayCollection(
+            	[{label:"Fredericton", data:1},
+              		{label:"Ottawa", data:2},
+              		{label:"Sunnyvale", data:3},
+              		{label:"Barcelona", data:4},
+              		{label:"NRC-IIT", data:5},
+              		{label:"CRC-BADLab", data:6},
+              		{label:"CRC-FS", data:7},
+              		{label:"Mcgill-Montreal", data:8},
+              		{label:"Mcgill2-Montreal", data:9},
+              		{label:"Sudbury", data:10},
+              		{label:"Steve", data:11},
+              		{label:"Stanford", data:12},
+              		{label:"Toronto", data:13},
+              		{label:"Thunderbay", data:14},
+              		{label:"Sudbury", data:15},
+              		{label:"Montreal", data:16},
+              		{label:"Banff", data:17},
+              		{label:"CRC-Ottawa", data:18},
+              		{label:"Cork, Ireland", data:19},
+             	]
+            );
+
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSubmitDevRegTicket
+            // Author:       	Justin Hickey
+            // Purpose:      	To submit a device registration XML file to Savoir starting with
+            //					opening up an open file dialog box 
+            // Input Vars:   	event - mouse event triggered by clicking "Submit Device
+            //					Registration Ticket" button
+            // Return Vars:  	none
+            // Date Created: 	Jul 21, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleSubmitDevRegTicket(event:MouseEvent):void
+            {
+            	var success:Boolean = new Boolean();
+            	var devRegFilter:FileFilter;
+            	var allTypes:Array;
+            	
+            	devRegFilter = new FileFilter("Device Registration Tickets (*.xml)", "*.xml");
+				allTypes = new Array(devRegFilter);
+
+				// Add event listeners for file selection and upload complete
+				fileRef.addEventListener(Event.SELECT, handleSelectDevRegFile);
+				fileRef.addEventListener(Event.COMPLETE, handleDevRegLoadComplete);
+            	
+            	// Have the user browse for the scenario file to upload
+            	try
+            	{
+            		success = fileRef.browse(allTypes);
+            	}
+				catch (error:Error)
+				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to browse "
+   		    			+ "for device registration tickets.\n"
+   		    			+ "Generated in the click handler for the submit button.\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+				}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSelectDevRegFile
+            // Author:       	Justin Hickey
+            // Purpose:      	To load the selected device registration ticket to Savoir
+            // Input Vars:   	event - mouse event triggered by clicking "Open" on the file
+            //					browser dialog box, or double clicking the file name
+            // Return Vars:  	none
+            // Date Created: 	Jul 21, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleSelectDevRegFile(event:Event):void
+			{
+    			try
+    			{
+        			// Load the device registration ticket file
+        			fileRef.load();
+    			}
+    			catch (error:Error)
+    			{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to load "
+   		    			+ "the selected device registration ticket.\n"
+   		    			+ "Generated in the click handler for the open button of the device\n"
+   		    			+ "registration ticket browser.\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+    			}
+			}
+				
+            private function addUserHandler(event:MouseEvent):void
+            {
+                var sort:Sort = null;
+
+            	addUserForm.visible = true;
+            	unqUserNameTextInput.text = "";
+            	firstNameInputText.text = "";
+            	lastNameTextInput.text = "";
+            	firstPaswordTextInput.text = "";
+            	secondPasswordTextInput.text = "";
+            	emailTextInput.text = "";
+
+				// Sort the locations used in the admin page add user form
+                sort = new Sort();
+                sort.fields = [new SortField("label", true)];
+                locations.sort = sort;
+                locations.refresh();
+			}
+            
+            private function removeUserHandler(event:MouseEvent):void
+            {
+            	var selectedUserIdStr:String = usersDataGrid.selectedItem.userid;
+            	var deleteUserParameterObj:Object;
+            	            	
+            	removeUserXMLStr = "<message action=\"delete_user\">\n"
+            		+ "<service>\n"
+            	    + "<user>"
+            	    + "<userid>" + selectedUserIdStr + "</userid>\n"
+            	    + "</user>"
+            	    + "</service>\n"
+            	    + "</message>";
+            	deleteUserParameterObj = {savoirmsg:removeUserXMLStr};
+            	deleteUserDelegate = adminClient.sendRequest("/SavoirUserAdmin", URLRequestMethod.GET,
+            		deleteUserParameterObj);
+            	deleteUserDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+            		deleteUserCompleteHandler);                  
+            }
+			
+            private function submitCreateUserHandler(event:MouseEvent):void
+            {
+            	var createUserParameterObj:Object;
+            	
+            	if (firstPaswordTextInput.text != this.secondPasswordTextInput.text)
+            	{
+            		Alert.show("The entered passwords do not match! \n Please re-enter them", "Error");
+            		
+            		firstPaswordTextInput.text = "";
+            		secondPasswordTextInput.text = "";
+            		
+            		return;
+            	}
+            	
+            	createUserXMLStr = "<message action=\"create_user\">\n"
+        			+ "<service>\n"
+        		    + "<user>\n"
+        		    + "<username>" + this.unqUserNameTextInput.text + "</username>\n"
+        		    + "<password>" + this.firstPaswordTextInput.text + "</password>"
+        		    + "<givenname>" + this.firstNameInputText.text + "</givenname>\n"
+        		    + "<surname>" + this.lastNameTextInput.text + "</surname>\n"
+        		    + "<siteid>" + this.siteLocationComboBox.selectedItem.data + "</siteid>\n"
+        		    + "<groupid>" + this.groupComboBox.selectedItem.data + "</groupid>\n"
+        		    + "<roleid>" + this.roleComboBox.selectedItem.data + "</roleid>\n"
+        		    + "<email>" + this.emailTextInput.text + "</email>\n"
+        		    + "</user>\n"
+        		    + "</service>\n"
+            	    + "</message>";
+            	    
+            	
+            	createUserParameterObj = {savoirmsg:createUserXMLStr};
+            	creatUserDelegate = adminClient.sendRequest("/SavoirUserAdmin", URLRequestMethod.POST,
+            		createUserParameterObj);
+            	creatUserDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+            		createUserCompleteHandler);
+            }
+            
+			// =================== Application Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleDevRegLoadComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To parse the loaded device registration ticket and form the message
+            //					to be sent to the back end for processing
+            // Input Vars:   	event - event triggered by successful completion of the file
+            //					loading
+            // Return Vars:  	none
+            // Date Created: 	Jul 21, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleDevRegLoadComplete(event:Event):void
+			{
+   				var submitRegXmlStr:String;				// XML data of message element
+   				var submitRegDelegate:OAuthDelegate;	// Oauth delegate to send message to SAVOIR server
+   				var parameterObj:Object;				// Object containing message to send to SAVOIR server
+				var xmlData:XML;
+				
+				xmlData = new XML(fileRef.data);
+				
+  				// Build the message XML
+   				submitRegXmlStr = "<message action=\"complete_registration\">\n" + xmlData.toXMLString()
+            	    + "\n</message>";
+            	    
+     			// Send the message to the SAVOIR server
+    			parameterObj = {savoirmsg:submitRegXmlStr};
+      			submitRegDelegate = Application.application.client.sendRequest("/SavoirResourceAdmin",
+      				URLRequestMethod.GET, parameterObj);
+      				
+      			// Add an event listener to handle the response
+      			submitRegDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+      				handleSubmitDevRegComplete);
+			}
+			
+			
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSubmitDevRegComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To indicate if registration submission was successful or not
+            // Input Vars:   	event - event triggered by successful completion of the submit
+            //					registration call
+            // Return Vars:  	none
+            // Date Created: 	Jul 28, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleSubmitDevRegComplete(event:SavoirEvent):void
+			{
+    			var responseXml:XML;
+    			var resultStr:String;
+
+    			// Obtain the results and check if it failed or suceeded
+    			responseXml = XML(event.data);
+   				resultStr = responseXml.result;
+   				
+   				// Check if the types were returned
+   				if (resultStr == "success")
+   				{
+					// Add the message to the popup window
+					popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+					popupWindow.title = "INFO: Device Registration Ticket Load";
+					popupWindow.setMessage("INFO: The device registration ticket was successfully loaded\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+					// Popup the message
+					PopUpManager.centerPopUp(popupWindow);
+   				}
+   				else
+   				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Device Registration Ticket Load";
+   		    		popupWindow.setMessage("ERROR: The completed device registration ticket failed to load.\n" 
+   		    			+ "Generated while loading the completed device registration ticket.\n\n"
+						+ "Please contact your Savoir Admin regarding this issue "
+   		    			+ "and send him/her the above error\n");
+   		    	
+   		    		// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   				}
+   				
+			}
+//        	public function handleUserAdminWindowInit():void
+//        	{
+//        		this.usersDataGrid.validateNow();
+//        		sendGetAllUserMsg();
+//            	addUserForm.visible = false;
+//        	}
+//        	
+            private function deleteUserCompleteHandler(event:SavoirEvent):void
+            {
+            	removeUserResp = XML(event.data);
+
+            	if (removeUserResp.result == "success")
+            	{
+            		sendGetAllUserMsg();
+            		Alert.show("The user was deleted successfully!", "Result");
+            	}
+            	else
+            	{
+            		Alert.show("Savoir failed to delete the user!", "Result");
+            	}
+            }
+   		
+            private function createUserCompleteHandler(event:SavoirEvent):void
+            {
+            	var succAddedUserXMLStr:String = new String();
+            	
+            	createUserResp = XML(event.data);
+            	addUserForm.visible = false;
+            
+            	if (createUserResp.result == "success")
+            	{
+            		Alert.show("The new user was created successfully!", "Result");
+            		
+            		succAddedUserXMLStr = "<user>\n"
+            			+ "<userid>" + createUserResp.userid + "</userid>\n"
+            		    + "<dgname>" + unqUserNameTextInput.text + "</dgname>\n"
+            		    + "<username>" + firstNameInputText.text + ", "
+            		    + lastNameTextInput.text + "</username>\n"
+            		    + "<group>" + groupComboBox.selectedItem.label + "</group>\n"
+            		    + "<role>" + roleComboBox.selectedItem.label + "</role>\n"
+            		    + "</user>\n";
+            		
+            		allUsersXMLDataGrid.appendChild(XML(succAddedUserXMLStr));
+
+            		this.allUsersXMLList = allUsersXMLDataGrid.user;
+            		this.usersDataGrid.selectable = true;
+            	}
+            	else
+            	{
+            		Alert.show("Savoir failed to create the new user!", "Result");
+            	}
+            }
+            
+            private function getAllUsersCompleteHandler(event:SavoirEvent):void
+            {
+            	var getGroupsParameterObj:Object;
+            	var userXml:XML;
+            	
+            	allUsers = XML(event.data);
+            	allUsersDataProvidersXmlStr = "<users>\n";
+            	
+            	for each (userXml in allUsers.user)
+            	{
+            		allUsersDataProvidersXmlStr = allUsersDataProvidersXmlStr + "<user>\n"
+            			+ "<userid>" + userXml.id + "</userid>\n"
+            			+ "<dgname>" + userXml.dgname + "</dgname>\n"
+            			+ "<username>" + userXml.givenname + ", " +userXml.surname + "</username>\n"
+            			+ "<group>" + userXml.group.name + "</group>\n"
+            			+ "<role>" + userXml.role.name + "</role>\n"
+            			+ "</user>\n";
+            		
+            		// Add the unique username to the global user list. The chosen field
+            		// is used to indicate whether the user is included as someone who
+            		// can run a session - used in the create session UI.
+            		Application.application.userList.addItem({username:userXml.dgname,
+            			userId:userXml.id, chosen:"no"});
+            		
+/*
+           			if (firstTime && userXml.dgname == this.SavoirUserName.data.userName)
+           			{
+           				if (userXml.group.name == "SYSADMIN")
+           				{
+           					Application.application.adminLink.visible = true;
+           					firstTime = false;
+           				}
+           			}
+*/
+            	}
+            	
+            	allUsersDataProvidersXmlStr = allUsersDataProvidersXmlStr + "</users>";
+            	allUsersXMLDataGrid = XML(allUsersDataProvidersXmlStr);
+
+            	this.allUsersXMLList = allUsersXMLDataGrid.user;
+            	this.usersDataGrid.focusEnabled = true;
+
+            	getGroupsXMLStr = "<message action=\"get_groups\">\n</message>";
+            	
+            	getGroupsParameterObj = {savoirmsg:getGroupsXMLStr};
+            	this.getGroupsDelegate = adminClient.sendRequest("/SavoirUserAdmin",
+            		URLRequestMethod.GET, getGroupsParameterObj);
+            	getGroupsDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+            		getGroupsCompleteHandler);
+            }
+            
+            private function getGroupsCompleteHandler(event:SavoirEvent):void
+            {
+            	var group:XML;
+            	var groupObj:Object;
+            	var getRolesParameterObj:Object;
+            	
+            	groupsXML = XML(event.data);
+            	
+            	for each (group in groupsXML.group)
+            	{
+            		groupObj = {label:group.name, data:group.id};
+            		this.groups.addItem(groupObj);
+            		
+            		// Add the group name to the global group list The chosen field
+            		// is used to indicate whether the group is included as someone who
+            		// can run a session - used in the create session UI
+            		Application.application.groupList.addItem({groupName:group.name,
+            			groupId:group.id, chosen:"no"});            		
+            	}
+            	
+//            	this.groupComboBox.dataProvider = groups;
+            	getRolesXMLStr = "<message action=\"get_roles\">\n</message>";
+            	
+            	getRolesParameterObj = {savoirmsg:getRolesXMLStr};
+            	this.getRolesDelegate = adminClient.sendRequest("/SavoirUserAdmin",
+            		URLRequestMethod.GET,getRolesParameterObj);
+            	getRolesDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, getRolesCompleteHandler);
+            }
+            
+            private function getRolesCompleteHandler(event:SavoirEvent):void
+            {
+            	var role:XML;
+            	var roleObj:Object;
+            	
+            	getRolesResp = XML(event.data);
+            	
+            	for each (role in getRolesResp.role)
+            	{
+            		roleObj = {label:role.name, data:role.id};
+            		roles.addItem(roleObj);
+            	}
+            	
+//            	roleComboBox.dataProvider = roles;
+            }
+            
+			// ======================= Public Functions =============================
+
+        	public function adminInit(adminButClicked:Boolean):void
+        	{
+				// Get the server name
+				this.serverName = SharedObject.getLocal("serverName","/");
+
+            	// Clear the users, groups, and roles lists since they are updated in the
+            	// call process initiated with the sendGetAllUserMsg() call
+            	Application.application.userList.removeAll();
+            	Application.application.groupList.removeAll();
+            	groups.removeAll();
+            	roles.removeAll();
+
+        		// Get all the users, groups, and roles
+        		sendGetAllUserMsg();
+        		
+				// Set the text variables
+				submitDevRegText = "Submit Device Registration Ticket";
+
+        		// If we were called by clicking the Admin button, perform tasks for
+        		// rendering this page
+        		if (adminButClicked)
+        		{
+        			this.usersDataGrid.validateNow();
+            		addUserForm.visible = false;
+        		}
+        	}
+        	
+        	public function sendGetAllUserMsg():void
+        	{
+        		var getAllUserParameterObj:Object;
+        		
+        		getAllUsersXmlStr = "<message action=\"get_all_users\">\n</message>";
+            	
+            	getAllUserParameterObj = {savoirmsg:getAllUsersXmlStr};
+            	adminClient = Application.application.client;
+            	getAllUserDelegate = adminClient.sendRequest("/SavoirUserAdmin", URLRequestMethod.GET,
+            		getAllUserParameterObj);
+            	getAllUserDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+            		getAllUsersCompleteHandler);
+        	}
+        	
+			// ======================= Private Functions ============================
+
+			// none
+        	
+		]]>
+    </mx:Script>
+</mx:VBox>

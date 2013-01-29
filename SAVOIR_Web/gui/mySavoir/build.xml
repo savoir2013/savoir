@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Front End - Main Interface Page
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				Unlike other SAVOIR projects, the build file infrastructure for
+*				the Flex front end has an extra layer of complexity. Since there
+*				are several Flex projects for the front end, each of these
+*				projects contains its own build.xml file.
+*
+*				This build file defines the targets for building the SAVOIR
+*				Flex front end programs for the main interface page.
+* DATE CREATED:	Jul 08, 2011
+*
+********************************************************************************
+-->
+
+<project name="SavoirFrontEndMainInt" default="build">
+
+	<description>Build file for the SAVOIR front end main interface programs</description>
+
+	<!-- **************************** Properties *************************** -->
+
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.cont.jar.dir}" />
+	<get src="${savoir.cont.url}/${savoir.cont.install.version}/${savoir.cont.jar.file}"
+		dest="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+	
+	<!-- **************************** File Sets **************************** -->
+
+	<fileset id="flash.files" dir="${build.home}">
+		<include name="**/*.swf" />
+	</fileset>
+
+	<fileset id="flash.assets" dir="${src.home}/assets" />
+
+	<fileset id="dist.files" dir="${dist.home}" />
+
+	<!-- *************************** Class Paths *************************** -->
+
+	<!-- none -->
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the flex ant tasks -->
+	<taskdef resource="flexTasks.tasks" classpath="${savoir.flash.ant.dir}/flexTasks.jar" />
+	
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" />
+	
+	<!-- Get the user name and password for the remote SAVOIR server if necessary -->
+	<macrodef name="get-user-main" description="Prompt the user for his/her username and password for the web server">
+		<sequential>
+			<echo message="Macrodef: get-user-main" />
+			<echo message=" " />
+			<if>
+				<isset property="savoir.remote.server.main" />
+				<then>
+					<check-if-eclipse-main/>
+					<echo message=" " />
+					<echo message="IMPORTANT NOTE!!!" />
+					<echo message="The system has determined that the SAVOIR front end main interface service" />
+					<echo message="will be deployed to a remote SAVOIR server." />
+					<input message="Please enter your SAVOIR server username " addproperty="savoir.server.user.name"/>
+
+					<input message="Please enter your SAVOIR server password " addproperty="savoir.server.password">
+						<handler type="secure" />
+					</input>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the user is trying to deploy from Eclipse -->
+	<macrodef name="check-if-eclipse-main" description="Check if the user is calling this script from eclipse">
+		<sequential>
+			<echo message="Macrodef: check-if-eclipse-main" />
+			<echo message=" " />
+			<if>
+				<isset property="eclipse.running" />
+				<then>
+					<echo message=" " />
+					<echo message="ERROR - Build failed" />
+					<echo message="It appears you are trying to deploy the SAVOIR front end main interface project to a remote" />
+					<echo message="server. Unfortunately, remote deployment will only work from the command" />
+					<echo message="line since it prompts for a password and secure entry of your password" />
+					<echo message="is not supported in Eclipse." />
+					<echo message="To deploy from the command line, perform the following commands:" />
+					<echo message="cd &lt;workspace dir&gt;/SAVOIR_Web/gui/mySavoir" />
+					<echo message="ant deploy" />
+					<fail>See message above for build failure explanation</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+					
+	<!-- Deploy the front end main interface software on the same server as the build -->
+	<macrodef name="deploy-same-srv-main" description="Deploy the main interface on the same server">
+		<sequential>
+			<echo message="Macrodef: deploy-same-srv-main" />
+			<echo message=" " />
+			<copy todir="${savoir.main.deploy.directory}">
+				<fileset refid="dist.files" />
+			</copy>
+		</sequential>
+	</macrodef>
+
+	<!-- Deploy the front end main interface software on a remote server -->
+	<macrodef name="deploy-remote-srv-main" description="Deploy the main interface on the remote web server">
+		<sequential>
+			<echo message="Macrodef: deploy-remote-srv-main" />
+			<echo message=" " />
+			<scp todir="${savoir.server.user.name}:${savoir.server.password}@${savoir.main.deploy.host}:${savoir.main.deploy.directory}" sftp="true" trust="true">
+				<fileset refid="dist.files" />
+			</scp>
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the Savoir front end main interface project">
+		<echo message="==== Savoir front end main interface init target ====" />
+
+		<!-- make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+	<!--	<mkdir dir="${lib.home}" /> -->
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init" description="Builds Flash swf files">
+		<echo message="==== Savoir front end main interface build target ====" />
+
+		<mxmlc file="${src.home}/${savoir.main.flash.name}.mxml" incremental="false" target-player="10.0.0"
+			output="${build.home}/${savoir.main.flash.name}.swf" keep-generated-actionscript="false">
+
+				<!-- Load the compiler config file -->
+				<load-config filename="${FLEX_HOME}/frameworks/flex-config.xml" />
+
+				<!-- Define the location of the source files --> 
+				<source-path path-element="${src.home}" />
+				<source-path path-element="${src.home}/locale/{locale}" />
+			
+				<!-- Add our own libraries -->
+				<compiler.library-path dir="${lib.home}" append="true">
+					<include name="*.swc" />
+				</compiler.library-path>
+
+				<!-- Flex compiler options -->
+				<compiler.locale>en_US</compiler.locale>
+				<compiler.allow-source-path-overlap>true</compiler.allow-source-path-overlap>
+				<compiler.debug>false</compiler.debug>
+				<compiler.show-unused-type-selector-warnings>false</compiler.show-unused-type-selector-warnings>
+	    </mxmlc>
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Creates the HTML infrastructure for swf files">
+		<echo message="==== Savoir front end main interface package target ====" />
+
+		<!-- Generate the HTML files that will load the flash swf file -->
+		<html-wrapper title="${savoir.main.flash.title}" file="${savoir.main.flash.html}"
+			height="100%" width="100%" application="${savoir.main.flash.name}"
+			swf="${savoir.main.flash.name}" version-major="${savoir.flash.major.version}"
+			version-minor="${savoir.flash.minor.version}" version-revision="${savoir.flash.revision.version}"
+			history="true" template="express-installation" output="${dist.home}" />
+		
+		<!-- Copy the swf files to the ditribution directory -->
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset refid="flash.files" />
+		</copy>
+
+		<!-- Copy the supporting assets to the ditribution directory -->
+		<copy todir="${dist.home}/assets" includeEmptyDirs="false">
+			<fileset refid="flash.assets" />
+		</copy>
+
+	</target>
+
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="package" description="Publish the flash HTML directory to the webserver">
+		<echo message="==== Savoir front end main interface deploy target ====" />
+
+		<if>
+			<not>
+				<istrue value="${savoir.is.master.build}" />
+			</not>
+			<then>
+
+				<!-- Get the host information -->
+				<hostinfo prefix="host" />
+		
+				<!-- Check if we require a username and password -->
+				<condition property="savoir.remote.server.main">
+					<not>
+						<or>
+							<matches pattern="${host.ADDR4}" string="${savoir.main.deploy.host}" />
+							<matches pattern="${host.NAME}" string="${savoir.main.deploy.host}" />
+						</or>
+					</not>
+				</condition>
+
+				<!-- Get the user credentials if necessary -->
+				<get-user-main/>
+			</then>
+		</if>
+		
+		<if>
+			<istrue value="${savoir.remote.server.main}" />
+			<then>
+				<deploy-remote-srv-main/>
+			</then>
+			<else>
+				<deploy-same-srv-main/>
+			</else>
+		</if>
+
+	</target>
+
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir front end main interface clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+	<!--	<delete dir="${lib.home}" includeEmptyDirs="true" /> -->
+
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir front end main interface undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir front end main interface doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir front end main interface javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir front end main interface test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- none -->
+
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+
+</project>

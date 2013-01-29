@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Bus
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				This build file defines the targets for building the SAVOIR
+*				Bus system.
+* DATE CREATED:	Mar 09, 2011
+*
+********************************************************************************
+-->
+
+<project name="savoirBus" default="build">
+	
+	<description>Build file for the SAVOIR Bus system</description>
+	
+	<!-- **************************** Properties *************************** -->
+	
+	<!-- Load the environment since an environment variable is used below -->
+	<property environment="env" />
+	
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+	
+	<!-- Software installation directories --> 
+	<property name="mule.home" value="${env.MULE_HOME}" />
+	
+	<!-- Deployment files -->
+	<property name="savoir.bus.jar.file" value="savoir-esb.jar" />
+	<property name="savoir.bus.config.xml.file" value="savoir-bus-config.xml" />
+	<property name="savoir.mgmt.stubs.jar.file" value="savoir_MgmtServices_stubs.jar" />
+	
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+	
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- A task def below requires the ivy.jar file so make sure it is downloaded
+		Download ivy from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.ivy.jar.dir}" />
+	<get src="${savoir.ivy.url}/${savoir.ivy.install.version}/${savoir.ivy.jar.file}"
+		dest="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.cont.jar.dir}" />
+	<get src="${savoir.cont.url}/${savoir.cont.install.version}/${savoir.cont.jar.file}"
+		dest="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+	
+	<!-- **************************** File Sets **************************** -->
+	
+	<fileset id="master.libs" dir="${lib.home}/master">
+		<include name="**/*.jar" />
+	</fileset>
+				
+	<fileset id="mule.libs" dir="${mule.home}/lib">
+		<include name="**/*.jar" />
+	</fileset>
+				
+	<fileset id="savoir.mgmt.stubs.src.jar" file="${lib.home}/master/${savoir.mgmt.stubs.jar.file}" />
+	<fileset id="savoir.bus.jar" file="${dist.home}/${savoir.bus.jar.file}" />
+	<fileset id="savoir.bus.config.xml" file="${dist.home}/${savoir.bus.config.xml.file}" />
+	<fileset id="savoir.mgmt.stubs.jar" file="${dist.home}/${savoir.mgmt.stubs.jar.file}" />
+
+	<fileset id="prop.files" dir="${src.home}"
+		includes= "savoirbus.properties" />
+			
+	<!-- *************************** Class Paths *************************** -->
+	
+	<path id="master.class.path">
+		<fileset refid="master.libs" />
+	</path>
+
+	<path id="mule.class.path">
+		<fileset refid="mule.libs" />
+	</path>
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the ivy ant tasks -->
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+		uri="antlib:org.apache.ivy.ant" classpath="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" />
+
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" />
+	
+	<!-- Get the user name and password for the remote SAVOIR server if necessary -->
+	<macrodef name="get-user-bus" description="Prompt the user for his/her username and password for the bus server">
+		<sequential>
+			<echo message="Macrodef: get-user-bus" />
+			<echo message=" " />
+			<if>
+				<isset property="savoir.remote.server.bus" />
+				<then>
+					<check-if-eclipse-bus/>
+					<echo message=" " />
+					<echo message="IMPORTANT NOTE!!!" />
+					<echo message="The system has determined that the SAVOIR bus service" />
+					<echo message="will be deployed to a remote SAVOIR server." />
+					<input message="Please enter your SAVOIR server username " addproperty="savoir.server.user.name"/>
+
+					<input message="Please enter your SAVOIR server password " addproperty="savoir.server.password">
+						<handler type="secure" />
+					</input>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the user is trying to deploy from Eclipse -->
+	<macrodef name="check-if-eclipse-bus" description="Check if the user is calling this script from eclipse">
+		<sequential>
+			<echo message="Macrodef: check-if-eclipse-bus" />
+			<echo message=" " />
+			<if>
+				<isset property="eclipse.running" />
+				<then>
+					<echo message=" " />
+					<echo message="ERROR - Build failed" />
+					<echo message="It appears you are trying to deploy the SAVOIR bus project to a remote" />
+					<echo message="server. Unfortunately, remote deployment will only work from the command" />
+					<echo message="line since it prompts for a password and secure entry of your password" />
+					<echo message="is not supported in Eclipse." />
+					<echo message="To deploy from the command line, perform the following commands:" />
+					<echo message="cd &lt;workspace dir&gt;/SAVOIR_Bus" />
+					<echo message="ant deploy" />
+					<fail>See message above for build failure explanation</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+					
+	<!-- Deploy the bus software on the same server as the build -->
+	<macrodef name="deploy-same-srv-bus" description="Deploy the bus software on the same server">
+		<sequential>
+			<echo message="Macrodef: deploy-same-srv-bus" />
+			<echo message=" " />
+			<copy todir="${savoir.bus.deploy.directory}">
+				<fileset refid="savoir.bus.jar" />
+				<fileset refid="savoir.mgmt.stubs.jar" />
+			</copy>
+			<copy todir="${savoir.bus.config.directory}">
+				<fileset refid="savoir.bus.config.xml" />
+			</copy>
+		</sequential>
+	</macrodef>
+
+	<!-- Deploy the bus software on a remote server -->
+	<macrodef name="deploy-remote-srv-bus" description="Deploy the bus software on the remote server">
+		<sequential>
+			<echo message="Macrodef: deploy-remote-srv-bus" />
+			<echo message=" " />
+			<scp todir="${savoir.server.user.name}:${savoir.server.password}@${savoir.bus.deploy.host}:${savoir.bus.deploy.directory}" sftp="true" trust="true">
+				<fileset refid="savoir.bus.jar" />
+				<fileset refid="savoir.mgmt.stubs.jar" />
+			</scp>
+			<scp todir="${savoir.server.user.name}:${savoir.server.password}@${savoir.bus.deploy.host}:${savoir.bus.config.directory}" sftp="true" trust="true">
+				<fileset refid="savoir.bus.config.xml" />
+			</scp>
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+	
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the Savoir bus project">
+		<echo message="==== Savoir bus init target ====" />
+		
+		<!-- make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${lib.home}" />
+
+		<propertyfile file="${src.home}/savoirbus.properties">
+			
+			<!-- Set the local properties -->
+	  		<entry key="savoir.dev.bus.mgmt.url" value="${savoir.dev.bus.mgmt.url}" />
+	  		<entry key="savoir.prd.bus.mgmt.url" value="${savoir.prd.bus.mgmt.url}" />
+
+		</propertyfile>
+
+		<!-- Set the ActiveMQ server url in any xml files
+			Should this be in the build target instead -->
+		<exec executable="${basedir}/setActivemqSrvUrl.pl" failonerror="true">
+			<arg value="${savoir.bus.config.file}" />
+		</exec>
+		
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init" description="Builds java classes">		
+		<echo message="==== Savoir bus build target ====" />
+
+		<javac srcdir="${src.home}" destdir="${build.home}" source="${savoir.java.source.ver}"
+			target="${savoir.java.target.ver}" includeAntRuntime="false">
+	      		<classpath refid="master.class.path" />
+      			<classpath refid="mule.class.path" />
+				<include name="**/*.java" />
+	    </javac>
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Copies default resources and calls jar target">
+		<echo message="==== Savoir bus package target ====" />
+
+		<jar destfile="${dist.home}/${savoir.bus.jar.file}" basedir="${build.home}" update="true">
+			<fileset refid="prop.files" />
+		</jar>
+		<copy todir="${dist.home}">
+			<fileset refid="savoir.mgmt.stubs.src.jar" />
+		</copy>
+		
+	</target>
+	
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="package" description="Publishes all artifact files (jars) and the ivy xml file">
+		<echo message="==== Savoir bus deploy target ====" />
+
+		<if>
+			<not>
+				<istrue value="${savoir.is.master.build}" />
+			</not>
+			<then>
+
+				<!-- Get the host information -->
+				<hostinfo prefix="host" />
+		
+				<!-- Check if we require a username and password -->
+				<condition property="savoir.remote.server.bus">
+					<not>
+						<or>
+							<matches pattern="${host.ADDR4}" string="${savoir.bus.deploy.host}" />
+							<matches pattern="${host.NAME}" string="${savoir.bus.deploy.host}" />
+						</or>
+					</not>
+				</condition>
+
+				<!-- Get the user credentials if necessary -->
+				<get-user-bus/>
+			</then>
+		</if>
+		
+		<if>
+			<istrue value="${savoir.remote.server.bus}" />
+			<then>
+				<deploy-remote-srv-bus/>
+			</then>
+			<else>
+				<deploy-same-srv-bus/>
+			</else>
+		</if>
+
+	</target>
+	
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir bus clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+	<!--	<delete dir="${lib.home}" includeEmptyDirs="true" /> -->
+		
+		<!-- the bin directory is usually created by default -->
+	<!--	<delete dir="${basedir}/bin" includeEmptyDirs="true" /> -->
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir bus undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir bus doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir bus javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir bus test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- none -->
+
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+
+</project>

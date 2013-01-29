@@ -1,0 +1,91 @@
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<html>
+
+ <head>
+   <title>SAVOIR BUS API - CXF AJAX Demo</title>
+   <script>
+function getResources() {
+    var xmlhttp = null;
+	if (window.XMLHttpRequest) {
+	  xmlhttp = new XMLHttpRequest();
+	  if ( typeof xmlhttp.overrideMimeType != 'undefined') {
+	    xmlhttp.overrideMimeType('text/plain');
+	  }
+	} else if (window.ActiveXObject) {
+	  xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+	} else {
+	  alert('Perhaps your browser does not support xmlhttprequests?');
+	}
+
+	xmlhttp.onreadystatechange = function() {
+	  if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+	    var res = '(' + xmlhttp.responseText + ')';
+	    var resources = eval(res);
+	    resources = resources['savoir.Resources'];
+
+	    var resource = resources['savoir.resource'];
+		var t = document.getElementById("resourcetable");
+		while(t.rows.length > 1) {
+		 t.deleteRow(t.rows.length-1);
+		}
+		if (resource.length) {
+		  for (var i = 0; i < resource.length; i++) {
+		    addResource(resource[i]);
+		  }
+		} else {
+		  addResource(resource);
+
+        }
+	  } else {
+	    // wait for the call to complete
+	  }
+	};
+
+	xmlhttp.open('GET', "http://localhost:8080/json/resources", true);
+    xmlhttp.send(null);
+}
+
+function addResource(c) {
+  var t = document.getElementById("resourcetable");
+
+  var tr = document.createElement("tr");
+  var td = document.createElement("td");
+  var id = document.createTextNode(c['acme.id']);
+  td.appendChild(id);
+  tr.appendChild(td);
+  td = document.createElement("td");
+  var name = document.createTextNode(c['acme.name']);
+  td.appendChild(name);
+  tr.appendChild(td);
+  t.getElementsByTagName("tbody")[0].appendChild(tr);
+  //t.appendChild(tr);
+}
+   </script>
+ </head>
+ <body>
+   <h1>SAVOIR BUS API - CXF AJAX Demo</h1>
+   <p>
+     The button below will go and hit the URL
+     <a href="http://localhost:8080/json/resources">http://localhost:8080/json/resources</a>
+     and list the resources below in a table.
+   <p>
+   <p>
+     <input type="button" value="Get Resources!" onClick="javascript: getResources();" />
+   <p>
+   <p>
+     <h1>Resources</h1>
+     <table id="resourcetable">
+	  <tbody>
+       <tr>
+         <td><strong>ID</strong></td>
+         <td><strong>Resource Name</strong></td>
+       </tr>
+	  </tbody>
+     </table>
+   </p>
+ </body>
+</html>

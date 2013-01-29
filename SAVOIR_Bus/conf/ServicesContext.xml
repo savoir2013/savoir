@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="NotifyService"
+        class="ServicesImpl.NotifyServicesImpl"
+        scope="singleton">
+    </bean>
+    
+    <bean id="ThresholdService"
+        class="ServicesImpl.ThresholdServicesImpl"
+        scope="singleton">
+    </bean>
+
+</beans>

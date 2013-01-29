@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR EKG Tutorial
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				This build file defines the targets for building the SAVOIR
+*				EKG Tutorial program.
+* DATE CREATED:	Oct 27, 2011
+*
+********************************************************************************
+-->
+
+<project name="EkgTutorial" default="build" xmlns:ivy="antlib:org.apache.ivy.ant"
+	xmlns="antlib:org.apache.tools.ant">
+	
+	<description>Build file for the SAVOIR EKG tutorial program</description>
+	
+	<!-- **************************** Properties *************************** -->
+	
+	<!-- Load the environment since an environment variable is used below -->
+	<property environment="env" />
+	
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+	<property name="resrc.home" value="${basedir}/resources" />
+	<property name="local.lib.home" value="${basedir}/localLib" />
+	<property name="war.lib.home" value="${basedir}/web/WEB-INF/lib" />
+	
+	<!-- Software installation directories --> 
+	<property name="catalina.home" value="${env.CATALINA_HOME}" />
+	
+	<!-- Deployment files -->
+	<property name="web.app.name" value="EKGTutorial" />
+	<property name="web.app.path" value="/${web.app.name}" />	
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+	
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- A task def below requires the ivy.jar file so make sure it is downloaded
+		Download ivy from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.ivy.jar.dir}" />
+	<get src="${savoir.ivy.url}/${savoir.ivy.install.version}/${savoir.ivy.jar.file}"
+		dest="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.cont.jar.dir}" />
+	<get src="${savoir.cont.url}/${savoir.cont.install.version}/${savoir.cont.jar.file}"
+		dest="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+	
+	<!-- **************************** File Sets **************************** -->
+	
+	<fileset id="master.libs" dir="${lib.home}/master">
+		<include name="**/*.jar" />
+	</fileset>
+	
+	<!-- There are jars in other directories besides the lib directory so 
+		set the lib root to the catalina root directory -->
+	<fileset id="catalina.libs" dir="${catalina.home}">
+		<include name ="**/*.jar" />
+	</fileset>
+	
+	<fileset id="war.src.files" dir="web">
+		<exclude name="WEB-INF/web.xml" />
+	</fileset>
+	
+	<fileset id="war.dist.files" dir="${dist.home}/war" />
+
+	<fileset id="resrc.dist.files" dir="${dist.home}/resources" />
+
+	<fileset id="resrc.src.files" dir="${resrc.home}">
+		<include name="**/*.src.xml" />
+	</fileset>
+
+	<fileset id="resource.files" dir="${resrc.home}">
+		<exclude name="**/*.src.xml" />
+	</fileset>
+
+	<!-- *************************** Class Paths *************************** -->
+	
+	<path id="master.class.path">
+		<fileset refid="master.libs" />
+	</path>
+
+	<path id="catalina.class.path">
+		<fileset refid="catalina.libs" />
+	</path>
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the ivy ant tasks -->
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+		uri="antlib:org.apache.ivy.ant" classpath="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" />
+
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" />
+	
+	<!-- Define the ant tasks for using the tomcat manager -->
+	<taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="list" classname="org.apache.catalina.ant.ListTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="reload" classname="org.apache.catalina.ant.ReloadTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="start" classname="org.apache.catalina.ant.StartTask"
+		classpathref="catalina.class.path" />
+	<taskdef name="stop" classname="org.apache.catalina.ant.StopTask"
+		classpathref="catalina.class.path" />
+
+	<!-- Get the user name and password for the remote SAVOIR server if necessary -->
+	<macrodef name="get-user-ekgt" description="Prompt the user for his/her username and password for the web server">
+		<sequential>
+			<echo message="Macrodef: get-user-ekgt" />
+			<echo message=" " />
+			<if>
+				<isset property="savoir.remote.server.ekgt" />
+				<then>
+					<check-if-eclipse-ekgt/>
+					<echo message=" " />
+					<echo message="IMPORTANT NOTE!!!" />
+					<echo message="The system has determined that the SAVOIR EKG tutorial service" />
+					<echo message="will be deployed to a remote SAVOIR server." />
+					<input message="Please enter your SAVOIR server username " addproperty="savoir.server.user.name"/>
+
+					<input message="Please enter your SAVOIR server password " addproperty="savoir.server.password">
+						<handler type="secure" />
+					</input>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the user is trying to deploy from Eclipse -->
+	<macrodef name="check-if-eclipse-ekgt" description="Check if the user is calling this script from eclipse">
+		<sequential>
+			<echo message="Macrodef: check-if-eclipse-ekgt" />
+			<echo message=" " />
+			<if>
+				<isset property="eclipse.running" />
+				<then>
+					<echo message=" " />
+					<echo message="ERROR - Build failed" />
+					<echo message="It appears you are trying to deploy the SAVOIR EKG tutorial project to a remote" />
+					<echo message="server. Unfortunately, remote deployment will only work from the command" />
+					<echo message="line since it prompts for a password and secure entry of your password" />
+					<echo message="is not supported in Eclipse." />
+					<echo message="To deploy from the command line, perform the following commands:" />
+					<echo message="cd &lt;workspace dir&gt;/SAVOIR_SampleDevices/EKGTutorial" />
+					<echo message="ant deploy" />
+					<fail>See message above for build failure explanation</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+					
+	<!-- Deploy the EKG tutorial device profile on the same server as the build -->
+	<macrodef name="deploy-same-srv-ekgt" description="Deploy the login software on the same server">
+		<sequential>
+			<echo message="Macrodef: deploy-same-srv-ekgt" />
+			<echo message=" " />
+			<copy todir="${savoir.ekgt.deploy.resrc.directory}">
+				<fileset refid="resrc.dist.files" />
+			</copy>
+		</sequential>
+	</macrodef>
+
+	<!-- Deploy the EKG tutorial device profile on a remote server -->
+	<macrodef name="deploy-remote-srv-ekgt" description="Deploy the login software on the remote web server">
+		<sequential>
+			<echo message="Macrodef: deploy-remote-srv-ekgt" />
+			<echo message=" " />
+			<scp todir="${savoir.server.user.name}:${savoir.server.password}@${savoir.ekgt.deploy.host}:${savoir.ekgt.deploy.resrc.directory}" sftp="true" trust="true">
+				<fileset refid="resrc.dist.files" />
+			</scp>
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+	
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the Savoir EKG tutorial project">
+		<echo message="==== Savoir EKG tutorial init target ====" />
+		
+		<!-- Make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}/war" />
+		<mkdir dir="${dist.home}/resources" />
+		<mkdir dir="${lib.home}" />
+		<mkdir dir="${savoir.repo.home}" />
+	
+		<!-- Set the ActiveMQ and web tutorial URL's in the EKG tutorial property file -->
+		<propertyfile file="${basedir}/web/WEB-INF/classes/EKGTutorialBI.properties">
+			<entry key="SavoirJMSURL" value="${savoir.activemq.system.url}" />
+			<entry key="EKGClientPath" value="http://${savoir.ekgt.deploy.host}/sampleDevices/VaderWebTutorial/VaderWebTutorial.html" />
+		</propertyfile>
+			
+		<!-- Set the property data in any src.xml files
+			Should this be in the build target instead -->
+		<exec executable="${basedir}/setConfigData.pl" failonerror="true" />
+
+		<!-- There is no jar file built for EKG desktop so delete the profile for now -->
+		<delete file="${resrc.home}/168_EKGDesktop_NRC.xml" failonerror="true" />
+		
+		<!-- No text needs to be changed in the src.xml document so just copy it
+			Should this be in the build target instead -->
+		<!-- <copy todir="${resrc.home}">
+			<fileset refid="resrc.src.files" />
+			<globmapper from="*.src.xml" to="*.xml" />
+		</copy> -->
+
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init, retrieve-ivy-deps" description="Builds java classes">		
+		<echo message="==== Savoir EKG tutorial build target ====" />
+
+		<javac source="${savoir.java.source.ver}" target="${savoir.java.target.ver}" srcdir="${src.home}"
+			destdir="${build.home}" debug="${savoir.ekgt.compile.debug}"
+			deprecation="${savoir.ekgt.compile.deprecation}" optimize="${savoir.ekgt.compile.optimize}">
+				<classpath refid="master.class.path" />
+				<classpath refid="catalina.class.path" />
+		</javac>
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Copies default resources and calls jar target">
+		<echo message="==== Savoir EKG tutorial package target ====" />
+
+		<!-- Copy the libraries to the WEB-INF directory -->
+		<delete dir="${war.lib.home}" />
+		<mkdir dir="${war.lib.home}" />
+		
+		<copy todir="${war.lib.home}">
+			<fileset refid="master.libs" />
+		</copy>
+		
+		<!-- Create the war file -->
+		<war destfile="${dist.home}/war/${web.app.name}.war" webxml="web/WEB-INF/web.xml" update="true">
+			<classes dir="${build.home}" />
+			<fileset refid="war.src.files" />
+		</war>
+
+		<!-- Copy the resource files to the ditribution directory -->
+		<copy todir="${dist.home}/resources" includeEmptyDirs="false">
+			<fileset refid="resource.files" />
+		</copy>
+
+	</target>
+	
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="undeploy, package" description="Publish the jar file">
+		<echo message="==== Savoir EKG tutorial deploy target ====" />
+
+		<echo message="Deploying web application to ${savoir.ekgt.deploy.url}"/>
+		<deploy url="${savoir.ekgt.deploy.url}" username="${savoir.ekgt.deploy.username}"
+			password="${savoir.ekgt.deploy.password}" path="${web.app.path}"
+			war="${dist.home}/war/${web.app.name}.war" />
+
+		<!-- Check if we need to deploy the device profile to a remote server --> 
+		<if>
+			<not>
+				<istrue value="${savoir.is.master.build}" />
+			</not>
+			<then>
+
+				<!-- Get the host information -->
+				<hostinfo prefix="host" />
+		
+				<!-- Check if we require a username and password -->
+				<condition property="savoir.remote.server.ekgt">
+					<not>
+						<or>
+							<matches pattern="${host.ADDR4}" string="${savoir.ekgt.deploy.host}" />
+							<matches pattern="${host.NAME}" string="${savoir.ekgt.deploy.host}" />
+						</or>
+					</not>
+				</condition>
+
+				<!-- Get the user credentials if necessary -->
+				<get-user-ekgt/>
+			</then>
+		</if>
+		
+		<!-- Deploy the device profile to the appropriate server -->
+		<if>
+			<istrue value="${savoir.remote.server.ekgt}" />
+			<then>
+				<deploy-remote-srv-ekgt/>
+			</then>
+			<else>
+				<deploy-same-srv-ekgt/>
+			</else>
+		</if>
+
+	</target>
+	
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir EKG tutorial clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+		<delete dir="${lib.home}" includeEmptyDirs="true" />
+		<delete>
+			<fileset refid="resource.files" />
+		</delete>
+		
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir EKG tutorial undeploy target ====" />
+
+		<echo message="Undeploying web application from ${savoir.ekgt.deploy.url}"/>
+		<undeploy url="${savoir.ekgt.deploy.url}" username="${savoir.ekgt.deploy.username}"
+			password="${savoir.ekgt.deploy.password}" path="${web.app.path}" failonerror="false" />		
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir EKG tutorial doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir EKG tutorial javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir EKG tutorial test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- **** Install-local-libs **** -->
+	<target name="install-local-libs"
+		description="Install any local libraries to the Savoir repository">
+			<echo message="==== Savoir EKG tutorial install-local-libs target ====" />
+		<echo message="savoir lib = ${savoir.repo.home}"/>
+		
+		<ivy:install organisation="ca.nrc.iit" module="cfgatewayadapter" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-messaging-common" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-messaging-core" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-messaging-opt" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-messaging-proxy" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-messaging-remoting" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+		<ivy:install organisation="ca.nrc.iit" module="flex-rds-server" overwrite="true"
+			revision="0.0.0" from="local-lib-repo" to="savoir-lib-repo" />
+
+	</target>
+
+	<!-- **** Retrieve-ivy-deps **** -->
+	<target name="retrieve-ivy-deps" depends="install-local-libs"
+		description="Retreive all library dependencies using Ivy to the project lib directory">
+		<echo message="==== Savoir EKG tutorial retrieve-ivy-deps target ====" />
+		
+		<!-- Note that retrieve does a resolve as well thus, we don't have an ivy resolve target -->
+		<ivy:retrieve pattern="${lib.home}/[conf]/[artifact].[ext]" />
+	</target>
+
+		
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+	
+</project>

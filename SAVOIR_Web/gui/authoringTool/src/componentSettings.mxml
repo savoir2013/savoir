@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"  cornerRadius="0" borderStyle="solid" backgroundColor="#FFFFFF" top="48" >
+	
+	<mx:Script>
+		<![CDATA[
+		    import mx.core.Application;
+			import authoringTool.extenders.APNCanvas;
+			import authoringTool.extenders.EdgeDeviceCanvas;
+			import authoringTool.extenders.GUIRuleCanvas;
+			import mx.containers.HBox;
+			import authoringTool.scenarioChart.ComponentGroup;
+			import authoringTool.scenarioChart.components.BooleanComponent;
+			import authoringTool.scenarioChart.components.EndComponent;
+			import authoringTool.scenarioChart.components.StartComponent;
+			import mx.controls.Alert;
+			import mx.controls.Button;
+			import mx.controls.CheckBox;
+		    import mx.collections.ArrayCollection;
+			import mx.controls.ComboBox;
+			import mx.controls.Label;
+			import caurina.transitions.Tweener;
+			import authoringTool.extenders.RuleCanvas;
+			import authoringTool.scenarioChart.components.EdgeDeviceComponent;
+			
+			public var isShown:Boolean = false;
+			
+			private var _right:Number = -10;
+			// Set the locations - should come from database
+            private var locations:ArrayCollection  = new ArrayCollection(
+                    [{label:"Fredericton", data:1},
+                        {label:"Ottawa", data:2},
+                        {label:"Sunnyvale", data:3},
+                        {label:"Barcelona", data:4},
+                        {label:"NRC-IIT", data:5},
+                        {label:"CRC-BADLab", data:6},
+                        {label:"CRC-FS", data:7},
+                        {label:"Mcgill-Montreal", data:8},
+                        {label:"Mcgill2-Montreal", data:9},
+                        {label:"Sudbury", data:10},
+                        {label:"Steve", data:11},
+                        {label:"Stanford", data:12},
+                        {label:"Toronto", data:13},
+                        {label:"Thunderbay", data:14},
+                        {label:"Sudbury", data:15},
+                        {label:"Montreal", data:16},
+                        {label:"Banff", data:17},
+                        {label:"CRC-Ottawa", data:18},
+                        {label:"Cork, Ireland", data:19},
+                    ]
+                );
+			private var curretIndex:uint = 1;
+			
+			private var selectedObject:ComponentGroup = null;
+			
+			public var resourceProfiles:XML = <resources>
+			                                   </resources>;
+			
+			
+			
+			public function initialSetting( service:String, comp:ComponentGroup):void{
+				selectedObject =  comp;
+				settingTitle.text = "Edge Device Settings";
+				
+				if(service == "EdgeDeviceTransitionDiamond"){
+					settingTitle.text = "Transition Rules";
+//					var addButton:Button = new Button();
+//					addButton.label = "Add Rule";
+//					addButton.addEventListener(MouseEvent.CLICK, addRuleHandler);
+//					var deleteButton:Button = new Button();
+//					deleteButton.label = "Delete Rule";
+//					deleteButton.addEventListener(MouseEvent.CLICK, deleteRuleHandler);
+//					curretIndex = 1;
+                    this.mainSettingVBox.removeAllChildren();
+					var ruleCanvas:RuleCanvas = new RuleCanvas();
+					this.mainSettingVBox.addChild(ruleCanvas);
+				    ruleCanvas.name = String(curretIndex);
+//				    ruleCanvas.percentHeight = 100;
+//				    ruleCanvas.percentWidth = 100;
+//				    ruleCanvas.height = 90;
+//				    ruleCanvas.width = 450;
+				    //ruleCanvas.x = 0;
+				    //ruleCanvas.y = 0;
+//				    ruleCanvas.visible = true;
+					
+					 
+//					this.mainSettingVBox.addChild(addButton);
+//					this.mainSettingVBox.addChild(deleteButton);
+					var diamond:BooleanComponent = BooleanComponent(comp);
+					ruleCanvas.initRuleCanvas(diamond);
+					this.mainSettingVBox.invalidateDisplayList();
+					this.mainSettingVBox.invalidateSize();
+					this.mainSettingVBox.invalidateProperties();
+//					if(diamond.rules.length == 0){
+//					   this.mainSettingVBox.addChild(ruleCanvas);
+//					}else{
+//					   curretIndex =  diamond.rules.length;
+//					   for(var i:uint = 0; i < diamond.rules.length; i++){
+//					   	this.mainSettingVBox.addChild(Canvas(diamond.rules.getItemAt(i)));
+//					   }
+//					} 
+                    
+                   
+				}else if(service == "Start"){
+					settingTitle.text = "Start Settings";
+					this.mainSettingVBox.removeAllChildren();
+				}else if(service == "End"){
+					settingTitle.text = "End Settings";
+					this.mainSettingVBox.removeAllChildren();
+				}else{
+					this.mainSettingVBox.removeAllChildren();
+                    var theEdgeDeviceCanvas:EdgeDeviceCanvas = new EdgeDeviceCanvas();
+                    this.mainSettingVBox.addChild(theEdgeDeviceCanvas);
+					var theEdgeDevComp:EdgeDeviceComponent = EdgeDeviceComponent(comp);
+					theEdgeDevComp.resourceProfile = this.findOutResProfile(service);
+					//Alert.show(theEdgeDevComp.resourceProfile.toXMLString());
+					if(theEdgeDevComp.resourceProfile != null){
+					theEdgeDeviceCanvas.initEdgeDeviceCanvas(theEdgeDevComp);
+					}
+				}
+			}
+			
+			public function initAPNSetting():void{
+				this.mainSettingVBox.removeAllChildren();
+				var theApnCas:APNCanvas = new APNCanvas();
+				this.mainSettingVBox.addChild(theApnCas);
+				settingTitle.text = "APN Setting";
+				theApnCas.initApnCas();
+			}
+			
+			public function show():void{
+				//Alert.show(this.resourceProfiles.toXMLString());
+				Tweener.addTween(this,{right:0,time:0.5,transition:"easeInOutCirc"});
+				isShown = true;
+			}
+			public function hide():void{
+				
+				Tweener.addTween(this,{right:-610,time:0.5,transition:"easeInOutCirc"});
+				isShown = false;
+				this.selectedObject = null;
+				saveSetting();
+				
+			}
+			
+			public function set right(value:Number):void{
+				this.setStyle("right",value);
+			}
+			public function get right():Number{
+				return this.getStyle("right");
+			}
+			
+			private function saveSetting():void{
+				if(selectedObject is BooleanComponent){
+					(RuleCanvas(this.mainSettingVBox.getChildAt(0))).saveSetting();
+					
+				}else if(selectedObject is EdgeDeviceComponent){
+					(EdgeDeviceCanvas(this.mainSettingVBox.getChildAt(0))).saveSetting();
+				}
+				
+				
+			}
+			
+//			private function addRuleHandler(event:MouseEvent):void{
+//				curretIndex++;
+//				var ruleCanvas:RuleCanvas = new RuleCanvas();
+//				ruleCanvas.name = String(curretIndex);
+//				ruleCanvas.height = 90;
+//				ruleCanvas.width = 450;
+//				ruleCanvas.x = 0;
+//				ruleCanvas.y = 0;
+//				ruleCanvas.visible = true;
+//				this.mainSettingVBox.addChild(ruleCanvas);
+//				this.show();
+//				this.enabled= false;
+//				this.enabled = true;
+//			}
+//			
+//			private function deleteRuleHandler(event:MouseEvent):void{
+//				if(curretIndex == 1){
+//					return;
+//				}
+//				var name:String = String(curretIndex);
+//				this.mainSettingVBox.removeChild(this.mainSettingVBox.getChildByName(name));
+//				curretIndex--;
+//				
+//			}
+            public function findOutResProfile(resName:String):XML{
+            	var resProfileXMList:XMLList = resourceProfiles.resource.(@name==resName);
+            	return XML(resProfileXMList[0]);
+            }
+            
+            private function handleHideClick(event:MouseEvent):void{
+            	if(selectedObject != null ){
+            		selectedObject.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+            	}else{
+            	this.hide();
+            	this.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+            	}
+            }
+		]]>
+	</mx:Script>
+	
+	<mx:HBox width="100%" height="10%" >
+	   <mx:Button id="hideButton" label="&gt;&gt;" click="handleHideClick(event)" toolTip="Hide Setting"/>
+	   <mx:Text id="settingTitle" text="Edge Device Settings" styleName="smallHeader"/>
+	</mx:HBox>
+	<mx:Spacer width="100%" height="10%"/>
+	<mx:Canvas id="mainSettingCanvas" width="100%" height="80%">
+	   <mx:VBox id="mainSettingVBox" width="100%" height="100%"/>
+	</mx:Canvas>
+	<!--
+	<mx:Text text="Title, settings, etc.&#xa;are comming later" fontSize="20" color="#909292" paddingLeft="25"/>
+	-->
+</mx:VBox>

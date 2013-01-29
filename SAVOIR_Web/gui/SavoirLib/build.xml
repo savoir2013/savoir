@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Front End - Flex library
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				Unlike other SAVOIR projects, the build file infrastructure for
+*				the Flex front end has an extra layer of complexity. Since there
+*				are several Flex projects for the front end, each of these
+*				projects contains its own build.xml file.
+*
+*				This build file defines the targets for building the SAVOIR
+*				Flex front end library.
+* DATE CREATED:	Jul 07, 2011
+*
+********************************************************************************
+-->
+
+<project name="SavoirrontEndLibrary" default="build">
+
+	<description>Build file for the SAVOIR front end library</description>
+
+	<!-- **************************** Properties *************************** -->
+
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.cont.jar.dir}" />
+	<get src="${savoir.cont.url}/${savoir.cont.install.version}/${savoir.cont.jar.file}"
+		dest="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" usetimestamp="true" skipexisting="true" />
+	
+	<!-- **************************** File Sets **************************** -->
+
+	<fileset id="flash.libs" dir="${build.home}">
+		<include name="**/*.swc" />
+	</fileset>
+
+	<fileset id="dist.libs" dir="${dist.home}">
+		<include name="**/*.swc" />
+	</fileset>
+
+	<!-- *************************** Class Paths *************************** -->
+
+	<!-- none -->
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the flex ant tasks -->
+	<taskdef resource="flexTasks.tasks" classpath="${savoir.flash.ant.dir}/flexTasks.jar" />
+	
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.cont.jar.dir}/${savoir.cont.jar.file}" />
+	
+	<!-- ************************* Default Targets ************************* -->
+
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the Savoir front end library project">
+		<echo message="==== Savoir front end library init target ====" />
+
+		<!-- make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+	<!--	<mkdir dir="${lib.home}" /> -->
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init" description="Builds Flash swc library">
+		<echo message="==== Savoir front end library build target ====" />
+
+		<compc output="${build.home}/${savoir.flib.flash.name}.swc" incremental="false"
+			target-player="10.0.0" keep-generated-actionscript="false">
+
+				<!-- Define the location of the source files --> 
+				<source-path path-element="${src.home}" />
+				<include-sources dir="${src.home}">
+					<include name="**/*.mxml" />
+					<include name="**/*.as" />
+				</include-sources>
+
+				<!-- Add our own libraries -->
+				<compiler.library-path dir="${lib.home}" append="true">
+					<include name="*.swc" />
+				</compiler.library-path>
+
+				<!-- Flex compiler options -->
+				<compiler.debug>false</compiler.debug>
+	    </compc>
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Collects files for deployment in distribution directory">
+		<echo message="==== Savoir front end library package target ====" />
+
+		<!-- Copy the swc files to the ditribution directory -->
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset refid="flash.libs" />
+		</copy>
+
+	</target>
+
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="package" description="Publish the library to the required Flash projects">
+		<echo message="==== Savoir front end library deploy target ====" />
+
+		<!-- This should deploy to the SAVOIR LAN repository - we need to convert this to use ivy publish
+			and then the Flash projects should have an ivy dependency on the library -->
+		
+		<!-- For now, copy the library to the appropriate Flash projects -->
+		<copy todir="${basedir}/../mySavoir/libs" includeEmptyDirs="false">
+			<fileset refid="dist.libs" />
+		</copy>
+		
+		<copy todir="${basedir}/../authoringTool/libs" includeEmptyDirs="false">
+			<fileset refid="dist.libs" />
+		</copy>
+		
+	</target>
+
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir front end library clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+	<!--	<delete dir="${lib.home}" includeEmptyDirs="true" /> -->
+
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir front end library undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir front end library doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir front end library javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir front end library test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- none -->
+
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+
+</project>

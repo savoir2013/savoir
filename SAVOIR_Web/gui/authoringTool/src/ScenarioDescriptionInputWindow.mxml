@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	height="100%" width="100%" showCloseButton="false" initialize="init()" close="handleClose(event)" title="Scenario Description Input" titleStyleName="popupTitleText">
+
+	<mx:Metadata>
+		[ResourceBundle("savoirFlex")]
+	</mx:Metadata>
+	
+	<mx:Script>
+        <![CDATA[
+
+			// ======================= External Modules =============================
+
+            import mx.managers.PopUpManager;
+        	import mx.events.CloseEvent;
+        	import mx.core.Application;
+        	import mx.utils.StringUtil;
+        	import mx.formatters.DateFormatter;
+        	import mx.controls.Alert;
+            
+			private var scenarioIdStr:String;
+			private var scenarioName:String;
+			private var authorIdStr:String;
+			private var authorName:String;
+			private var lastModifyTime:Date;
+			private var lastModifyTimeStr:String;
+			private var scenarioDescription:String;
+			
+			private var authHost:String = new String();
+			private var schemaLoc:String = new String();
+
+			private function init():void{
+				//if(Application.application.authoredScenario.children().length() > 0){
+					scenarioIdStr = Application.application.authoredScenario.@scenarioId;
+					//Alert.show(scenarioIdStr);
+					scenarioName = Application.application.authoredScenario.@scenarioName;
+					authorIdStr = Application.application.authoredScenario.@authorId;
+					
+					authorName = Application.application.authoredScenario.@authorName;
+					var despList:XMLList = Application.application.authoredScenario.description;
+					if(despList != null ){
+						if(despList.length() > 0){
+					       scenarioDescription = despList[0].toString();
+						}
+					}
+					this.ScenarioIdTI.text = scenarioIdStr;
+					this.ScenarioNameTI.text = scenarioName;
+					this.authorIdTI.text = authorIdStr;
+					this.AuthorNameTI.text = authorName;
+					this.ScenarioDespTA.text = scenarioDescription;
+				//}
+			}
+
+            private function handleClose(e:CloseEvent):void
+            {
+                // Check credentials (not shown) then remove pop up.
+                PopUpManager.removePopUp(this);
+            }
+			
+			// =================== Application Event Handlers =======================
+
+			// none
+			
+			// ======================= Public Functions =============================
+
+			// none
+			
+			// ======================= Private Functions ============================
+            public function getDateString():String{
+        	
+                
+                var formatter:DateFormatter =  new DateFormatter();
+   			    formatter.formatString = "YYYY-MM-DDTHH:NN:SSZ";
+   			    //var gmtIndex:Number = result.toTimeString().indexOf("GMT");
+   			    //var gmtStr:String = result.toTimeString().substring(gmtIndex);
+                return formatter.format(lastModifyTime.toUTCString()) ;
+	           
+           } 
+			
+			private function handleOkButClick(event:MouseEvent):void{
+
+				var scenarioId:Number = this.generScenarioID();
+
+ 				authHost = resourceManager.getString("savoirFlex", "savoir.auth.deploy.host");
+				schemaLoc = "http://" + authHost + "/xsd/scenario.xsd";
+
+				scenarioIdStr = StringUtil.trim(scenarioId.toString());
+				scenarioName = StringUtil.trim(this.ScenarioNameTI.text);
+				authorIdStr = StringUtil.trim(this.authorIdTI.text);
+				authorName = StringUtil.trim(this.AuthorNameTI.text);
+				lastModifyTime = new Date();
+				lastModifyTimeStr = getDateString();
+				Application.application.scenarioDesp = this.ScenarioDespTA.text;
+				var scenario:XML = <scenario 
+									scenarioId={scenarioIdStr} 
+									scenarioName={scenarioName} 
+									authorId={authorIdStr} 
+									authorName={authorName} 
+									lastModified={lastModifyTimeStr} 
+									xsi:noNamespaceSchemaLocation={schemaLoc} 
+									xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+									</scenario>;
+			    Application.application.authoredScenario = scenario;
+			    Application.application.generateScenarioAndShow();
+			    PopUpManager.removePopUp(this);
+			}
+			
+			  private function handleCancel(event:MouseEvent):void
+            {
+                // Remove the pop up window
+                PopUpManager.removePopUp(this);
+            }
+            //this is the temp solution to generate scenario id to fill into the scenario
+            //the range is 1 to 10000  
+            private function generScenarioID():Number{
+            	var rand:Number = Math.random();
+				var max:Number = 10000;
+				var randInRange:Number = Math.round(rand * max);
+				return randInRange;
+
+            }
+
+        ]]>
+    </mx:Script>
+	<mx:Form width="100%">
+		<mx:FormItem visible="false" label="Scenario ID:" fontSize="16">
+			<mx:TextInput id="ScenarioIdTI"/>
+		</mx:FormItem>
+		<mx:FormItem label="Scenario Name:" fontSize="16">
+			<mx:TextInput id="ScenarioNameTI"/>
+		</mx:FormItem>
+		<mx:FormItem label="Author ID:" fontSize="16">
+			<mx:TextInput id="authorIdTI"/>
+		</mx:FormItem>
+		<mx:FormItem label="Author Name:" fontSize="16">
+			<mx:TextInput id="AuthorNameTI"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:HBox width="100%">
+		<mx:Label text="Description:" fontSize="16"/>
+	</mx:HBox>
+	<mx:Canvas width="100%" height="200">
+		<mx:TextArea left="10" right="10" bottom="10" top="10" id="ScenarioDespTA"/>
+	</mx:Canvas>
+	<mx:HBox id="buttonBox" width="100%" paddingBottom="10" paddingLeft="10" paddingRight="10">
+			<mx:Button id="okBut" label="OK" click="handleOkButClick(event)"/>
+			<mx:Spacer id="space1" width="100%"/>
+			<mx:Button id="cancelBut" label="Cancel" click="handleCancel(event)"/>
+	</mx:HBox>
+</mx:TitleWindow>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mule xmlns="http://www.mulesource.org/schema/mule/core/2.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:http="http://www.mulesource.org/schema/mule/http/2.2"
+	xmlns:jms="http://www.mulesource.org/schema/mule/jms/2.2" 
+	xmlns:spring="http://www.springframework.org/schema/beans"
+	xmlns:cxf="http://www.mulesource.org/schema/mule/cxf/2.2"
+	xmlns:tcp="http://www.mulesource.org/schema/mule/tcp/2.2"
+	xmlns:vm="http://www.mulesource.org/schema/mule/vm/2.2"
+	xsi:schemaLocation="http://www.mulesource.org/schema/mule/core/2.2 
+		http://www.mulesource.org/schema/mule/core/2.2/mule.xsd
+		http://www.mulesource.org/schema/mule/jms/2.2
+		http://www.mulesource.org/schema/mule/jms/2.2/mule-jms.xsd
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+		http://www.mulesource.org/schema/mule/http/2.2
+		http://www.mulesource.org/schema/mule/http/2.2/mule-http.xsd
+		http://www.mulesource.org/schema/mule/cxf/2.2
+		http://www.mulesource.org/schema/mule/cxf/2.2/mule-cxf.xsd
+		http://www.mulesource.org/schema/mule/tcp/2.2
+		http://www.mulesource.org/schema/mule/tcp/2.2/mule-tcp.xsd
+		http://www.mulesource.org/schema/mule/vm/2.2 http://www.mulesource.org/schema/mule/vm/2.2/mule-vm.xsd">
+	
+	<custom-transformer name="HttpRequestToMessageString"
+		class="transformer.HttpRequestToMessageString" />
+
+	<!-- Prd JMS Server -->
+	<jms:activemq-connector name="jmsPrdConnector"
+		specification="1.1" brokerURL="tcp://0.0.0.0:61616" disableTemporaryReplyToDestinations="true"/>
+
+	<!--
+		singleton = "false" is not accepted! need a bean for every web
+		service. Must be a mule peculiarity
+	-->
+
+	<!-- add by yyh for mannequin socket connection -->
+	<!-- This connector shares the socket opened with the TcpMessageClient. -->
+	<byte-array-to-string-transformer name="byteArrayToString"/>
+	<string-to-byte-array-transformer name="stringToByteArray"/>
+	<custom-transformer name="SavoirInnerMessageToOutMessage" class="transformer.SavoirInnerMsgToOutMsg"/>
+	<custom-transformer name="SavoirDevMessageToLogMessage" class="transformer.SavoirDevMsgToLogMsg"/>
+	<custom-transformer name="SavoirPrdMessageToLogMessage" class="transformer.SavoirPrdMsgToLogMsg"/>
+	<custom-transformer name="SavoirMalMesssageToRightMesssage" class="transformer.MalIncomeMsgToRightMsg"/>
+	<vm:connector name="asyncVm" queueEvents="true"/>
+	<vm:connector name="syncVm"/>
+
+	<spring:bean name="edgeServicePrototype" class="ServicesImpl.EdgeServicePrototypeImpl" scope="singleton"/>
+	<tcp:connector name="tcpConnector">
+		<spring:property name="tcpProtocol">
+			<spring:bean class="org.mule.transport.tcp.protocols.DirectProtocol" />
+						
+		</spring:property>
+		<spring:property name="serverSoTimeout" value="0" />
+        <spring:property name="sendTcpNoDelay" value="true" />
+		<spring:property name="keepAlive" value="true" />
+		<spring:property name="keepSendSocketOpen" value="true" />
+		<service-overrides dispatcherFactory="customTransport.tcp.SavoirTcpMessageDispatcherFactory" />
+	</tcp:connector>
+    
+	<!-- End adding Yonghua You -->
+
+	<model name="savoirBus">
+
+		<!-- Start Connection Configuration to Prd Server -->
+		<!-- added connection for connection with edge device:17-02-2010  -->
+		<service name="SavoirPrdInbound">
+
+			<!-- Setting matchAll to false allows any of these routers to forward the message-->
+			<inbound matchAll="false">
+
+				<!-- JMS endpoints - ADD JMS TOPICS HERE -->
+				<jms:inbound-endpoint
+					topic="savoir.EKGDeskTop.Inbound"
+					connector-ref="jmsPrdConnector"/>
+				<jms:inbound-endpoint
+					topic="savoir.VaderWebTutorial.Inbound"
+					connector-ref="jmsPrdConnector"/>
+				<jms:inbound-endpoint
+					topic="savoir.VaderDeskTop.Inbound"
+					connector-ref="jmsPrdConnector"/>
+				
+				<!-- TCP endpoints - ADD TCP PORTS HERE -->
+<!-- Uncomment this and change the port number to an appropriate value if you have TCP devices
+				<tcp:inbound-endpoint
+					host="localhost" port="99999" synchronous="false" connector-ref="tcpConnector">
+					<byte-array-to-string-transformer/>
+				</tcp:inbound-endpoint>
+-->
+			</inbound>
+			<outbound>
+				<multicasting-router>
+					<vm:outbound-endpoint path="msgToSavoirPrd"  connector-ref="asyncVm" transformer-refs="SavoirMalMesssageToRightMesssage"/>
+					<vm:outbound-endpoint path="msgToSavoirPrdLog"  connector-ref="asyncVm" transformer-refs="SavoirMalMesssageToRightMesssage"/>
+				</multicasting-router>
+			</outbound>
+		</service>
+		<service name="savoirPrdLog">
+			<inbound>
+				<vm:inbound-endpoint path="msgToSavoirPrdLog" connector-ref="asyncVm" transformer-refs="SavoirPrdMessageToLogMessage"/>
+			</inbound>
+			<outbound>
+				<expression-recipient-list-router 
+					evaluator="header" expression="savoirPrdLogRouting">
+				</expression-recipient-list-router>
+			</outbound>
+		</service>
+		<service name="SavoirPrdService">
+			<inbound>
+				<vm:inbound-endpoint path="msgToSavoirPrd" connector-ref="asyncVm"/>
+			</inbound>
+			<component>
+				<method-entry-point-resolver>
+					<include-entry-point method="servReqByThrManager"/>
+				</method-entry-point-resolver>
+				<singleton-object class="ServicesImpl.PrdSavoirServiceComponent"/>
+			</component>
+		</service>
+		<service name="SavoirPrdOutbound">
+			<inbound>
+				<cxf:inbound-endpoint address="http://localhost:9008/services/EdgeServicesPrototype"/>
+			</inbound>
+		    <component>
+				<spring-object bean="edgeServicePrototype"/>
+			</component>
+			<outbound>
+				<pass-through-router>
+					<vm:outbound-endpoint path="SavoirPrdMsgToEdgeService"  connector-ref="asyncVm"/>
+				</pass-through-router>
+			</outbound>
+		</service>
+		<service name="PrdEdgeService">
+			<inbound>
+				<vm:inbound-endpoint path="SavoirPrdMsgToEdgeService" connector-ref="asyncVm" transformer-refs="SavoirInnerMessageToOutMessage">
+					<message-properties-transformer overwrite="true">
+						<delete-message-property key="Cache-Control"/>
+						<delete-message-property key="Content-Type"/>
+						<delete-message-property key="Content-Length"/>
+						<delete-message-property key="Accept-Encoding"/>
+						<delete-message-property key="User-Agent"/>
+						<delete-message-property key="http.context.path"/>
+						<delete-message-property key="http.method"/>
+						<delete-message-property key="http.request"/>
+						<delete-message-property key="http.request.path"/>
+						<delete-message-property key="http.version"/>
+					</message-properties-transformer>
+				</vm:inbound-endpoint>
+			</inbound>
+			<outbound>
+				<expression-recipient-list-router 
+					evaluator="header" expression="savoir_routing">
+				</expression-recipient-list-router>
+			</outbound>
+		</service>
+		<!-- End added Yonghua You;17-02-2010 -->
+		<!-- End Connection Configuration to Prd Server -->
+				
+	</model>
+</mule>

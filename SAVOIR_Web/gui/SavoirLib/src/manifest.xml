@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<componentPackage>
+    <component id="DeviceProfile" class="savoirlib.DeviceProfile" />
+    <component id="Scenario" class="savoirlib.Scenario" />
+    <component id="Session" class="savoirlib.Session" />
+    <component id="SesnOrScnInfo" class="savoirComp.SesnOrScnInfo" />
+    <component id="autoComp" class="savoirAutoComplete.AutoComplete" />
+    <component id="expTA" class="savoirAutoComplete.components.ExpandingTextArea" />
+    <component id="InfoPopupWindow" class="savoirComp.InfoPopupWindow" />
+    <component id="DeviceWindowShade" class="savoirComp.DeviceWindowShade" />
+    <component id="DeviceWinShadeHdrRndr" class="renderers.DeviceWinShadeHdrRndr" />
+</componentPackage>

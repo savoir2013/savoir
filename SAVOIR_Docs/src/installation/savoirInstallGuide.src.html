@@ -1,0 +1,1260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- IMPORTANT NOTE - since this file contains Ant property keys (like ${savoir.release.ver}) you
+	need to use the HTML ASCII codes to literally represent property key strings that are meant to
+	be displayed on this page. Otherwise, Ant will try to replace them with property values. For
+	example, to display ${prebuild.prd.savoir.server.host} as is done under the "Edit Properties
+	File" section, you need to encode the string as follows
+	&#36;&#123;prebuild.prd.savoir.server.host&#125; -->
+
+<html>
+<head>
+	<link href="../css/savoirDocs.css" rel="stylesheet" type="text/css">
+	<title>SAVOIR ${savoir.release.ver} Installation Guide</title>
+</head>
+
+<body>
+
+<img src="/images/savoirLogoDarkLargeTrans.png" /> 
+
+<h1><center>SAVOIR ${savoir.release.ver} Installation Guide</center></h1>
+
+<h2>Table of Contents</h2>
+
+<ol>
+	<li><a href="#intro">Introduction</a></li>
+	<li><a href="#init">Initial Preparation</a></li>
+	<li><a href="#system">System Software</a></li>
+	<li><a href="#systemConf">System Software Configuration</a></li>
+	<li><a href="#savoir">SAVOIR Software</a></li>
+	<li><a href="#devel">Development Environment</a></li>
+</ol>
+
+<h2><a name="intro">Introduction</a></h2>
+
+The following details the steps to install SAVOIR ${savoir.release.ver} on a default install of
+CentOS 6.2 64 bit.
+
+<p>
+
+<span class="highlightNote">Important Note 1:</span> there are several items (like installation
+paths) that will need to change to suit your particular situation. These items are indicated by the
+use of <span class="editText">magenta text</span>.
+
+<p>
+
+<span class="highlightNote">Important Note 2:</span> these instructions assume that SAVOIR and all
+the supporting software will be installed on a <span class="highlightCyan">single Linux
+server</span>. A section at the <a href="#devel">end of this document</a> provides a brief
+description for using SAVOIR in a development environment.
+
+<p>
+
+<span class="highlightNote">Important Note 3:</span> please ensure that you read these instructions
+<span class="highlightCyan">very carefully</span>, it may help you avoid some frustration when
+building SAVOIR.
+
+<h2><a name="init">Initial Preparation</a></h2>
+
+Perform the following steps to prepare the OS for SAVOIR.
+
+<ol>
+	<li>Edit the file <tt>/etc/profile</tt> and insert the following before the <tt>unset i</tt>
+		line near the end
+		<dl>
+			<dd><tt># For SAVOIR - set umask so group has write permissions</tt></dd>
+			<dd><tt>umask 002</tt></dd>
+		</dl>
+	</li>
+	<li>Create accounts for all <em>SAVOIR administrators</em> with the command
+		<tt>system-config-users</tt>
+	</li>
+	<li>Create a group called <strong>savoir</strong> using the <tt>system-config-users</tt> command
+		and add the <em>SAVOIR administrators</em> defined in the previous step to the group
+	</li>
+</ol>
+
+<h2><a name="system">System Software</a></h2>
+
+The following gives instructions for installing the required system software for SAVOIR including
+<em>Perl, GCC, Apache, Java, Tomcat, MySQL, Mule, ActiveMQ, Apache Ant, Flex SDK</em>, and
+<em>Log4j</em>.
+
+<h3>Perl</h3>
+
+It is very likely that <em>Perl</em> was installed during the operating system installation,
+however, some distributions may not install it by default. Use the following command to check if
+<em>Perl</em> is installed on your system.
+
+<ul>
+	<dl>
+		<dd><tt>perl -v</tt></dd>
+	</dl>
+</ul>
+
+If the version of <em>Perl</em> is not printed and you receive an error message instead, then you
+will need to install <em>Perl</em> using the <em>yum</em> repository
+
+<ul>
+	<dl>
+		<dd><tt>yum install perl</tt></dd>
+	</dl>
+</ul>
+
+<h3>GCC</h3>
+
+It is very likely that <em>GCC</em> was installed during the operating system installation, however,
+some distributions may not install it by default. Use the following command to check if <em>GCC</em>
+is installed on your system.
+
+<ul>
+	<dl>
+		<dd><tt>gcc --version</tt></dd>
+	</dl>
+</ul>
+
+If the version of <em>GCC</em> is not printed and you receive an error message instead, then you
+will need to install <em>GCC</em> using the <em>yum</em> repository
+
+<ul>
+	<dl>
+		<dd><tt>yum install gcc</tt></dd>
+	</dl>
+</ul>
+
+<h3>Apache</h3>
+
+<ol>
+	<li>Install <em>Apache</em> using the <em>yum</em> repository, set it to start on reboot, and
+		then start it - check if the version in the repository is adequate, it should be at least
+		2.2.12
+		<dl>
+			<dd><tt>yum install httpd</tt></dd>
+			<dd><tt>chkconfig httpd on</tt></dd>
+			<dd><tt>/etc/init.d/httpd start</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Java</h3>
+
+Install the <em>Java jdk</em> software from the
+<a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">the Oracle site</a> and
+follow the install instructions for the downloaded package.
+
+<p>
+
+<span class="highlightNote">Important Note:</span> Due to a bug in a widely used library, SAVOIR is
+currently <span class="highlightCyan">incompatible with Java 7</span>, therefore, you must install a
+version not later than <strong>Java 6</strong>.
+
+<p>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<p>
+
+Once <em>Java</em> is installed, the following steps should be implemented:
+
+<ol>
+	<li>Create a link to make upgrades easier. Assuming <em>Java</em> was installed under
+		<tt>/usr/local</tt>, the commands may be as follows:
+		<dl>
+			<dd><tt>cd <span class="editText">/usr/local/</span></tt></dd>
+			<dd><tt>ln -s <span class="editText">/usr/local/jdk1.6.0_29</span> java</tt></dd>
+		</dl>
+	</li>
+	<li>Assuming the previous link was created, edit the file <tt>/etc/profile</tt> and add the
+		following line near the end of the file
+		<dl>
+			<dd><tt>export JAVA_HOME=<span class="editText">/usr/local/java/</span></tt></dd>
+		</dl>
+	</li>
+	<li>Log out and log back in again to make sure the environment variable is set</li>
+</ol>
+
+<h3>Tomcat</h3>
+
+<ol>
+	<li>Download <em>Tomcat</em> from <a href="http://tomcat.apache.org/">the Tomcat site</a> (last
+		file downloaded was <tt><span class="editText">apache-tomcat-7.0.27.tar.gz</span></tt>)
+	</li>
+	<li>Copy the file to the <tt>local</tt> system and extract the contents
+		<dl>
+			<dd><tt>mv <span class="editText">apache-tomcat-7.0.27.tar.gz</span> /usr/local/</tt></dd>
+			<dd><tt>cd /usr/local</tt></dd>
+			<dd><tt>tar -zxfv <span class="editText">apache-tomcat-7.0.27.tar.gz</span></tt></dd>
+			<dd><tt>rm <span class="editText">apache-tomcat-7.0.27.tar.gz</span></tt></dd>
+		</dl>
+	</li>
+	<li>Create a <tt>tomcat</tt> user using <tt>system-config-users</tt> and add the new account to
+		the <strong>savoir</strong> group<br>
+		<span class="highlightNote">Important Note:</span> do not create a home directory
+	</li>
+	<li>Lock the tomcat account as follows
+		<dl>
+			<dd><tt>passwd -l tomcat</tt></dd>
+		</dl>
+	</li>
+	<li>Make tomcat the owner of the files in the tomcat installation
+		<dl>
+			<dd><tt>cd /usr/local</tt></dd>
+			<dd><tt>chown -R tomcat.savoir <span class="editText">apache-tomcat-7.0.27</span></tt></dd>
+		</dl>
+	</li>
+	<li>Create a link to make upgrades easier
+		<dl>
+			<dd><tt>ln -s /usr/local/<span class="editText">apache-tomcat-7.0.27</span> tomcat</tt></dd>
+		</dl>
+	</li>
+	<li>Delete Windows specific scripts and executables in the tomcat <tt>bin</tt> directory
+		<dl>
+			<dd><tt>cd /usr/local/tomcat/bin</tt></dd>
+			<dd><tt>rm *.bat *.exe</tt></dd>
+		</dl>
+	</li>
+	<li>Edit the file <tt>/etc/profile</tt> and add the following line near the end of the file
+		<dl>
+			<dd><tt>export CATALINA_HOME=/usr/local/tomcat/</tt></dd>
+		</dl>
+	</li>
+	<li>Log out and log back in again to make sure the environment variables are set</li>
+	<li>Install the <tt>jsvc</tt> tool as follows - <strong>Note:</strong> the <tt>-m64</tt> compile
+		and link flags are used since we are installing on a 64-bit system
+		<dl>
+			<dd><tt>cd $CATALINA_HOME/bin</tt></dd>
+			<dd><tt>tar -zxvf commons-daemon-native.tar.gz</tt></dd>
+			<dd><tt>cd <span class="editText">commons-daemon-1.0.10-native-src</span>/unix</tt></dd>
+			<dd><tt>export CFLAGS=-m64</tt></dd>
+			<dd><tt>export LDFLAGS=-m64</tt></dd>
+			<dd><tt>./configure --with-java=$JAVA_HOME</tt></dd>
+			<dd><tt>make</tt></dd>
+			<dd><tt>cp jsvc ../..</tt></dd>
+			<dd><tt>cd ../..</tt></dd>
+			<dd><tt>chown -R tomcat.savoir jsvc
+				<span class="editText">commons-daemon-1.0.10-native-src</span></tt></dd>
+		</dl>
+	</li>
+	<li>Copy the file <tt>$CATALINA_HOME/bin/daemon.sh</tt> to <tt>/etc/init.d/tomcat</tt> and
+		change the contents as follows:
+		<ul>
+			<li>Add the following lines right after the <tt>#!/bin/sh</tt> line
+				<dl>
+					<dd><tt>#</tt></dd>
+					<dd><tt># chkconfig: 35 80 20</tt></dd>
+					<dd><tt># description: Tomcat server daemon</tt></dd>
+					<dd><tt>#</tt></dd>
+				</dl>
+			</li>
+			<li>Set the <tt>JAVA_HOME</tt> variable before the section that sets <tt>JAVA_BIN</tt>
+				to be
+				<dl>
+					<dd><tt>JAVA_HOME=/usr/local/java/</tt></dd>
+				</dl>
+			</li>
+			<li>Set the <tt>CATALINA_HOME</tt> variable between the section that sets
+				<tt>JAVA_BIN</tt> and the section that sets <tt>CATALINA_HOME</tt> to be
+				<dl>
+					<dd><tt>CATALINA_HOME=/usr/local/tomcat</tt></dd>
+				</dl>
+			</li>
+			<li>Set the <tt>CATALINA_OPTS</tt> line to be the following just before the case
+				statement for options to the script
+				<dl>
+					<dd><tt>CATALINA_OPTS="-XX:MaxPermSize=512m -Xmx512M"</tt></dd>
+				</dl>
+				<strong>Notes:</strong>
+					<ul>
+						<li>The <tt>-XX:MaxPermSize=512m</tt> is setting the max <em>PermGen</em>
+							space
+						</li>
+						<li>The <tt>-Xmx512M</tt> is setting the maximum heap size</li>
+					</ul>
+			</li>
+		</ul>
+	</li>
+	<li>Make the script executable and remove group write permissions
+		<dl>
+			<dd><tt>cd /etc/init.d</tt></dd>
+			<dd><tt>chmod a+x tomcat</tt></dd>
+			<dd><tt>chmod g-w tomcat</tt></dd>
+		</dl>
+	</li>
+	<li><strong>Optional:</strong> If you want to make use of remote debugging you can create a
+		shell script in the <tt>$CATALINA_HOME/bin</tt> directory called
+		<strong>debugTomcat.sh</strong> that contains the following:
+		<dl>
+			<dd><tt>#!/bin/bash</tt></dd>
+			<dd><tt>sh catalina.sh jpda run</tt></dd>
+		</dl>
+		<strong>Note:</strong> Make sure the script is executable
+	</li>
+	<li>Use <tt>chkconfig</tt> to add the service to the boot process as follows
+		<dl>
+			<dd><tt>chkconfig tomcat --add</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Apache Tomcat Connector</h3>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<ol>
+	<li>Download the <tt>mod-jk</tt> binary from
+		<a href="http://archive.apache.org/dist/tomcat/tomcat-connectors/jk/binaries/linux/jk-1.2.31/">here</a>
+		- you need to choose the version for your system (last file downloaded was
+		<tt><span class="editText">mod_jk-1.2.31-httpd-2.2.x.so</span></tt>)
+	</li>
+	<li>Copy the file and rename it
+		<dl>
+			<dd><tt>cp <span class="editText">/pathTofile/mod_jk-1.2.31-httpd-2.2.x.so</span>
+				/usr/lib64/httpd/modules</tt></dd>
+			<dd><tt>cd /usr/lib64/httpd/modules</tt></dd>
+			<dd><tt>mv <span class="editText">mod_jk-1.2.31-httpd-2.2.x.so</span> mod_jk.so</tt></dd>
+			<dd><tt>chmod a+x mod_jk.so</tt></dd>
+		</dl>
+	</li>
+	<li>Create the file <tt>/etc/httpd/conf.d/modJK.conf</tt> with the following content
+		<dl>
+			<dd><tt># Load mod_jk module</tt></dd>
+			<dd><tt># Update this path to match your modules location</tt></dd>
+			<dd><tt>LoadModule jk_module modules/mod_jk.so</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Where to find workers.properties</tt></dd>
+			<dd><tt># Update this path to match your conf directory location (put workers.properties next to httpd.conf)</tt></dd>
+			<dd><tt>JkWorkersFile /etc/httpd/conf/workers.properties</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Where to put jk shared memory</tt></dd>
+			<dd><tt># Update this path to match your local state directory or logs directory</tt></dd>
+			<dd><tt>JkShmFile /var/log/httpd/mod_jk.shm</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Where to put jk logs</tt></dd>
+			<dd><tt># Update this path to match your logs directory location (put mod_jk.log next to access_log)</tt></dd>
+			<dd><tt>JkLogFile /var/log/httpd/mod_jk.log</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Set the jk log level [debug/error/info]</tt></dd>
+			<dd><tt>JkLogLevel info</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Select the timestamp log format</tt></dd>
+			<dd><tt>JkLogStampFormat "[%a %b %d %H:%M:%S %Y] "</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Use the JkMount property to map a Tomcat servlet to a worker. The following maps the</tt></dd>
+			<dd><tt># "SAVOIR_WebBroker" and "EKGTutorial" servlets to worker1. Thus, the EKGTutorila can</tt></dd>
+			<dd><tt># be accessed with</tt></dd>
+			<dd><tt># http://savoirhost.domain/EKGTutorial</tt></dd>
+			<dd><tt># instead of</tt></dd>
+			<dd><tt># http://savoirhost.domain:8080/EKGTutorial</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Send everything for context /SAVOIR_WebBroker to worker named worker1 (ajp13)</tt></dd>
+			<dd><tt>JkMount /SAVOIR_WebBroker/* worker1</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Send everything for context /EKGTutorial to worker named worker1 (ajp13)</tt></dd>
+			<dd><tt>JkMount /EKGTutorial/* worker1</tt></dd>
+		</dl>
+	</li>
+	<li>Create the file <tt>/etc/httpd/conf/workers.properties</tt> with the following content
+		<dl>
+			<dd><tt># Define 1 real worker using ajp13</tt></dd>
+			<dd><tt>worker.list=worker1</tt></dd>
+			<dd><br></dd>
+			<dd><tt># Set properties for worker1 (ajp13)</tt></dd>
+			<dd><tt>worker.worker1.type=ajp13</tt></dd>
+			<dd><tt>worker.worker1.host=localhost</tt></dd>
+			<dd><tt>worker.worker1.port=8009</tt></dd>
+		</dl>
+	</li>
+	<li>Restart the <tt>httpd</tt> service
+		<dl>
+			<dd><tt>/etc/init.d/httpd restart</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>MySQL</h3>
+
+<ol>
+	<li>Install <em>MySQL</em> using the <em>yum</em> repository, set it to start on reboot, and
+		then start it
+		<dl>
+			<dd><tt>yum install mysql-server</tt></dd>
+			<dd><tt>chkconfig --level 35 mysqld on</tt></dd>
+			<dd><tt>/etc/init.d/mysqld start</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>ActiveMQ</h3>
+
+<span class="highlightNote">Important Note:</span> Due to the same bug that requires SAVOIR to use
+<em>Java 6</em> SAVOIR is currently <span class="highlightCyan">only compatible with
+<em>ActiveMQ</em> version 5.5.0</span>. Unfortunately, the developers of <em>ActiveMQ</em> have
+retracted version 5.5.0 and it is no longer available from their website. Therefore, you will find
+the <em>ActiveMQ ver 5.5.0</em> binary file included in the distribution of SAVOIR.
+
+<p>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<ol>
+	<li>Create the directory <tt>/usr/local/savoir</tt></li>
+	<li>Extract the <em>ActiveMQ</em> file into the SAVOIR directory
+		<dl>
+			<dd><tt>cd /usr/local/savoir</tt></dd>
+			<dd><tt>cp <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/resources/actiemq/apache-activemq-5.5.0-bin.tar.gz <strong>.</strong></tt></dd>
+			<dd><tt>tar -zxvf apache-activemq-5.5.0-bin.tar.gz</tt></dd>
+			<dd><tt>rm apache-activemq-5.5.0-bin.tar.gz</tt></dd>
+		</dl>
+	</li>
+	<li>Rename the activeMQ directory to <tt>activemq</tt>
+		<dl>
+			<dd><tt>mv apache-activemq-5.5.0 activemq</tt></dd>
+		</dl>
+	</li>
+	<li>Ensure that the <em>ActiveMQ</em> startup file is executable
+		<dl>
+			<dd><tt>cd /usr/local/savoir/activemq/bin</tt></dd>
+			<dd><tt>ls -la</tt></dd>
+			<dd>If necessary perform the following command</dd>
+			<dd><tt>chmod a+x activemq</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Mule</h3>
+
+<span class="highlightNote">Important Note:</span> the version of <em>Mule</em> must be 2.2.1
+since version 3.x is <span class="highlightCyan">currently incompatible with SAVOIR.</span>
+
+<ol>
+	<li>Download the <em>Mule Community Edition</em> from
+		<a href="http://www.mulesoft.org/display/MULE/Download">the Mule site</a> (last file
+		downloaded was <tt>mule-standalone-2.2.1.tar.gz</tt>)
+	</li>
+	<li>Untar the mule files into the SAVOIR directory
+		<dl>
+			<dd><tt>cp <span class="editText">/pathTofile</span>/mule-standalone-2.2.1.tar.gz
+				/usr/local/savoir</tt></dd>
+			<dd><tt>cd /usr/local/savoir</tt></dd>
+			<dd><tt>tar -zxvf mule-standalone-2.2.1.tar.gz</tt></dd>
+			<dd><tt>rm mule-standalone-2.2.1.tar.gz</tt></dd>
+		</dl>
+	</li>
+	<li>Rename the mule directory to <tt>mule</tt>
+		<dl>
+			<dd><tt>mv mule-standalone-2.2.1 mule</tt></dd>
+		</dl>
+	</li>
+	<li>Edit the file <tt>/etc/profile</tt> and add the following lines after the
+		<em>CATALINA_HOME</em> export
+		<dl>
+			<dd><tt>export MULE_HOME=/usr/local/savoir/mule</tt></dd>
+			<dd><tt>pathmunge /usr/local/savoir/mule/bin</tt></dd>
+		</dl>
+	</li>
+	<li>Log out and log back in again to make sure the environment variables are set</li>
+</ol>
+
+<h3>Apache Ant</h3>
+
+<ol>
+	<li>Download the latest <em>Apache Ant</em> release from
+		<a href="http://ant.apache.org/bindownload.cgi">here</a> (last file downloaded was
+		<tt><span class="editText">apache-ant-1.8.2-bin.tar.gz</span></tt>)
+	</li>
+	<li>Download the latest <em>Java Secure Channel Jar file</em> release from
+		<a href="http://www.jcraft.com/jsch/">here</a> (last file downloaded was
+		<tt><span class="editText">jsch-0.1.44.jar</span></tt>)
+	</li>
+	<li>Extract the <em>Apache Ant</em> file into the SAVOIR directory
+		<dl>
+			<dd><tt>cd /usr/local/savoir</tt></dd>
+			<dd><tt>cp <span class="editText">/pathToFile/apache-ant-1.8.2-bin.tar.gz</span>
+				<strong>.</strong></tt></dd>
+			<dd><tt>tar -zxvf <span class="editText">apache-ant-1.8.2-bin.tar.gz</span></tt></dd>
+			<dd><tt>rm <span class="editText">apache-ant-1.8.2-bin.tar.gz</span></tt></dd>
+		</dl>
+	</li>
+	<li>Rename the ant directory to <tt>ant</tt>
+		<dl>
+			<dd><tt>mv <span class="editText">apache-ant-1.8.2</span> ant</tt></dd>
+		</dl>
+	</li>
+	<li>Copy the <em>Java Secure Channel Jar file</em> to the ant <tt>lib</tt> directory
+		<dl>
+			<dd><tt>cd ant/lib</tt></dd>
+			<dd><tt>cp <span class="editText">/pathToFile/jsch-0.1.44.jar</span> <strong>.</strong></tt></dd>
+		</dl>
+	</li>
+	<li>Edit the file <tt>/etc/profile</tt> and add the following lines after the <em>MULE_HOME</em>
+		export
+		<dl>
+			<dd><tt>export ANT_HOME=/usr/local/savoir/ant</tt></dd>
+			<dd><tt>export ANT_OPTS=-XX:MaxPermSize=256m</tt></dd>
+			<dd><tt>pathmunge /usr/local/savoir/ant/bin</tt></dd>
+		</dl>
+	</li>
+	<li>Log out and log back in again to make sure the environment variables are set</li>
+	<li>Test the ant installation with the following
+		<dl>
+			<dd><tt>cd</tt></dd>
+			<dd><tt>ant</tt></dd>
+		</dl>
+		This should produce an error message like the following:
+		<dl>
+			<dd><tt>Buildfile: build.xml does not exist!</tt></dd>
+			<dd><tt>Build failed</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Flex SDK 3.x</h3>
+
+<ol>
+	<li>Download the latest <em>Flex SDK 3</em> release from
+		<a href="http://sourceforge.net/adobe/flexsdk/wiki/Download%20Flex%203/">here</a> (last file
+		downloaded was <tt><span class="editText">flex_sdk_3.6.0.16995A.zip</span></tt>)
+	</li>
+	<li>Extract the file into the local installation directory
+		<dl>
+			<dd><tt>cd /usr/local/</tt></dd>
+			<dd><tt>mkdir flexSDK-3.6.0</tt></dd>
+			<dd><tt>cd flexSDK-3.6.0</tt></dd>
+			<dd><tt>cp <span class="editText">/pathToFile/flex_sdk_3.6.0.16995A.zip</span>
+				<strong>.</strong></tt></dd>
+			<dd><tt>unzip <span class="editText">flex_sdk_3.6.0.16995A.zip</span></tt></dd>
+			<dd><tt>rm <span class="editText">flex_sdk_3.6.0.16995A.zip</span></tt></dd>
+		</dl>
+	</li>
+	<li>Set the permissions to allow more access
+		<dl>
+			<dd><tt>cd /usr/local/flexSDK-3.6.0</tt></dd>
+			<dd><tt>chmod -R a+rx *</tt></dd>
+		</dl>
+	</li>
+	<li>Edit the file <tt>/etc/profile</tt> and add the following line after the <em>ANT_HOME</em>
+		export
+		<dl>
+			<dd><tt>pathmunge /usr/local/flexSDK-3.6.0/bin</tt></dd>
+		</dl>
+	</li>
+	<li>Log out and log back in again to make sure the environment variables are set</li>
+	<li>Test the installation by creating a simple <em>mxml</em> file in a suitable directory. Edit
+		a new file and copy the following code, then save the file as <strong>button.mxml</strong>
+		<dl>
+			<dd><tt>&lt;?xml version="1.0" encoding="utf-8"?&gt;</tt></dd>
+			<dd><tt>&lt;mx:Application</tt></dd>
+			<dd><tt>&nbsp;&nbsp;xmlns:mx="http://www.adobe.com/2006/mxml"</tt></dd>
+			<dd><tt>&nbsp;&nbsp;horizontalAlign="center" verticalAlign="center"&gt;</tt></dd>
+			<dd><br></dd>
+			<dd><tt>&nbsp;&nbsp;&lt;mx:Button id="myButton" label="I'm a button!" /&gt;</tt></dd>
+			<dd><tt>&lt;/mx:Application&gt;</tt></dd>
+		</dl>
+	</li>
+	<li>Compile the code
+		<dl>
+			<dd><tt>mxmlc button.mxml</tt></dd>
+		</dl>
+	</li>
+	<li>Test the new flash file
+		<dl>
+			<dd><tt>firefox button.swf</tt></dd>
+		</dl>
+	</li>
+	<li>Copy the <em>Apache Ant</em> tasks jar file from the <em>Flex</em> installation to the
+		<em>Apache Ant</em> installation
+		<dl>
+			<dd><tt>cp /usr/local/flexSDK-3.6.0/ant/lib/flexTasks.jar $ANT_HOME/lib</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Log4j</h3>
+
+In order to be able to log the SAVOIR install process, you need to copy the <em>Log4j</em> jar file
+to the <em>Ant lib</em> directory. You can do this as follows:
+
+<ol>
+	<li>Download the latest <em>Log4j</em> release from
+		<a href="http://logging.apache.org/log4j/1.2/download.html">here</a> (last file downloaded
+		was <tt><span class="editText">apache-log4j-1.2.16.tar.gz</span></tt>)
+	</li>
+	<li>Extract the files into a temporary installation directory
+		<dl>
+			<dd><tt>cd /tmp</tt></dd>
+			<dd><tt>cp <span class="editText">/pathToFile/apache-log4j-1.2.16.tar.gz</span>
+				<strong>.</strong></tt></dd>
+			<dd><tt>tar -zxvf <span class="editText">apache-log4j-1.2.16.tar.gz</span></tt></dd>
+			<dd><tt>rm <span class="editText">apache-log4j-1.2.16.tar.gz</span></tt></dd>
+		</dl>
+	</li>
+	<li>Copy the <em>Log4j</em> jar file to the <em>Apache Ant</em> installation
+		<dl>
+			<dd><tt>cp /tmp/<span class="editText">apache-log4j-1.2.16/log4j-1.2.16.jar</span>
+				$ANT_HOME/lib</tt></dd>
+		</dl>
+	</li>
+	<li>Remove the <em>Log4j</em> installation files
+		<dl>
+			<dd><tt>cd /tmp</tt></dd>
+			<dd><tt>rm -rf <span class="editText">apache-log4j-1.2.16/</span></tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h2><a name="systemConf">System Software Configuration</a></h2>
+
+The following gives instructions on configuring the various system software packages installed
+above.
+
+<h3>Tomcat</h3>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<ol>
+	<li>Edit the file <tt>/usr/local/tomcat/conf/tomcat-users.xml</tt> and add the following lines
+		to the <tt>&lt;tomcat-users&gt;</tt> section<br>
+		<span class="highlightNote">Important Note:</span> the usernames for the
+		<em>manager-gui</em> and the <em>manager-script</em> roles <span class="highlightCyan">must
+		be different</span>
+		<dl>
+			<dd><tt>&lt;role rolename="manager-gui"/&gt;</tt></dd>
+			<dd><tt>&lt;role rolename="manager-script"/&gt;</tt></dd>
+			<dd><tt>&lt;user username=<span class="editText">"www"</span>
+				password=<span class="editText">"xxx"</span> roles="manager-gui"/&gt;</tt></dd>
+			<dd><tt>&lt;user username=<span class="editText">"yyy"</span>
+				password=<span class="editText">"zzz"</span> roles="manager-script"/&gt;</tt></dd>
+		</dl>
+	</li>
+	<li>Make sure that <span class="highlightCyan">port 8080</span> is open for tcp on the firewall
+		by using the <tt>system-config-firewall</tt> command
+	</li>
+	<li>Start tomcat
+		<dl>
+			<dd><tt>/etc/init.d/tomcat start</tt></dd>
+		</dl>
+	</li>
+	<li><strong>Note:</strong> Starting tomcat in this way will start 2 instances of tomcat - one
+		run as user root, and one run as user tomcat. The one run as root listens for traffic
+		destined for privileged ports, while the one run as tomcat does all the work for the
+		servlets - see <a href="http://marc.info/?l=tomcat-user&m=122540318625925&w=2">here</a> for
+		the original discussion I found.
+	</li>
+</ol>
+
+<h3>MySQL</h3>
+
+<ol>
+	<li>Run the <tt>mysql_secure_installation</tt> script and when prompted, set the root password
+		to a strong root password - follow all other advice from the script to secure <em>MySQL</em>
+	</li>
+	<li>Restart the <em>MySQL</em> service
+		<dl>
+			<dd><tt>/etc/init.d/mysqld restart</tt></dd>
+		</dl>
+	</li>
+	<li>Create a dummy database and then create the SAVOIR user and password
+		<dl>
+			<dd><tt>mysqladmin -u root -p create dummy</tt></dd>
+			<dd><tt>mysql -u root -p</tt></dd>
+			<dd><tt>GRANT ALL ON dummy.* TO
+				<span class="editText">'&lt;username&gt;'</span>@'localhost.localdomain'
+				IDENTIFIED BY <span class="editText">'&lt;userpassword&gt;'</span>;</tt></dd>
+			<dd><tt>GRANT ALL ON dummy.* TO <span class="editText">'&lt;username&gt;'</span>@'localhost'
+				IDENTIFIED BY <span class="editText">'&lt;userpassword&gt;'</span>;</tt></dd>
+			<dd><tt>DROP DATABASE dummy;</tt></dd>
+			<dd><tt>exit</tt></dd>
+		</dl>
+	</li>
+	<li>Make sure that <span class="highlightCyan">port 3306</span> is open for tcp on the firewall
+		by using the <tt>system-config-firewall</tt> command
+	</li>
+</ol>
+
+<h3>ActiveMQ</h3>
+
+<ol>
+	<li>Edit the file <tt>/usr/local/savoir/activemq/conf/activemq.xml</tt> and insert the following
+		lines inside the <tt>&lt;transportConnectors&gt;</tt> section
+		<dl>
+			<dd><tt>&lt;transportConnector name="openwire" uri="tcp://0.0.0.0:61616"/&gt;</tt></dd>
+			<dd><tt>&lt;transportConnector name="http" uri="http://0.0.0.0:8891"/&gt;</tt></dd>
+		</dl>
+	</li>
+	<li>Make sure that <span class="highlightCyan">ports 8161, and 8891</span> are open for tcp on
+		the firewall by using the <tt>system-config-firewall</tt> command
+	</li>
+</ol>
+
+<h3>Mule</h3>
+
+<ol>
+	<li>Download the <em>CXF RT Transports HTTP</em> file from
+		<a href="http://repo1.maven.org/maven2/org/apache/cxf/cxf-rt-transports-http/2.1.2/cxf-rt-transports-http-2.1.2.jar">here</a>
+		and then copy it to the <em>Mule</em> library
+		<dl>
+			<dd><tt>cd $MULE_HOME/lib/opt</tt></dd>
+			<dd><tt>cp <span class="editText">/pathToFile</span>/cxf-rt-transports-http-2.1.2.jar
+				<strong>.</strong></tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">If you're running <em>Mule</em> on a 64 bit system</span> then
+		we need to remove execution rights on the 32 bit wrapper.
+		<dl>
+			<dd><tt>cd $MULE_HOME/lib/boot/exec/</tt></dd>
+			<dd><tt>chmod a-x wrapper-linux-x86-32</tt></dd>
+		</dl>
+	</li>
+	<li>Run <em>Mule</em> in the foreground to accept the license. After accepting the license,
+		enter <strong>Ctrl-C</strong> when prompted for your name to quit <em>Mule</em>.
+		<dl>
+			<dd><tt>cd $MULE_HOME</tt></dd>
+			<dd><tt>mule -config examples/hello/conf/hello-config.xml</tt></dd>
+			<dd><tt>&lt;Press <em>Enter</em> about 5 times then <em>y</em> to accept the license&gt;</tt></dd>
+			<dd><tt>Ctrl-C</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h2><a name="savoir">SAVOIR Software</a></h2>
+
+The following steps will install the SAVOIR software on a server.
+
+<p>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<h3>Initialize Build Environment</h3>
+<ol>
+	<li>Make sure the following environment variables are defined properly
+		<dl>
+			<dd><tt>CATALINA_HOME</tt></dd>
+			<dd><tt>MULE_HOME</tt></dd>
+			<dd><tt>ANT_HOME</tt></dd>
+		</dl>
+	</li>
+	<li>Make sure the following paths to <em>bin</em> directories are defined in the
+		<strong>PATH</strong> environment variable
+		<dl>
+			<dd><tt>MULE_HOME/bin</tt></dd>
+			<dd><tt>ANT_HOME/bin</tt></dd>
+			<dd>Flex SDK <tt>bin</tt> directory</dd>
+		</dl>
+	</li>
+	<li>If you haven't done so already, make sure that the <em>tomcat</em> user ID and your own user
+		ID are members of the <strong>savoir</strong> group. Create the <strong>savoir</strong>
+		group if necessary with the <tt>system-config-users</tt> command
+	</li>
+	<li><span class="highlightNote">Important Note:</span> Logout and log back in again if any of
+		the environment variables were changed or the group membership was changed in any of the
+		previous steps
+	</li>
+	<li>Make sure the scripts in the <strong>bin</strong> directory are executable
+		<dl>
+			<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/bin</tt></dd>
+			<dd><tt>chmod a+x *</tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">As user root</span>, run the <em>setGroupAccess.pl</em> script
+		for the three main directories for SAVOIR so regular users can access these directories.<br>
+		<span class="highlightNote">Important Note 1:</span> this script grants
+		<strong>write</strong> permissions to all files in the given directory recursively for all
+		members of the given group.<br>
+		<span class="highlightNote">Important Note 2:</span> the directory
+		<tt><span class="editText">/usr/local/savoir</span></tt> should contain the installations of
+		<em>Mule, ActiveMQ</em>, and <em>Ant</em>.
+		<dl>
+			<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/bin</tt></dd>
+			<dd><tt>./setGroupAccess.pl <span class="editText">/var/www/html</span> savoir</tt></dd>
+			<dd><tt>./setGroupAccess.pl <span class="editText">/usr/local/savoir</span> savoir</tt></dd>
+			<dd><tt>./setGroupAccess.pl <span class="editText">/usr/local/tomcat</span> savoir</tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">Using your own account, that is, not as user root</span>, run
+		the <em>initializeSavoir.pl</em> script.
+		<dl>
+			<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/bin</tt></dd>
+			<dd><tt>./initializeSavoir.pl</tt></dd>
+		</dl>
+		<span class="highlightNote">Important Note:</span> please make note of the output of this
+		script, especially the section similar to the following. You may need this information while
+		completing the next section
+		<dl>
+			<dd><tt>check-host:</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;[echo] ==== Savoir master build check-host target ====</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;[echo] Hostname = <span class="editText">exampleHost</span></tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;[echo] IP address = <span class="editText">0.0.0.0</span></tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h3>Edit the Properties File</h3>
+
+The SAVOIR build infrastructure supports deployment to both a production server and a development
+server. The mechanism to implement this dual deployment system is through the use of
+<em>properties</em>. The properties file <em>localDefault.properties</em> contains all the
+properties that need to be defined to build SAVOIR. This file contains three sections.
+
+<ol>
+	<li>SAVOIR Global Properties - general properties that apply to both production and development
+		servers
+	</li>
+	<li>SAVOIR Server Specific Global Properties - properties that may differ between the production
+		and development servers
+	</li>
+	<li>Project Specific Properties - properties for each subproject of SAVOIR that pertain to the
+		individual subproject
+	</li>
+</ol>
+
+<span class="highlightNote">Important Note:</span> at this time it is assumed that SAVOIR will be
+built on a <span class="highlightCyan">single server</span>, therefore, the following items should
+be noted to simplify the installation:
+
+<ul>
+	<li>Ignore all references to the <strong>development server</strong>. That is, all properties in
+		the <em>localDefault.properties</em> file that begin with <strong>prebuild.dev</strong> can
+		be ignored.
+	</li>
+	<li>The <strong>prebuild.prd.savoir.server.host</strong> property (the first property listed
+		in the table below) should contain either the <em>hostname</em>, or preferably the <em>IP
+		address</em>, that was noted from the output of the <em>initializeSavoir.pl</em> script
+		above
+	</li>
+	<li>The properties containing references to previously defined properties
+		(e.g. http://&#36;&#123;prebuild.prd.savoir.server.host&#125;/) should not need to be changed.
+	</li>
+</ul>
+
+Edit the <em>localDefault.properties</em> file with the following commands, replacing <span
+class="editText">edit</span> with your favorite text editor.
+
+<ul>
+	<dl>
+		<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/src/SAVOIR_MasterBuild</tt></dd>
+		<dd><tt><span class="editText">edit</span> localDefault.properties</tt></dd>
+		<dd>Find the <em>SAVOIR Server Specific Global Properties</em> section</dd>
+		<dd>Locate the <em>Deployment options for the PRODUCTION server</em> subsection</dd>
+		<dd>Follow the editing guide below</dd>
+	</dl>
+</ul>
+
+By default, some of the properties in the <em>localDefault.properties</em> file contain values which
+are not valid and need to be changed to values appropriate to your situation. The following table is
+a list of the properties from the second section - <em>SAVOIR Server Specific Global Properties</em>
+ - with their default values. A complete list of properties and their descriptions is
+<a href="allPropsDefined.html">also available</a>. Only the <em>production</em> values are listed
+and the text <span class="highlightCyan">highlighted in cyan</span> denotes the values that you may
+need to change. Values that are not highlighted should not need to be changed if you have installed
+the system software as described above. However, it is <strong>strongly recommended</strong> that
+you confirm the values for these properties. Please read the <em>Description</em> field
+<strong>carefully</strong> since it can explain what you need to change.
+
+<p>
+
+<table>
+
+	<tr>
+		<th colspan="3">SAVOIR Server Specific Global Properties
+
+	<tr>
+		<th>Property
+		<th>Default Value
+		<th>Description
+
+	<tr>
+		<td>prebuild.prd.savoir.server.host
+		<td><span class="highlightCyan">0.0.0.0</span>
+		<td>Set to the IP address of the SAVOIR server
+
+	<tr>
+		<td>prebuild.prd.db.username
+		<td><span class="highlightCyan">mySqlUser</span>
+		<td>Username for the SAVOIR MySQL database account
+
+	<tr>
+		<td>prebuild.prd.db.password
+		<td><span class="highlightCyan">password</span>
+		<td>Password for the SAVOIR MySQL database account
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.name
+		<td><span class="highlightCyan">John Doe</span>
+		<td>Name of the SAVOIR administrator
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.email
+		<td><span class="highlightCyan">John.Doe@some.mail.com</span>
+		<td>E-mail of the SAVOIR administrator
+
+	<tr>
+		<td>prebuild.prd.web.server.dir
+		<td>/var/www/html
+		<td>The web server document root directory. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.tomcat.username
+		<td><span class="highlightCyan">tomcatScriptManager</span>
+		<td>Username assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file
+
+	<tr>
+		<td>prebuild.prd.tomcat.password
+		<td><span class="highlightCyan">password</span>
+		<td>Password assigned to the <em>manager-script</em> role in the
+			$CATALINA_HOME/conf/tomcat-users.xml file
+
+	<tr>
+		<td>prebuild.prd.tomcat.port
+		<td>8080
+		<td>Port number that the Tomcat service listens to. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.tomcat.url
+		<td>http://&#36;&#123;prebuild.prd.savoir.server.host&#125;:<br>&#36;&#123;prebuild.prd.tomcat.port&#125;/manager/text
+		<td>URL for the Tomcat script manager interface. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.mule.lib.directory
+		<td>/usr/local/savoir/mule/lib/user
+		<td>The user library directory for Mule. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.mule.conf.directory
+		<td>/usr/local/savoir/mule/savoir-esb/conf
+		<td>SAVOIR bus configuration directory for Mule. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.mule.conf.file
+		<td>savoir-prd-bus-config.xml
+		<td>Savoir bus configuration file. Changes should not be necessary but see the
+			<a href="#finalConf">Final Configuration</a> section below for more details.
+
+	<tr>
+		<td>prebuild.prd.smtp.host
+		<td><span class="highlightCyan">smtp.gmail.com</span>
+		<td>Hostname of an SMTP server - this can be any SMTP server that you have an account on,
+			however Gmail offers use of one for free at smtp.gmail.com
+
+	<tr>
+		<td>prebuild.prd.smtp.port
+		<td><span class="highlightCyan">587</span>
+		<td>The SMTP port for the given SMTP server - usually 587 is fine but check with your SMTP
+			administrator if you are not certain. The smtp.gmail.com service uses port 587
+
+	<tr>
+		<td>prebuild.prd.smtp.email.address
+		<td><span class="highlightCyan">someuser@gmail.com</span>
+		<td>The e-mail address that sends mail on behalf of SAVOIR. This is usually your account on
+			the SMTP server. <strong>Note:</strong> the account someuser@gmail.com is invalid
+
+	<tr>
+		<td>prebuild.prd.smtp.username
+		<td><span class="highlightCyan">smtpUser</span>
+		<td>The username of your SMTP account. For Gmail, the username is your e-mail address
+
+	<tr>
+		<td>prebuild.prd.smtp.password
+		<td><span class="highlightCyan">password</span>
+		<td>The password of your SMTP account
+
+	<tr>
+		<td>prebuild.prd.smtp.useSSL
+		<td><span class="highlightCyan">false</span>
+		<td>Whether or not SSL is used to communicate with your SMTP server - check with your SMTP
+			administrator if you are not certain. For Gmail, this setting is false
+
+	<tr>
+		<td>prebuild.prd.smtp.useTLS
+		<td><span class="highlightCyan">true</span>
+		<td>Whether or not TLS is used to communicate with your SMTP server - check with your SMTP
+			administrator if you are not certain. For Gmail, this setting is true
+
+	<tr>
+		<td>prebuild.prd.FLEX_HOME
+		<td>/usr/local/flexSDK-3.6.0/
+		<td>Directory path to your FLEX SDK installation. No change should be necessary.
+
+	<tr>
+		<td>prebuild.prd.flash.ant.dir
+		<td>/usr/local/savoir/ant/lib/
+		<td>Location of the Ant tasks jar file (flexTasks.jar) for Flash. No change should be
+			necessary.
+
+	<tr>
+		<td>prebuild.prd.activemq.version
+		<td>5.5.0
+		<td>The version of ActiveMQ that was installed. At the moment <strong>only version
+			5.5.0</strong> is supported.
+
+	<tr>
+		<td>prebuild.prd.activemq.url
+		<td>tcp://&#36;&#123;prebuild.prd.savoir.server.host&#125;
+		<td>Set to the IP for your ActiveMQ server. No change should be necessary
+
+	<tr>
+		<td>prebuild.prd.activemq.system.url
+		<td>http://&#36;&#123;prebuild.prd.savoir.server.host&#125;:8891
+		<td>Set to the IP and default port for your ActiveMQ server. No change should be necessary
+
+</table>
+
+
+<h3>Build SAVOIR</h3>
+
+<strong>Note:</strong> <span class="editText">magenta text</span> indicates text to be replaced with
+appropriate values.
+
+<p>
+
+Once the <em>localDefault.properties</em> file has been edited and saved, you can now build and
+deploy SAVOIR. Use the following commands to deploy SAVOIR on the production server.
+
+<p>
+
+<span class="highlightNote">Important Note 1:</span> the <em>Ant</em> command below will create a
+log file of the build in
+<tt><span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/src/SAVOIR_MasterBuild/savoirBuild.log</tt>.
+You can use this file to check for any build errors if the build fails.
+
+<p>
+
+<span class="highlightNote">Important Note 2:</span> there is a dot (<strong>.</strong>) at the end
+of the <tt>ant deploy</tt> command.
+
+<ul>
+	<dl>
+		<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/src/SAVOIR_MasterBuild</tt></dd>
+		<dd><tt>ant deploy -listener org.apache.tools.ant.listener.Log4jListener -lib <strong>.</strong></tt></dd>
+	</dl>
+</ul>
+
+Alternatively, if you do not wish to create a log file simply use the following commands instead
+
+<ul>
+	<dl>
+		<dd><tt>cd <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/src/SAVOIR_MasterBuild</tt></dd>
+		<dd><tt>ant deploy</tt></dd>
+	</dl>
+</ul>
+
+<strong>Note:</strong> The first time SAVOIR is built will take some time since many library files
+are downloaded from the internet during the build.
+
+<h3><a name="finalConf">Final Configuration</a></h3>
+
+<ol>
+	<li>If you have edge devices in your SAVOIR installation then you will need to edit the
+		<em>savoir-bus-config.xml</em> file with the following commands, replacing
+		<span class="editText">edit</span> with your favorite text editor.
+		<dl>
+			<dd><tt>cd $MULE_HOME/savoir-esb/conf</tt></dd>
+			<dd><tt><span class="editText">edit</span> savoir-bus-config.xml</tt></dd>
+		</dl>
+		<br>
+		If your device will use JMS to communicate with SAVOIR, then find the section starting with
+		the comment
+		<dl>
+			<dd><strong>&lt;!-- JMS endpoints - ADD JMS TOPICS HERE --&gt;</strong></dd>
+		</dl>
+		<br>
+		This is the section where the JMS topics for edge devices are defined. The topics listed
+		here are for the sample devices included with SAVOIR and should not need to be modified. To
+		add a new JMS topic, simply copy an existing <strong>&lt;jms:inbound-endpoint&gt;</strong>
+		element and change the device name in the <strong>topic</strong> attribute. For example, you
+		would change <span class="editText">deviceName</span> in the sample below
+		<dl>
+			<dd><tt>&lt;jms:inbound-endpoint</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;topic="savoir.<span class="editText">deviceName</span>.Inbound"</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;connector-ref="jmsPrdConnector"/&gt;</tt></dd>
+		</dl>
+		<br>
+		If your device will use TCP to communicate with SAVOIR, then find the section starting with
+		the comment
+		<dl>
+			<dd><strong>&lt;!-- TCP endpoints - ADD TCP PORTS HERE --&gt;</strong></dd>
+		</dl>
+		<br>
+		This is the section where the TCP ports for edge devices are defined. Currently there are no
+		TCP devices included with SAVOIR, thus, this section is commented out. To add a new TCP
+		port, uncomment this section then simply change the port number in the <strong>port</strong>
+		attribute. For example, you would change <span class="editText">99999</span> in the sample
+		below
+		<dl>
+			<dd><tt>&lt;tcp:inbound-endpoint</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;host="localhost" port="<span class="editText">99999</span>"
+				synchronous="false" connector-ref="tcpConnector"&gt;</tt></dd>
+			<dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;&lt;byte-array-to-string-transformer/&gt;</tt></dd>
+			<dd><tt>&lt;/tcp:inbound-endpoint&gt;</tt></dd>
+		</dl>
+		<br>
+		<span class="highlightNote">Important Note:</span> you may need to open your firewall for
+		the ports defined in the <strong>TCP endpoints</strong> 
+	</li>
+	<li>Upload the SAVOIR database<br><br>
+		<span class="highlightNote">Important Note:</span> there are <span class="highlightCyan">2
+		users</span> involved in these steps - <span class="highlightCyan">user root and the savoir
+		user</span>
+		<dl>
+			<dd><tt>mysqladmin <span class="highlightCyan">-u root</span> -p create SAVOIR</tt></dd>
+			<dd><tt>mysql <span class="highlightCyan">-u root</span> -p</tt></dd>
+			<dd><tt>grant all on SAVOIR.* to
+				<span class="editText">&lt;mysql savoir username&gt;</span>@localhost.localdomain;</tt></dd>
+			<dd><tt>grant all on SAVOIR.* to
+				<span class="editText">&lt;mysql savoir username&gt;</span>@localhost;</tt></dd>
+			<dd><tt>exit</tt></dd>
+			<dd><br></dd>
+			<dd><tt>mysql <span class="highlightCyan">-u</span><span class="highlightEdit"> &lt;mysql
+				savoir username&gt;</span> -p</tt></dd>
+			<dd><tt>drop database SAVOIR;</tt></dd>
+			<dd><tt>source <span class="editText">/home/user/install</span>/savoir-${savoir.release.ver}/resources/savoirdb.sql;</tt></dd>
+			<dd><tt>exit</tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">As user root</span> start <em>ActiveMQ</em>
+		<dl>
+			<dd><tt>cd /usr/local/savoir/activemq/</tt></dd>
+			<dd><tt>nohup bin/activemq start &</tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">As user root</span> start <em>Mule</em>
+		<dl>
+			<dd><tt>mule -config $MULE_HOME/savoir-esb/conf/savoir-bus-config.xml start &</tt></dd>
+		</dl>
+	</li>
+	<li><span class="highlightCyan">As user root</span> restart <em>Tomcat</em>
+		<dl>
+			<dd><tt>/etc/init.d/tomcat stop</tt></dd>
+			<dd><tt>/etc/init.d/tomcat start</tt></dd>
+		</dl>
+	</li>
+</ol>
+
+<h2><a name="devel">Development Environment</a></h2>
+
+If you wish to modify SAVOIR, then you will probably want to install SAVOIR in a development
+environment. Typically, you would have the source code on a local computer, such as a desktop or
+laptop, where you would modify the code. Then you would deploy SAVOIR to your development server to
+test your changes. Once you are satisfied with your changes, then you would deploy the software to
+your production server.
+
+<p>
+
+To implement this environment you would usually use three computers: your local computer and two
+servers. You would install the following system software described above on your local computer.
+
+<ul>
+	<li>Perl</li>
+	<li>GCC</li>
+	<li>Java</li>
+	<li>Apache Ant</li>
+	<li>Flex SDK 3.x</li>
+	<li>Log4j</li>
+</ul>
+
+On the two servers, you would perform the initial preparation listed above and then install the
+following system software.
+
+<ul>
+	<li>Apache</li>
+	<li>Java</li>
+	<li>Tomcat</li>
+	<li>Apache Tomcat Connector</li>
+	<li>MySQL</li>
+	<li>ActiveMQ</li>
+	<li>Mule</li>
+</ul>
+
+To build the SAVOIR software you will need to perform some of the steps slightly differently than
+those described above.
+
+<p>
+
+The first step is to copy the distribution tar file to your local computer and extract the source
+code to a convenient development directory. You may even wish to add the software to an IDE such as
+<em>eclipse</em>. However, note that at the drafting of this guide, eclipse did not support a
+feature used in the build scripts. Therefore, you will need to build and deploy SAVOIR by running
+<em>Ant</em> from the command line.
+
+<p>
+
+You will need to make sure that the environment variables - including the <tt>PATH</tt> variable -
+are defined properly. The <tt>CATALINA_HOME</tt> and the <tt>MULE_HOME</tt> variables should be
+defined on the two servers, while the <tt>ANT_HOME</tt> variable and the Flex SDK path should be
+defined on your local computer.
+
+<p>
+
+The <strong>savoir</strong> group should have been created on the two servers with both your own
+user ID and the <em>tomcat</em> user ID as members.
+
+<p>
+
+The <tt>setGroupAccess.pl</tt> script will need to be executed on the two servers following the
+instructions above. Also, the <tt>initializeSavoir.pl</tt> script will need to be run on the two
+servers, however, you will need to comment out the following three sections before the script is
+run:
+
+<ol>
+	<li>The section that checks if the <tt>ANT_HOME</tt> variable is defined</li>
+	<li>The section that checks if six perl scripts are executable</li>
+	<li>The section which inform's the user of the computer's IP address and hostname</li>
+</ol>
+
+These sections will generate errors if they are not commented out.
+
+<p>
+
+When you edit the properties file, you will need to modify both the production properties listed in
+the table above, and their corresponding development properties. The development properties will
+have the same keys as those listed in the table except they will begin with
+<strong>prebuild.dev</strong> instead of <strong>prebuild.prd</strong>.
+
+<p>
+
+To build SAVOIR and deploy it to a particular server you can set the
+<strong>prebuild.deploy.server</strong> property in the <em>localDefault.properties</em> file to
+either <strong>production</strong> or <strong>development</strong> and then run the build script.
+Alternatively you can specify the deployment server on the command line as follows:
+
+<ul>
+	<dl>
+		<dd><tt>ant -Dprebuild.deploy.server=production deploy</tt></dd>
+	</dl>
+</ul>
+
+Since you will likely deploy to the development server more often than the production server, it is
+recommended that you set the <strong>prebuild.deploy.server</strong> property in the
+<em>localDefault.properties</em> file to <strong>development</strong> and then simply use the
+command above to deploy to the production server whenever it is necessary.
+
+<p>
+
+Note that the build script will prompt you for a <em>username</em> and <em>password</em> when it is
+run in order that it can access whichever server you are deploying to.
+
+<p>
+
+Finally, the final configuration steps will need to be performed on the two servers.
+
+<h2></h2>
+
+<center>
+	<small>Copyright &copy; <script type="text/javascript">
+		document.write(new Date().getFullYear());
+		</script>, National Research Council of Canada
+	</small>
+</center>
+
+</body>
+</html>
+

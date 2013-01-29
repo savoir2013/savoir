@@ -1,0 +1,1321 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:Views="views.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	xmlns:handlers="handlers.*" xmlns:merapiproject="http://merapiproject.net/2009"
+	xmlns:mxml="merapi.handlers.mxml.*" xmlns:messages="messages.*"
+	layout="absolute" width="100%" height="100%" initialize="initializeApp()" render="mySavoirComplete()">
+    
+	<mx:Style source="savoirStyles.css"/>
+	
+	<mx:ApplicationControlBar id="appBar" dock="true" height="38">
+		<mx:Spacer id="spacer0" width="15"/>
+		<mx:Image id="logo" source="{logoFile}"/>
+		<mx:Label id="version" text="{versionText}" styleName="appBarLabel"/>
+		<mx:Spacer id="spacer1" width="30"/>
+		<mx:LinkButton id="mySavoirLink" label="{mySavoirText}" styleName="menuLinkButSelected"
+			click="handleMySavoirLink(event)"/>
+		<mx:LinkButton id="devicesLink" label="{devicesText}" styleName="menuLinkButUnselected"
+			click="handleDevicesLink(event)"/>
+		<mx:LinkButton id="deviceRegLink" label="{deviceRegText}" styleName="menuLinkButUnselected"
+			click="handleDeviceRegLink(event)"/>
+		<mx:LinkButton id="scenariosLink"  label="{scenariosText}" styleName="menuLinkButUnselected"
+			click="handleScenariosLink(event)"/>
+		<mx:LinkButton visible="false" enabled="false" disabledColor="0x2A323B" id="debriefingsLink"
+			label="{debriefingsText}" styleName="menuLinkButUnselected"
+			click="handleDebriefingsLink(event)"/>
+		<mx:LinkButton visible="false" enabled="false" disabledColor="0x2A323B" id="settingsLink"
+			label="{settingsText}" styleName="menuLinkButUnselected"
+			click="handleSettingsLink(event)"/>
+		<mx:LinkButton id="adminLink" visible="false" label="{adminText}"
+			styleName="menuLinkButUnselected" click="handleAdminLink(event)"/>
+		<mx:Spacer id="spacer2" width="100%"/>
+		<mx:Label id="userLabel" text="{userText}" styleName="appBarLabel"/>
+		<mx:LinkButton id="logoutLink" label="{logoutText}" styleName="menuLinkButUnselected"
+			click="handleLogoutLink(event)"/>
+	</mx:ApplicationControlBar>
+
+	<mx:Metadata>
+		[ResourceBundle("savoirFlex")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+
+			// ======================= External Modules =============================
+
+			import mx.containers.ViewStack;
+        	import mx.collections.XMLListCollection;
+   			import mx.collections.ArrayCollection;
+    		import mx.collections.IViewCursor;
+    		import mx.collections.Sort;
+    		import mx.collections.SortField;
+  			import mx.managers.PopUpManager;
+        	import mx.controls.Alert;
+			import org.iotashan.oauth.OAuthToken;
+  			import savoiroauth.OAuthClient;
+  			import savoiroauth.OAuthDelegate;
+        	import views.DevicesView;
+        	import views.DeviceRegView;
+        	import views.AdminView;
+        	import views.MySavoirView;
+        	import views.ScenariosView;
+        	import views.DebriefingsView;
+        	import views.SettingsView;
+        	import handlers.InitListenerMessageHandler;
+        	import handlers.HeartbeatMessageHandler;
+			import messages.LogoutMessage;
+			import messages.HeartbeatMessage;
+			import messages.InitListenerMessage;
+			import events.GetUserProfileEvent;
+        	import events.InitListenerEvent;
+  			import events.SavoirEvent;
+        	import savoirlib.Scenario;
+        	import savoirlib.Session;
+  			import savoirComp.InfoPopupWindow;
+        	import merapi.Bridge;
+
+			// ======================= Public Members ===============================
+
+ 			public var oAuthTokenKey:SharedObject;
+   			public var oAuthTokenSecret:SharedObject;
+   			public var SavoirUserName:SharedObject;
+   			public var SavoirUserPassword:SharedObject;
+   			public var lastLogTime:SharedObject;
+   			public var SavoirUserSite:SharedObject;
+
+   			public var client:OAuthClient;
+
+   			public var userSite:String;
+			public var userName:String;
+			public var userPassword:String;
+
+			public var mySavoirMainBox:MySavoirView = null;			// Contains entire my Savoir page
+			public var devicesMainBox:DevicesView = null;			// Contains entire devices page
+			public var deviceRegMainBox:DeviceRegView = null;		// Contains entire device registration page
+			public var scenariosMainBox:ScenariosView = null;		// Contains entire scenarios page
+			public var debriefingsMainBox:DebriefingsView = null;	// Contains entire debriefings page
+			public var settingsMainBox:SettingsView = null;			// Contains entire settings page
+			public var adminMainBox:AdminView = null;				// Contains entire admin page
+
+            public var serverName:SharedObject;
+   			public var scenarioData:ArrayCollection = new ArrayCollection();
+   			public var sessionData:ArrayCollection = new ArrayCollection();
+   			public var scenarioSort:Sort;
+   			public var sessionSort:Sort;
+   			public var scenarioCursor:IViewCursor;
+   			public var sessionCursor:IViewCursor;
+			            
+            public var userSessionId:uint;
+
+            public var firstInitListenerResult:Boolean =  false;
+            public var initListenerHandler:InitListenerMessageHandler;
+            public var initListenerTimer:Timer;
+            public var heartbeatTimer:Timer;
+            
+            // These two array collections are used in other files for data binding. They are defined
+            // here since the Application file is the parent and thus is easier to access 
+            [Bindable]
+            public var userList:ArrayCollection = new ArrayCollection();
+            [Bindable]
+            public var groupList:ArrayCollection = new ArrayCollection();
+            
+            [Bindable]
+            public var initListenerDelayTime:int = 5000;
+            [Bindable]
+            public var initListenerMaxTimes:int = 10;
+            
+            [Bindable]
+            public var initDelayCount:int = 0;
+
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+			private var savoirStack:ViewStack = null;			// Viewstack for all pages
+			
+			[Bindable]
+			private var logoFile:String = new String();			// Path to logo image
+			[Bindable]
+			private var versionText:String = new String();		// Version of the GUI
+			[Bindable]
+			private var mySavoirText:String = new String();		// Text for link button
+			[Bindable]
+			private var devicesText:String = new String();		// Text for link button
+			[Bindable]
+			private var deviceRegText:String = new String();	// Text for link button
+			[Bindable]
+			private var scenariosText:String = new String();	// Text for link button
+			[Bindable]
+			private var debriefingsText:String = new String();	// Text for link button
+			[Bindable]
+			private var settingsText:String = new String();		// Text for link button
+			[Bindable]
+			private var adminText:String = new String();		// Text for link button
+			[Bindable]
+			private var userText:String = new String();			// Text for the user name
+			[Bindable]
+			private var logoutText:String = new String();		// Text for link button
+
+   			private var initializeDefaultSessionXmlStr:String;
+   			private var getScenariosXmlStr:String;
+   			private var getJoinableSessionsXmlStr:String;
+   			private var logoutXmlStr:String;
+   			private var initializeDeafultSessionResXml:XML = null;
+   			private var getScenariosResXml:XML = null;
+   			private var getJoinableSessionsResXml:XML = null;
+   			private var initializeDefaultSessionDelegate:OAuthDelegate;
+   			private var getScenariosDelegate:OAuthDelegate;
+   			private var getJoinableSessionDelegate:OAuthDelegate;
+   			private var logoutDelegate:OAuthDelegate;
+   			
+   			private var defaultSessionId:int;
+   			private var popupWindow:InfoPopupWindow;
+   			   			
+			private var loginURL:URLRequest = null;
+			
+            private var loginTimeStampCtrThrshd:Number = 10;
+            private var loginTimeStampCtr:Number = 0;
+            
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleMySavoirLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the my Savoir page
+            // Input Vars:   	event - mouse event triggered by clicking "My SAVOIR" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleMySavoirLink(event:MouseEvent):void
+            {
+                // Set the view to the my Savoir page
+                savoirStack.selectedChild = mySavoirMainBox;
+
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = false;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButSelected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = true;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = false;
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleDevicesLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the service devices page
+            // Input Vars:   	event - mouse event triggered by clicking "Tools and Devices" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleDevicesLink(event:MouseEvent):void
+            {				
+                // Set the view to the devices page
+                savoirStack.selectedChild = devicesMainBox;
+                
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = false;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButSelected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = true;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = false;
+            }
+
+             //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleDeviceRegLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the device registration page
+            // Input Vars:   	event - mouse event triggered by clicking "Device Registration" link
+            // Return Vars:  	none
+            // Date Created: 	Sep 13, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleDeviceRegLink(event:MouseEvent):void
+            {				
+                // Set the view to the device registration page
+                savoirStack.selectedChild = deviceRegMainBox;
+                
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = false;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButSelected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = true;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = false;
+            }
+
+           //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleScenariosLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the scenarios page
+            // Input Vars:   	event - mouse event triggered by clicking "Scenarios" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleScenariosLink(event:MouseEvent):void
+            {
+                // Set the view to the scenarios page
+                savoirStack.selectedChild = scenariosMainBox;
+
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = false;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButSelected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = true;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = false;
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleDebriefingsLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the debriefings page
+            // Input Vars:   	event - mouse event triggered by clicking "Debriefings" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleDebriefingsLink(event:MouseEvent):void
+            {
+                // Set the view to the debriefings page
+                savoirStack.selectedChild = debriefingsMainBox;
+
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButSelected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = true;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = false;
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSettingsLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the settings page
+            // Input Vars:   	event - mouse event triggered by clicking "Settiings" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleSettingsLink(event:MouseEvent):void
+			{
+                // Set the view to the settings page
+                savoirStack.selectedChild = settingsMainBox;
+
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = true;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButSelected";
+				adminLink.styleName = "menuLinkButUnselected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = true;
+                adminMainBox.visible = false;
+			}
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleAdminLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch to the admin page
+            // Input Vars:   	event - mouse event triggered by clicking "Admin" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 09, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleAdminLink(event:MouseEvent):void
+            {
+                // Set the view to the Admin page
+                savoirStack.selectedChild = adminMainBox;
+                
+				// Set the link button to be disabled but enable all others since we don't know
+				// which button was last disabled
+				mySavoirLink.enabled = true;
+				devicesLink.enabled = true;
+				deviceRegLink.enabled = true;
+				scenariosLink.enabled = true;
+				debriefingsLink.enabled = false;
+				settingsLink.enabled = false;
+				adminLink.enabled = false;
+				
+				// Set the selected button text style
+				mySavoirLink.styleName = "menuLinkButUnselected";
+				devicesLink.styleName = "menuLinkButUnselected";
+				deviceRegLink.styleName = "menuLinkButUnselected";
+				scenariosLink.styleName = "menuLinkButUnselected";
+				debriefingsLink.styleName = "menuLinkButUnselected";
+				settingsLink.styleName = "menuLinkButUnselected";
+				adminLink.styleName = "menuLinkButSelected";
+				
+                // Set the visibility of the components of the page that are in mxml
+				mySavoirMainBox.visible = false;
+                devicesMainBox.visible = false;
+                deviceRegMainBox.visible = false;
+                scenariosMainBox.visible = false;
+                debriefingsMainBox.visible = false;
+                settingsMainBox.visible = false;
+                adminMainBox.visible = true;
+                
+				// Get all the users and groups since the lists could have been changed by other
+				// users. This is done in the Admin page initialization and the boolean value of
+				// true indicates that this call is triggered by clicking the Admin button
+                adminMainBox.adminInit(true);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleLogoutLink
+            // Author:       	Justin Hickey
+            // Purpose:      	To log out of the Savoir front end
+            // Input Vars:   	event - mouse event triggered by clicking "Logout" link
+            // Return Vars:  	none
+            // Date Created: 	Dec 11, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            public function handleLogoutLink(event:MouseEvent):void
+            {
+            	
+    			var parameterObj:Object;
+            	var lgMsg:LogoutMessage = new LogoutMessage(LogoutMessage.LOGOUT);
+
+    			Application.application.heartbeatTimer.stop();
+            	lgMsg.send();
+            	Bridge.disconnect();
+    			
+    			// Send a logout message to Savoir
+    			logoutXmlStr = "<message action=\"logout\" sessionID=\"" 
+    				+ defaultSessionId + "\">\n" 
+    	            + "</message>";
+    	
+    			parameterObj = {savoirmsg:logoutXmlStr};
+    			
+    			logoutDelegate = client.sendRequest("/SavoirWebBroker",
+    				URLRequestMethod.GET, parameterObj);
+
+                // Clear out the user name shared object
+   				this.SavoirUserName.clear();
+   				this.SavoirUserPassword.clear();
+            	this.SavoirUserName.flush();
+            	this.SavoirUserPassword.flush();
+            	this.userName = "";
+            	
+                
+                // Switch to the login page
+				loginURL = new URLRequest("http://" + this.serverName.data.serverName
+					+ "/savoir");
+				navigateToURL(loginURL, "_self");
+            }
+
+			// =================== Application Event Handlers =======================
+	
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initDefSessionCompleteHandler
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	event - the Savoir event that indicates the default session is
+			//					initialized
+			// Return Vars:  	none
+			// Date Created: 	Jan 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+    		private function initDefSessionCompleteHandler(event:SavoirEvent):void
+    		{
+    			initializeDeafultSessionResXml = XML(event.data);
+    	
+    			if (initializeDeafultSessionResXml.result != "success")
+    			{
+    				Alert.show("Initialize default session failed! Please try again later!", "Error");
+    			}
+    			else
+    			{
+    				defaultSessionId = parseInt(initializeDeafultSessionResXml.@sessionID);
+    				userSessionId = defaultSessionId;
+					initListener();
+					initListenerTimerIfNull();
+    			}
+    		}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initListenerReturnHandler
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	event -
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+            private function initListenerReturnHandler(event:InitListenerEvent):void{
+            	if(event.message.success == true){
+            		initListenerHandler.removeMessageType(InitListenerMessage.INITLISTENER);
+            		initListenerHandler.removeEventListener(InitListenerEvent.INITLISTENER,
+            			initListenerReturnHandler);
+            		initListenerTimer.stop();
+            		
+    				sendGetScenariosReq();
+    				
+            	}else{
+            		Alert.show("Savoir front end cannot initialze the System Tray manager!\n" 
+            			+ "Please logout and login again!");
+            	}
+            }
+            
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendHeartbeatMessage
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To 
+			// Input Vars:   	event -
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function sendHeartbeatMessage(event:Event):void{
+				var now:Date;
+				var heartbeatMsg:HeartbeatMessage = new HeartbeatMessage(HeartbeatMessage.HEARTBEAT);
+				
+				heartbeatMsg.send();
+				
+				loginTimeStampCtr = loginTimeStampCtr + 1;
+				
+				if(loginTimeStampCtr == loginTimeStampCtrThrshd)
+				{
+					now = new Date();
+					   				
+					// Store the current time in the shared object
+					this.lastLogTime.data.lastLogTime = now.getTime();
+            		this.lastLogTime.flush();
+            		
+            		loginTimeStampCtr = 0;
+				}
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendInitListenerMessage
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	event -
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function sendInitListenerMessage(event:Event):void
+			{
+				var deployServer:String = new String();
+				var initListenerMsg:InitListenerMessage = new InitListenerMessage(InitListenerMessage.INITLISTENER);
+
+				// Determine which type of server we are on - development or production
+				deployServer = resourceManager.getString("savoirFlex", "savoir.deploy.server");
+				
+				if (deployServer == "development")
+				{
+					initListenerMsg.server= "Dev";
+				}
+				else
+				{
+					initListenerMsg.server = "Prd";
+				}
+
+				initListenerMsg.sessionID = -1;
+				initListenerMsg.userSessionID = this.userSessionId;
+				initListenerMsg.url = resourceManager.getString("savoirFlex", "savoir.activemq.system.url");
+				initListenerMsg.isListenLogInfo = true;
+				initListenerMsg.send();
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	getScenariosCompleteHandler
+			// Author:       	Justin Hickey
+			// Purpose:      	To obtain all scenarios that the user has access to
+			// Input Vars:   	event - the data event that indicates the scenarios have been obtained
+			// Return Vars:  	none
+			// Date Created: 	Jun 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+    		private function getScenariosCompleteHandler(event:SavoirEvent):void
+    		{
+   				var scenarioXmlList:XMLList;
+   				var scenarioXml:XML;
+   				var scenarioItem:Scenario;
+
+    			// Get the scenario data from the database response
+    			getScenariosResXml = XML(event.data);
+   				scenarioXmlList = getScenariosResXml.scenario;
+   				
+   				// Check if the user has access to any scenarios
+   				if (scenarioXmlList.length() == 0)
+   				{
+   					// No scenarios is indicated by an empty scenario associative array
+   					scenarioData = null;
+
+    				// Get the available sessions
+    				sendGetJoinableSessionReq();
+    				
+   					return;
+   				}
+   				
+   				// Go through all the sceanrios and parse the XML data
+   				for each (scenarioXml in scenarioXmlList)
+   				{
+   					scenarioItem = parseScenarioData(scenarioXml);
+   				
+   					// Add the scenario item to the array collection.
+   					scenarioData.addItem(scenarioItem);
+   				}
+   				
+    			// Sort the scenarios
+                scenarioData.sort = scenarioSort;
+                scenarioData.refresh();
+    			
+ 				// Create the cursor for the scenarios array
+				scenarioCursor = scenarioData.createCursor();
+				
+   				// Get the available sessions
+    			sendGetJoinableSessionReq();
+    		}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	getJoinableSessionsCompleteHandler
+			// Author:       	Justin Hickey
+			// Purpose:      	To obtain all sessions that the user has access to
+			// Input Vars:   	event - the data event that indicates the sessions have been obtained
+			// Return Vars:  	none
+			// Date Created: 	Jun 27, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+    		private function getJoinableSessionsCompleteHandler(event:SavoirEvent):void
+    		{
+   				var sessionXmlList:XMLList;
+   				var sessionXml:XML;
+   				var sessionItem:Session;
+
+    			// Get the session data from the database response
+    			getJoinableSessionsResXml = XML(event.data);
+   				sessionXmlList = getJoinableSessionsResXml.session;
+   	
+   				// Check if the user has access to any sessions
+   				if (sessionXmlList.length() == 0)
+   				{
+   					// No sessions is indicated by an empty session associative array
+   					sessionData = null;
+
+					// Dispatch the event to render the window
+					dispatchEvent (new DataEvent(DataEvent.DATA, false, false, ""));
+   					
+   					return;
+   				}
+   				
+   				// Go through all the sessions and parse the XML data
+   				for each (sessionXml in sessionXmlList)
+   				{
+   					sessionItem = parseSessionData(sessionXml);
+   					
+   					// Check that we have a valid scenario - a negative scenarioId indicates
+   					// an invalid scenario - see the parseSessionData function for more details 
+   					if (sessionItem.scenarioID >= 0)
+   					{
+   						// Add the session item to the array collection
+   						sessionData.addItem(sessionItem);
+   					}
+   				}
+   				
+    			// Sort the sessions
+                sessionData.sort = sessionSort;
+                sessionData.refresh();
+    			
+				// Create the cursor for the sessions array
+				sessionCursor = sessionData.createCursor();
+				
+				// Dispatch the event to render the window
+				dispatchEvent (new DataEvent(DataEvent.DATA, false, false, ""));
+    		}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleRenderPage
+			// Author:       	Justin Hickey
+			// Purpose:      	To render the main application page
+			// Input Vars:   	event - the data event that indicates the data has been obtained
+			// Return Vars:  	none
+			// Date Created: 	Dec 07, 2009
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function handleRenderPage(event:DataEvent):void
+			{
+				// Create the view stack
+				savoirStack = new ViewStack();
+				savoirStack.percentWidth = 100;
+				savoirStack.percentHeight = 100;
+				savoirStack.resizeToContent = true;
+				savoirStack.creationPolicy = "all";
+				this.addChild(savoirStack);
+				
+				// Create the admin main page
+				adminMainBox = new AdminView();
+				
+				// Get all the users and groups. This is done in the Admin page initialization and
+				// the boolean value of false indicates that this call is not triggered by clicking
+				// the Admin button
+				adminMainBox.adminInit(false);
+				
+				// Create the my Savoir main page
+				mySavoirMainBox = new MySavoirView();
+				
+				// Create the tools and devices main page
+				devicesMainBox = new DevicesView();
+				devicesMainBox.client = client;
+				devicesMainBox.initDevices();
+				
+				// Create the device registration main page
+				deviceRegMainBox = new DeviceRegView();
+				
+				// Create the scenarios main page
+				scenariosMainBox = new ScenariosView();
+				
+				// Create the debriefings main page
+				debriefingsMainBox = new DebriefingsView();
+
+				// Create the settings main page
+				settingsMainBox = new SettingsView();
+
+				// Add the pages to the view stack
+				savoirStack.addChild(mySavoirMainBox);
+				savoirStack.addChild(devicesMainBox);
+				savoirStack.addChild(deviceRegMainBox);
+				savoirStack.addChild(scenariosMainBox);
+				savoirStack.addChild(debriefingsMainBox);
+				savoirStack.addChild(settingsMainBox);
+				savoirStack.addChild(adminMainBox);
+				
+				// Set the initial page to my Savoir
+				savoirStack.selectedChild = mySavoirMainBox;
+				
+				// Set the mySavoir link as active by default
+				handleMySavoirLink(new MouseEvent(MouseEvent.CLICK));
+			}
+
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     initializeApp
+			// Author:       Justin Hickey
+			// Purpose:      To instantiate the my Savoir page
+			// Input Vars:   none
+			// Return Vars:  none
+			// Date Created: Dec 07, 2009
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initializeApp():void
+			{
+				var currTime:Date;
+				
+				// Add a listener for a data event that is generated in the getData() function
+				// This ensures that the data is obtained before rendering the page
+				this.addEventListener(DataEvent.DATA, handleRenderPage, false, 0, false);
+
+				// Initialize the shared objects and check if user is logged in
+				initSharedObjects();
+				
+				//Alert.show("userName = " + this.userName);
+				currTime = new Date();
+				
+				if (this.userName == null || this.lastLogTime.data.lastLogTime < (currTime.getTime() - 30000))
+				{
+                	// Switch to the login page
+					loginURL = new URLRequest("http://" + this.serverName.data.serverName
+						+ "/savoir");
+					navigateToURL(loginURL, "_self");
+					
+					return;
+				}
+				
+				startSocketProxy();
+				getData();
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	mySavoirComplete
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Jun 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function mySavoirComplete():void
+			{
+				initHeartbeatTimer();
+			}
+
+			// =============== Global Application Public Functions ==================
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	parseScenarioData()
+			// Author:       	Justin Hickey
+			// Purpose:      	To parse scenario data in the returned XML string from the server.
+			//					This function will create a new Scenario object, add the new data,
+			//					and then return the scenario instance. An example of the XML data
+			//					is as follows:
+			//
+			//					<scenario scenarioID="123"
+			//						name="The scenario"
+			//						lastModified="1279028147000"
+			//						authorName="John Doe"
+			//						description="This does nothing"
+			//						deviceNames="Device One, Device Two"
+			//						apnConnections="Fredericton to Ottawa, 1-2MB;
+			//							Ottawa to Sudbury, 2-3MB" />
+			//
+			// Input Vars:   	xmlData - xml data containing the scenario information
+			// Return Vars:  	scenario - scenario instance containg the data from the XML data 
+			// Date Created: 	Aug 17, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function parseScenarioData(xmlData:XML):Scenario
+			{
+   				var scenario:Scenario;
+
+   				// Get a new scenario object
+   				scenario = new Scenario();
+   					
+   				// Strip out the scenario data and add it to the scenario item
+   				scenario.scenarioID = new Number(parseInt(xmlData.@scenarioID));
+   				scenario.title = xmlData.@name;
+   				scenario.author = xmlData.@authorName;
+   				scenario.devices = xmlData.@deviceNames;
+   				scenario.description = xmlData.@description;
+   				scenario.apnConnections = xmlData.@apnConnections;
+   				
+   				// The date is sent as the number of milliseconds from the epoch as a string,
+   				// so convert it to a Number since the Date constructor requires the epoch to
+   				// be a number, not a string
+   				scenario.lastEdited = new Date(new Number(xmlData.@lastModified));
+   				
+   				return scenario;
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	parseSessionData()
+			// Author:       	Justin Hickey
+			// Purpose:      	To parse session data in the returned XML string from the server.
+			//					This function will create a new Session object, add the new data,
+			//					and then return the session instance. An example of the XML data
+			//					is as follows: NOTE - the status is not actually sent in the
+			//					response yet!!
+			//
+			//					<session name="test"
+			//						sessionID="1234-1111-2222"
+			//						description="test run"
+			//						authorName="John Doe"
+			//						submissionTime="1279025234000"
+			//						startTime="1279028147000"
+			//						endTime="1279028779000"
+			//						status = "SCHEDULED"
+			//						scenarioID="1234" >
+			//
+			//						<groups>
+			//							<group groupId="3"
+			//								name="Sysadmin"
+			//								description="System Administrators" />
+			//							<group groupId="5"
+			//								name="Tutors"
+			//								description="Tutors" />
+			//						</groups>
+			//
+			//						<users>
+			//							<user userId="8"
+			//								username="Jane Doe"
+			//								status="NOT-JOINED" />
+			//							<user userId="4"
+			//								username="Jack Doe"
+			//								status="NOT-JOINED" />
+			//						</users>
+			//
+			//					</session>
+			//
+			// Input Vars:   	xmlData - xml data containing the session information
+			// Return Vars:  	session - session instance containg the data from the XML data 
+			// Date Created: 	Aug 17, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function parseSessionData(xmlData:XML):Session
+			{
+   				var session:Session;
+   				var sessionStrId:String = new String();
+   				var sessionArray:Array;
+   				var userXmlList:XMLList;
+   				var userXml:XML;
+   				var authUserList:ArrayCollection;
+   				var groupXmlList:XMLList;
+   				var groupXml:XML;
+   				var groupList:ArrayCollection;
+   				var found:Boolean;
+
+   				// Get a new session object
+   				session = new Session();
+   				
+   				// Strip off the master session ID if necessary
+   				sessionStrId = xmlData.@sessionID;
+   				
+   				if (sessionStrId.indexOf("-") > -1)
+   				{
+   					// Split the session string into its parts
+   					sessionArray = sessionStrId.split("-");
+   					
+   					// We only need the master session ID for now, ignore the other parts
+   					sessionStrId = sessionArray[0];
+   				}
+   				
+   				// Strip out the session data and add it to the session instance
+   				session.sessionID = new Number(parseInt(sessionStrId));
+   				session.scenarioID = new Number(parseInt(xmlData.@scenarioID));
+   				session.title = xmlData.@name;
+   				session.author = xmlData.@authorName;
+   				session.status = xmlData.@status;
+   				session.description = xmlData.@description;
+   				
+   				// Get the authorized user data
+   				userXmlList = xmlData.users.user;
+   				
+   				// Check if there are any users listed for this session
+   				if (userXmlList.length() != 0)
+   				{
+   					authUserList = new ArrayCollection();
+   					
+   					// Go through the users and build the authorized user list
+   					for each (userXml in userXmlList)
+   					{
+   						authUserList.addItem({username:userXml.@username});
+   					}
+   					
+   					session.authUsers = authUserList;
+   				}
+   				
+   				// Get the authorized group data
+   				groupXmlList = xmlData.groups.group;
+   				
+   				// Check if there are any users listed for this session
+   				if (groupXmlList.length() != 0)
+   				{
+   					groupList = new ArrayCollection();
+   					
+   					// Go through the users and build the authorized user list
+   					for each (groupXml in groupXmlList)
+   					{
+  						groupList.addItem({groupName:groupXml.@name});
+   					}
+   					
+   					session.authGroups = groupList;
+   				}
+   				
+   				// The date is sent as the number of milliseconds from the epoch as a string,
+   				// so convert it to a Number since the Date constructor requires the epoch to
+   				// be a number, not a string
+   				session.submitted = new Date(new Number(xmlData.@submissionTime));
+   				session.start = new Date(new Number(xmlData.@startTime));
+   				session.end = new Date(new Number(xmlData.@endTime));
+   				
+   				// Find the scenario data from the scenario array - note that the scenarioID
+   				// is used to find the correct scenario in the scenario array
+   				found = scenarioCursor.findAny({scenarioID:session.scenarioID});
+   				
+   				if (found)
+   				{
+   					session.scenarioData = scenarioCursor.current as Scenario;
+   				}
+   				else
+   				{
+   					// Scenario data not found - probably no scenarioID defined. Set an
+   					// invalid scenarioID
+   					session.scenarioID = -1;
+   					
+   					// Pop up a message to have the user tell the Savoir Admin about the issue
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Database Corruption Error";
+   		    		popupWindow.setMessage("ERROR: A session was found that did not link to "
+   		    			+ "an existing scenario.\n"
+   		    			+ "The most likely cause for this error is that the record in the\n"
+   		    			+ "database for the session does not have a corresponding scenario ID.\n" 
+   		    			+ "Generated in the session XML parser while processiong session data\n"
+   		    			+ "sent from the server for session ID = " + session.sessionID + ".\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error.\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);	
+   				}
+   				
+   				return session;
+			}
+
+			// ======================= Private Functions ============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	startSocketProxy
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Dec 07, 2009
+			//////////////////////////////////////////////////////////////////////////////////////
+            private function startSocketProxy():void
+            { 
+                var systemTrayUrl:String = new String();
+   				var urlReq:URLRequest;
+   				
+   				systemTrayUrl = "http://" + this.serverName.data.serverName
+   					+ "/mySavoir/socketproxy/savoirServerBridge.jnlp";
+   				urlReq = new URLRequest(systemTrayUrl);
+    			navigateToURL(urlReq, "_blank");
+            }
+            
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initListener
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+            private function initListener():void{
+            	initListenerHandler = new InitListenerMessageHandler();
+            	initListenerHandler.addEventListener(InitListenerEvent.INITLISTENER,
+            		initListenerReturnHandler, false, 0, true);
+            }
+            
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initListenerReturnProcess
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+            private function initListenerReturnProcess():void{
+            	if(this.firstInitListenerResult == true){
+            		initListenerTimer.stop();
+    				sendGetScenariosReq();
+            	}else{
+            		
+            		Alert.show("Savoir front end cannot initialze the System Tray manager!\n" 
+            			+ "Please logout and login again!");
+            	}
+            }
+            
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initListenerTimerIfNull
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+            private function initListenerTimerIfNull():void {
+				if(initListenerTimer == null) {
+					initListenerTimer = new Timer(initListenerDelayTime, this.initListenerMaxTimes);
+					initListenerTimer.addEventListener(TimerEvent.TIMER, sendInitListenerMessage,
+						false, 0, true);
+				}
+				if(!initListenerTimer.running){
+					initListenerTimer.start();
+				}
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initHeartbeatTimer
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function initHeartbeatTimer():void{
+				if(heartbeatTimer ==  null){
+					heartbeatTimer = new Timer(2000,0);
+					heartbeatTimer.addEventListener(TimerEvent.TIMER, sendHeartbeatMessage, false,
+						0, false);
+				}
+				if(!heartbeatTimer.running){
+					heartbeatTimer.start();
+				}
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	getData
+			// Author:       	Justin Hickey
+			// Purpose:      	To get the different types of data required to render the interface
+			//					before the interface is actually rendered 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Dec 07, 2009
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function getData():void
+			{
+				// Set the values required for the interface
+				logoFile = "assets/images/savoirLogoCyanSmallTrans.png";
+				versionText = "Version: 2.0";
+				mySavoirText = "mySAVOIR";
+				devicesText = "Tools and Devices";
+				deviceRegText = "Device Registration";
+				scenariosText = "Scenarios";
+				debriefingsText = "Debriefings";
+				settingsText = "Settings";
+				adminText = "Admin";
+				logoutText = "Log Out";
+				
+				// Initialize the authentication data
+				initAuthentication();
+				
+				// Set the welcome text for the top bar
+				userText = "Welcome " + this.userName;
+				
+				// Create a new sorts for sorting the scenarios and sessions
+                scenarioSort = new Sort();
+                scenarioSort.fields = [new SortField("scenarioID", true)];
+                sessionSort = new Sort();
+                sessionSort.fields = [new SortField("sessionID", true)];
+                
+				// Initialize the default session for the user
+				sendInitializeDefaultSessionReq();
+            }
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initSharedObjects
+			// Author:       	Justin Hickey
+			// Purpose:      	To initialize the shared objects required for this application
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Feb 04, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function initSharedObjects():void
+			{
+    			this.oAuthTokenKey = SharedObject.getLocal("oauthkey","/");
+    			this.oAuthTokenSecret = SharedObject.getLocal("oauthsecret","/");
+    			this.SavoirUserName = SharedObject.getLocal("username","/");
+    			this.SavoirUserPassword = SharedObject.getLocal("userpassword","/");
+    			this.lastLogTime = SharedObject.getLocal("lastLogTime","/");
+    			this.SavoirUserSite = SharedObject.getLocal("site","/");
+				this.serverName = SharedObject.getLocal("serverName","/");
+//				this.scenarios = SharedObject.getLocal("scenarios","/");
+//				this.sessions = SharedObject.getLocal("sessions","/");
+
+    			this.userName = SavoirUserName.data.userName;
+    			this.userPassword = SavoirUserPassword.data.userPassword;
+			    this.userSite = SavoirUserSite.data.userSite;
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initAuthentication
+			// Author:       	Justin Hickey
+			// Purpose:      	To initialize the oAuth authentication client required for this
+			//					application
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Feb 04, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function initAuthentication():void
+			{
+    			var oAuthKey:String = oAuthTokenKey.data.key;
+    			var oAuthSecret:String = oAuthTokenSecret.data.secret;
+    
+    			this.client = new OAuthClient(userName, userPassword, new OAuthToken(oAuthKey,oAuthSecret), false, "xml");
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendInitializeDefaultSessionReq
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function sendInitializeDefaultSessionReq():void
+			{
+    			var parameterObj:Object;
+    			
+    			initializeDefaultSessionXmlStr = "<message action=\"initialize_default_session\" "
+    				+ "sessionID=\"0\">\n"
+    	            + "<service>\n"
+    	            + "<parameter id=\"Site_Location\" value=\"" + this.userSite +"\"/>\n"
+    	            + "</service>\n"
+    	            + "</message>";
+        
+        		parameterObj = {savoirmsg:initializeDefaultSessionXmlStr};
+     			
+     			initializeDefaultSessionDelegate = client.sendRequest("/SavoirWebBroker",
+     				URLRequestMethod.GET, parameterObj);
+    			initializeDefaultSessionDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+    				initDefSessionCompleteHandler);
+    		}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendGetScenariosReq
+			// Author:       	Justin Hickey
+			// Purpose:      	To send a request to obtain all the scenarios a user has access to
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Jun 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+    		private function sendGetScenariosReq():void
+    		{
+    			var parameterObj:Object;
+    			
+    			// Need to make this based on user
+    			getScenariosXmlStr = "<message action=\"get_scenarios\" sessionID=\"" 
+    				+ defaultSessionId + "\">\n" 
+    	            + "</message>";
+    	
+    			parameterObj = {savoirmsg:getScenariosXmlStr};
+    			
+    			getScenariosDelegate = client.sendRequest("/SavoirWebBroker",
+    				URLRequestMethod.GET, parameterObj);
+    			getScenariosDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+    				getScenariosCompleteHandler);
+    		}
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendGetJoinableSessionReq
+			// Author:       	Yonghua You
+			// Purpose:      	To 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+    		private function sendGetJoinableSessionReq():void
+    		{
+    			var parameterObj:Object;
+    			
+    			getJoinableSessionsXmlStr = "<message action=\"get_joinable_session\" sessionID=\"" 
+    				+ defaultSessionId + "\">\n" 
+    	            + "</message>";
+    	
+    			parameterObj = {savoirmsg:getJoinableSessionsXmlStr};
+    			
+    			getJoinableSessionDelegate = client.sendRequest("/SavoirSessionAdmin",
+    				URLRequestMethod.GET, parameterObj);
+    			getJoinableSessionDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+    				getJoinableSessionsCompleteHandler);
+    		}
+
+        ]]>
+    </mx:Script>
+</mx:Application>

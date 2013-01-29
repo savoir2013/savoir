@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/DeviceRegView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%" paddingBottom="10" paddingLeft="40" paddingRight="40" paddingTop="10"
+	verticalGap="10" initialize="initRegistration()">
+	
+	<mx:Label text="Device Registration" styleName="sectionLabel"/>
+	<mx:Label text="Please fill in the fields below and then click Submit Registration" styleName="headingLabel"/>
+	
+	<mx:HRule width="100%" />
+	
+	<mx:Form id="regForm" width="100%">
+		<mx:Label text="New Service Information" styleName="sectionLabel"/>
+		
+		<mx:FormItem label="Service Name: " width="100%">
+			<mx:TextInput id="serviceName" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem id="typeItem" label="Service Type: " width="100%">
+			<mx:ComboBox id="serviceType" width="50%" prompt="Select one..." dataProvider="{serviceTypes}"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Service Description: " width="100%">
+			<mx:TextArea id="serviceDescription" width="50%"/>
+		</mx:FormItem>
+				
+		<mx:Label text="Contact Information" styleName="sectionLabel" />
+		
+		<mx:HBox paddingLeft="20">
+			<mx:Label text="Please provide either a SAVOIR user name or your contact information"/>
+		</mx:HBox>
+		
+		<mx:FormItem label="SAVOIR User Name: " width="100%">
+			<mx:TextInput id="contactSavoirName" width="50%" change="handleSavoirUserChange(event)"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Title: " width="100%">
+			<mx:ComboBox id="contactTitle" width="50%" prompt="Select one..." dataProvider="{contactTitles}"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="First Name: " width="100%">
+			<mx:TextInput id="contactFirstName" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Last Name: " width="100%">
+			<mx:TextInput id="contactLastName" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Phone Number: " width="100%">
+			<mx:TextInput id="contactPhone" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="E-mail Address: " width="100%">
+			<mx:TextInput id="contactEmail" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Organization: " width="100%">
+			<mx:TextInput id="contactOrg" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Street Address: " width="100%">
+			<mx:TextInput id="contactStreetAddr" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="City: " width="100%">
+			<mx:TextInput id="contactCity" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Province / State: " width="100%">
+			<mx:ComboBox id="contactRegion" width="50%" prompt="Select one..." dataProvider="{provStates}"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Country: " width="100%">
+			<mx:ComboBox id="contactCountry" width="50%" prompt="Select one..." dataProvider="{countries}"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Postal Code: " width="100%">
+			<mx:TextInput id="contactPostalCode" width="50%"/>
+		</mx:FormItem>
+		
+		<mx:Label text="Network Information" styleName="sectionLabel" />
+		<mx:Label text="Sending Messages to the Service" styleName="headingLabel" paddingLeft="30" />
+
+		<mx:FormItem label="Protocol: " width="100%" paddingLeft="30">
+			<mx:ComboBox id="networkServiceProtocol" width="50%" prompt="Select one..." dataProvider="{protocols}"
+				selectedIndex="0" change="handleNetServiceChange(event)"/>
+		</mx:FormItem>
+
+		<mx:FormItem label="TCP IP Address: " width="100%" paddingLeft="30">
+			<mx:TextInput id="networkServiceTcpIpAddr" width="50%" enabled="false"/>
+		</mx:FormItem>
+				
+		<mx:FormItem label="TCP Port: " width="100%" paddingLeft="30">
+			<mx:TextInput id="networkServiceTcpPort" width="50%" enabled="false"/>
+		</mx:FormItem>
+				
+		<mx:Label text="Sending Messages to SAVOIR" styleName="headingLabel" paddingLeft="30"/>
+
+		<mx:FormItem label="Protocol: " width="100%" paddingLeft="30">
+			<mx:ComboBox id="networkSavoirProtocol" width="50%" prompt="Select one..." dataProvider="{protocols}"
+				selectedIndex="0" change="handleNetSavoirChange(event)"/>
+		</mx:FormItem>
+
+		<mx:FormItem label="TCP IP Address: " width="100%" paddingLeft="30">
+			<mx:TextInput id="networkSavoirTcpIpAddr" width="50%" enabled="false"/>
+		</mx:FormItem>
+				
+		<mx:FormItem label="TCP Port: " width="100%" paddingLeft="30">
+			<mx:TextInput id="networkSavoirTcpPort" width="50%" enabled="false"/>
+		</mx:FormItem>
+				
+		<mx:Label text="Device Information" styleName="sectionLabel" />
+		
+<!-- NOTE: we need to disable this input field since there is a bug in the database schema that
+	causes an error when this field is sent to the back end
+		<mx:FormItem label="Maximum Simultaneous Users: " width="100%">
+			<mx:TextInput id="deviceMaxSimUsers" width="50%" text="1"/>
+		</mx:FormItem>
+-->
+		<mx:FormItem label="Authentication Required: " width="100%">
+			<mx:CheckBox id="deviceAuthReq" width="50%" label="yes"/>
+		</mx:FormItem>
+		
+		<mx:FormItem label="Authentication Type: " width="100%">
+			<mx:ComboBox id="deviceAuthType" width="50%" prompt="Select one..." dataProvider="{authTypes}"/>
+		</mx:FormItem>
+		
+	</mx:Form>
+	
+	<mx:Button id="submitRegBut" label="Submit Registration" click="handleSubmitRegistration(event)"/>
+	<mx:Text text="Please note, if you would like to submit an icon for your device, please send an e-mail to the SAVOIR system administrator." />
+	
+	<mx:Script>
+    	<![CDATA[
+
+   	        import mx.core.Application;
+  			import mx.managers.PopUpManager;
+   			import mx.controls.Alert;
+    		import mx.collections.ArrayCollection;
+    		import mx.events.ListEvent;
+    		import flash.events.Event;
+  			import events.SavoirEvent;
+  			import savoirComp.InfoPopupWindow;
+  			import savoiroauth.OAuthDelegate;
+
+			// ======================= External Modules =============================
+
+			// none
+			
+			// ======================= Public Members ===============================
+			
+			// none
+
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+   			private var popupWindow:InfoPopupWindow;
+
+			[Bindable]
+			private var serviceTypes:ArrayCollection = new ArrayCollection();
+			
+			[Bindable]
+			private var contactTitles:ArrayCollection = new ArrayCollection(
+				[{label:"none", data:""},
+					{label:"Ms.", data:"Ms."},
+					{label:"Miss.", data:"Miss"},
+					{label:"Mrs.", data:"Mrs."},
+					{label:"Mr.", data:"Mr."},
+					{label:"Dr.", data:"Dr."},
+				]
+			);
+			
+			[Bindable]
+			private var provStates:ArrayCollection = new ArrayCollection(
+				[{label:"none", data:""},
+					{label:"Alberta", data:"Alberta"},
+					{label:"British Columbia", data:"British Columbia"},
+					{label:"Manitoba", data:"Manitoba"},
+					{label:"New Brunswick", data:"New Brunswick"},
+					{label:"Newfoundland and Labrador", data:"Newfoundland and Labrador"},
+					{label:"Northwest Territories", data:"Northwest Territories"},
+					{label:"Nova Scotia", data:"Nova Scotia"},
+					{label:"Nunavut", data:"Nunavut"},
+					{label:"Ontario", data:"Ontario"},
+					{label:"Prince Edward Island", data:"Prince Edward Island"},
+					{label:"Quebec", data:"Quebec"},
+					{label:"Saskatchewan", data:"Saskatchewan"},
+					{label:"Yukon", data:"Yukon"},
+					{label:"===================", data:""},
+					{label:"Alabama", data:"Alabama"},
+					{label:"Alaska", data:"Alaska"},
+					{label:"Arizona", data:"Arizona"},
+					{label:"Arkansas", data:"Arkansas"},
+					{label:"California", data:"California"},
+					{label:"Colorado", data:"Colorado"},
+					{label:"Connecticut", data:"Connecticut"},
+					{label:"District of Columbia", data:"District of Columbia"},
+					{label:"Delaware", data:"Delaware"},
+					{label:"Florida", data:"Florida"},
+					{label:"Georgia", data:"Georgia"},
+					{label:"Hawaii", data:"Hawaii"},
+					{label:"Idaho", data:"Idaho"},
+					{label:"Illinois", data:"Illinois"},
+					{label:"Indiana", data:"Indiana"},
+					{label:"Iowa", data:"Iowa"},
+					{label:"Kansas", data:"Kansas"},
+					{label:"Kentucky", data:"Kentucky"},
+					{label:"Louisiana", data:"Louisiana"},
+					{label:"Maine", data:"Maine"},
+					{label:"Maryland", data:"Maryland"},
+					{label:"Massachusetts", data:"Massachusetts"},
+					{label:"Michigan", data:"Michigan"},
+					{label:"Minnesota", data:"Minnesota"},
+					{label:"Mississippi", data:"Mississippi"},
+					{label:"Missouri", data:"Missouri"},
+					{label:"Montana", data:"Montana"},
+					{label:"Nebraska", data:"Nebraska"},
+					{label:"Nevada", data:"Nevada"},
+					{label:"New Hampshire", data:"New Hampshire"},
+					{label:"New Jersey", data:"New Jersey"},
+					{label:"New Mexico", data:"New Mexico"},
+					{label:"New York", data:"New York"},
+					{label:"North Carolina", data:"North Carolina"},
+					{label:"North Dakota", data:"North Dakota"},
+					{label:"Ohio", data:"Ohio"},
+					{label:"Oklahoma", data:"Oklahoma"},
+					{label:"Oregon", data:"Oregon"},
+					{label:"Pennsylvania", data:"Pennsylvania"},
+					{label:"Rhode Island", data:"Rhode Island"},
+					{label:"South Carolina", data:"South Carolina"},
+					{label:"South Dakota", data:"South Dakota"},
+					{label:"Tennessee", data:"Tennessee"},
+					{label:"Texas", data:"Texas"},
+					{label:"Utah", data:"Utah"},
+					{label:"Vermont", data:"Vermont"},
+					{label:"Virginia", data:"Virginia"},
+					{label:"Washington", data:"Washington"},
+					{label:"West Virginia", data:"West Virginia"},
+					{label:"Wisconsin", data:"Wisconsin"},
+					{label:"Wyoming", data:"Wyoming"},
+				]
+			);
+			
+			[Bindable]
+			private var countries:ArrayCollection = new ArrayCollection(
+				[{label:"none", data:""},
+					{label:"Canada", data:"Canada"},
+					{label:"United States", data:"United States"},
+				]
+			);
+			
+			[Bindable]
+			private var protocols:ArrayCollection = new ArrayCollection(
+				[{label:"JMS", data:"jms"},
+					{label:"TCP Sockets", data:"tcpSockets"},
+				]
+			);
+			
+			[Bindable]
+			private var authTypes:ArrayCollection = new ArrayCollection(
+				[{label:"none", data:""},
+					{label:"Username and Password", data:"username_password"},
+				]
+			);
+			
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleSavoirUserChange
+			// Author:       	Justin Hickey
+			// Purpose:      	To disable all the contact information input fields if the user enters
+			//					a SAVOIR user ID, or enable them if a SAVOIR user ID is removed. 
+			// Input Vars:   	event - event triggered by changing the text in the SAVOIR User Name
+			//					input field
+			// Return Vars:  	none
+			// Date Created: 	Aug 04, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleSavoirUserChange(event:Event):void
+			{
+				
+				if (contactSavoirName.text == "" && !contactTitle.enabled)
+				{
+					// Enable the contact information input fileds
+					contactTitle.enabled = true;
+					contactFirstName.enabled = true;
+					contactLastName.enabled = true;
+					contactPhone.enabled = true;
+					contactEmail.enabled = true;
+					contactOrg.enabled = true;
+					contactStreetAddr.enabled = true;
+					contactCity.enabled = true;
+					contactRegion.enabled = true;
+					contactCountry.enabled = true;
+					contactPostalCode.enabled = true;
+				}
+				else if (contactTitle.enabled)
+				{
+					// Disable the contact information input fileds
+					contactTitle.enabled = false;
+					contactFirstName.enabled = false;
+					contactLastName.enabled = false;
+					contactPhone.enabled = false;
+					contactEmail.enabled = false;
+					contactOrg.enabled = false;
+					contactStreetAddr.enabled = false;
+					contactCity.enabled = false;
+					contactRegion.enabled = false;
+					contactCountry.enabled = false;
+					contactPostalCode.enabled = false;
+				}
+   			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleNetServiceChange
+			// Author:       	Justin Hickey
+			// Purpose:      	To enable the TCP options if the user selects the TCP protocol for the
+			//					communications with the edge service 
+			// Input Vars:   	event - event triggered by clicking the TCP option in the network
+			//					service protocol combo box
+			// Return Vars:  	none
+			// Date Created: 	Jul 20, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleNetServiceChange(event:ListEvent):void
+			{
+				
+				if (networkServiceProtocol.selectedItem.data == "tcpSockets")
+				{
+					// Set the TCP text input fields to be enabled if the user chose the TCP protocol
+					networkServiceTcpIpAddr.enabled = true;
+					networkServiceTcpPort.enabled = true;
+				}
+				else
+				{
+					// Clear out any text that might have been entered
+					networkServiceTcpIpAddr.text = "";
+					networkServiceTcpPort.text = "";
+					
+					// Make sure the TCP text input fields are disabled 
+					networkServiceTcpIpAddr.enabled = false;
+					networkServiceTcpPort.enabled = false;
+				}
+   			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleNetSavoirChange
+			// Author:       	Justin Hickey
+			// Purpose:      	To enable the TCP options if the user selects the TCP protocol for the
+			//					communications with Savoir 
+			// Input Vars:   	event - event triggered by clicking the TCP option in the network
+			//					Savoir protocol combo box
+			// Return Vars:  	none
+			// Date Created: 	Jul 20, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleNetSavoirChange(event:ListEvent):void
+			{
+				
+				if (networkSavoirProtocol.selectedItem.data == "tcpSockets")
+				{
+					// Set the TCP text input fields to be enabled if the user chose the TCP protocol
+					networkSavoirTcpIpAddr.enabled = true;
+					networkSavoirTcpPort.enabled = true;
+				}
+				else
+				{
+					// Clear out any text that might have been entered
+					networkSavoirTcpIpAddr.text = "";
+					networkSavoirTcpPort.text = "";
+					
+					// Make sure the TCP text input fields are disabled 
+					networkSavoirTcpIpAddr.enabled = false;
+					networkSavoirTcpPort.enabled = false;
+				}
+   			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleSubmitRegistration
+			// Author:       	Justin Hickey
+			// Purpose:      	To create the XML message that will submit the registration
+			//					information to SAVOIR
+			// Input Vars:   	event - event triggered by clicking the Submit Registration button
+			// Return Vars:  	none
+			// Date Created: 	Mar 15, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleSubmitRegistration(event:MouseEvent):void
+			{
+   				var submitRegXmlStr:String;				// XML data of message element
+   				var submitRegDelegate:OAuthDelegate;	// Oauth delegate to send message to SAVOIR server
+   				var parameterObj:Object;				// Object containing message to send to SAVOIR server
+   				var authReq:String = new String();		// String representation for a boolean value
+   				
+   				// Make sure the combo box items have a selection, for now just choose "none" - index 0
+   				// This should be checked and submission refused if a combo box does not have a
+   				// selection - part of input validation
+   				if (serviceType.selectedIndex < 0)
+   				{
+   					serviceType.selectedIndex = 0;
+   				}
+   				if (contactTitle.selectedIndex < 0)
+   				{
+   					contactTitle.selectedIndex = 0;
+   				}
+   				if (contactRegion.selectedIndex < 0)
+   				{
+   					contactRegion.selectedIndex = 0;
+   				}
+   				if (contactCountry.selectedIndex < 0)
+   				{
+   					contactCountry.selectedIndex = 0;
+   				}
+   				if (deviceAuthType.selectedIndex < 0)
+   				{
+   					deviceAuthType.selectedIndex = 0;
+   				}
+   				
+   				// Obtain the authorization required field as a string
+   				if (deviceAuthReq.selected)
+   				{
+   					authReq = "true";
+   				}
+   				else
+   				{
+   					authReq = "false";
+   				}
+   				
+// NOTE: When the database is fixed and the maximum simultaneous users field is re-enabled change the
+//		the + "<device>\n" tag in both message builds below to the following
+//		+ "<device maxSimultaneousUsers=\"" + deviceMaxSimUsers.text + "\">\n"
+
+   				// Build the message XML
+   				if (contactSavoirName.text == "")
+				{
+   					// Do not include the SavoirUserName in the message
+   					submitRegXmlStr = "<message action=\"new_device_registration\">\n"
+            			+ "<newService>\n"
+            			+ "<service ID=\"\" name=\"" + serviceName.text + "\" "
+            			+ "type=\"" + serviceType.selectedItem.data + "\">\n"
+            			+ "<description>" + serviceDescription.text + "</description>\n"
+            			+ "<contact title=\"" + contactTitle.selectedItem.data + "\"\n"
+            			+ "firstName=\"" + contactFirstName.text + "\"\n"
+            			+ "lastName=\"" + contactLastName.text + "\"\n"
+            			+ "phone=\"" + contactPhone.text + "\"\n"
+            			+ "email=\"" + contactEmail.text + "\"\n"
+            			+ "organization=\"" + contactOrg.text + "\"\n"
+            			+ "streetAddress=\"" + contactStreetAddr.text + "\"\n"
+            			+ "city=\"" + contactCity.text + "\"\n"
+            			+ "region=\"" + contactRegion.selectedItem.data + "\"\n"
+            			+ "country=\"" + contactCountry.selectedItem.data + "\"\n"
+            			+ "postalCode=\"" + contactPostalCode.text + "\"/>\n"
+            			+ "</service>\n"
+            			+ "<network>\n"
+            			+ "<toService protocol=\"" + networkServiceProtocol.selectedItem.data + "\">\n"
+            			+ "<jms>\n"
+            			+ "<jmsTransportConnector method=\"http\">\n"
+            			+ "<uri></uri>\n"
+            			+ "<topic></topic>\n"
+            			+ "</jmsTransportConnector>\n"
+            			+ "</jms>\n"
+            			+ "<tcpSocket>\n"
+            			+ "<ipAddress>" + networkServiceTcpIpAddr.text + "</ipAddress>\n"
+            			+ "<portNumber>" + networkServiceTcpPort.text + "</portNumber>\n"
+            			+ "</tcpSocket>\n"
+            			+ "</toService>\n"
+            			+ "<toSavoir protocol=\"" + networkSavoirProtocol.selectedItem.data + "\">\n"
+            			+ "<jms>\n"
+            			+ "<jmsTransportConnector method=\"http\">\n"
+            			+ "<uri></uri>\n"
+            			+ "<topic></topic>\n"
+            			+ "</jmsTransportConnector>\n"
+            			+ "</jms>\n"
+            			+ "<tcpSocket>\n"
+            			+ "<ipAddress>" + networkSavoirTcpIpAddr.text + "</ipAddress>\n"
+            			+ "<portNumber>" + networkSavoirTcpPort.text + "</portNumber>\n"
+            			+ "</tcpSocket>\n"
+            			+ "</toSavoir>\n"
+            			+ "</network>\n"
+            			+ "<device>\n"
+            			+ "<authentication required=\"" + authReq + "\" "
+            			+ "type=\"" + deviceAuthType.selectedItem.data + "\" />\n"
+            			+ "</device>\n"
+            	    	+ "</newService>\n"
+            	    	+ "</message>";
+				}
+				else
+				{
+   					// Do not include the contact information in the message
+   					submitRegXmlStr = "<message action=\"new_device_registration\">\n"
+            			+ "<newService>\n"
+            			+ "<service ID=\"\" name=\"" + serviceName.text + "\" "
+            			+ "type=\"" + serviceType.selectedItem.data + "\">\n"
+            			+ "<description>" + serviceDescription.text + "</description>\n"
+            			+ "<contact savoirUser=\"" + contactSavoirName.text + "\"/>\n"
+            			+ "</service>\n"
+            			+ "<network>\n"
+            			+ "<toService protocol=\"" + networkServiceProtocol.selectedItem.data + "\">\n"
+            			+ "<jms>\n"
+            			+ "<jmsTransportConnector method=\"http\">\n"
+            			+ "<uri></uri>\n"
+            			+ "<topic></topic>\n"
+            			+ "</jmsTransportConnector>\n"
+            			+ "</jms>\n"
+            			+ "<tcpSocket>\n"
+            			+ "<ipAddress>" + networkServiceTcpIpAddr.text + "</ipAddress>\n"
+            			+ "<portNumber>" + networkServiceTcpPort.text + "</portNumber>\n"
+            			+ "</tcpSocket>\n"
+            			+ "</toService>\n"
+            			+ "<toSavoir protocol=\"" + networkSavoirProtocol.selectedItem.data + "\">\n"
+            			+ "<jms>\n"
+            			+ "<jmsTransportConnector method=\"http\">\n"
+            			+ "<uri></uri>\n"
+            			+ "<topic></topic>\n"
+            			+ "</jmsTransportConnector>\n"
+            			+ "</jms>\n"
+            			+ "<tcpSocket>\n"
+            			+ "<ipAddress>" + networkSavoirTcpIpAddr.text + "</ipAddress>\n"
+            			+ "<portNumber>" + networkSavoirTcpPort.text + "</portNumber>\n"
+            			+ "</tcpSocket>\n"
+            			+ "</toSavoir>\n"
+            			+ "</network>\n"
+            			+ "<device>\n"
+            			+ "<authentication required=\"" + authReq + "\" "
+            			+ "type=\"" + deviceAuthType.selectedItem.data + "\" />\n"
+            			+ "</device>\n"
+            	    	+ "</newService>\n"
+            	    	+ "</message>";
+				}
+            	    
+    			// Send the message to the SAVOIR server
+    			parameterObj = {savoirmsg:submitRegXmlStr};
+      			submitRegDelegate = Application.application.client.sendRequest("/SavoirResourceAdmin",
+      				URLRequestMethod.GET, parameterObj);
+      				
+      			// Add an event listener to handle the response
+      			submitRegDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+      				handleSubmitRegComplete);
+   			}
+			
+			// =================== Application Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleGetResTypesComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To obtain and set the resource types
+            // Input Vars:   	event - event triggered by successful completion of the get
+            //					resource types call
+            // Return Vars:  	none
+            // Date Created: 	Mar 15, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleGetResTypesComplete(event:SavoirEvent):void
+			{
+    			var responseXml:XML;
+    			var resultStr:String;
+    			var resTypesXmlList:XMLList;
+    			var resTypeXml:XML;
+
+    			// Clear the array collection and start a new one
+    			serviceTypes.removeAll();
+    			
+    			// Set the default value for none to "Unknown" since the database requires a
+    			// value for service type
+    			serviceTypes.addItem({label:"none", data:"Unknown"});
+    			
+    			// Obtain the results and check if it failed or suceeded
+    			responseXml = XML(event.data);
+   				resultStr = responseXml.result;
+   				
+   				resTypesXmlList = responseXml.resourceType;
+   				
+   				// Check if the types were returned
+   				if (resultStr == "success")
+   				{
+   					for each (resTypeXml in resTypesXmlList)
+   					{
+   						serviceTypes.addItem({label:resTypeXml.@id, data:resTypeXml.@id});
+   					}
+   				}
+   				else
+   				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Get Resource Types";
+   		    		popupWindow.setMessage("ERROR: The SAVOIR server failed to return available " 
+						+ "resource types.\n"
+   		    			+ "Generated while initiating the device registration form.\n\n"
+						+ "Please contact your Savoir Admin regarding this issue "
+   		    			+ "and send him/her the above error\n");
+   		    	
+   		    		// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   				}
+			}
+			
+			
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSubmitRegComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To indicate if registration submission was successful or not
+            // Input Vars:   	event - event triggered by successful completion of the submit
+            //					registration call
+            // Return Vars:  	none
+            // Date Created: 	Mar 15, 2011
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleSubmitRegComplete(event:SavoirEvent):void
+			{
+    			var responseXml:XML;
+    			var resultStr:String;
+
+    			// Obtain the results and check if it failed or suceeded
+    			responseXml = XML(event.data);
+   				resultStr = responseXml.result;
+   				
+   				// Check if it failed or suceeded
+   				if (resultStr == "success")
+   				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "INFO: Submit Device Registration";
+   		    		popupWindow.setMessage("INFO: Device registration successfully submitted.\n" 
+						+ "Thank you for submitting your device for registration.\n" 
+						+ "Our SAVOIR Administrator will review your registration and send you the\n"
+   		    			+ "required information to connect your device with SAVOIR at the e-mail\n"
+   		    			+ "address entered in your registration. Please note that this process may\n"
+   		    			+ "take 2 - 3 days.\n");
+   		    	
+   		    		// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   				}
+   				else
+   				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Submit Device Registration";
+   		    		popupWindow.setMessage("ERROR: Device registration submission failed.\n" 
+   		    			+ "Generated while submitting the device registration form.\n\n"
+						+ "Please contact your Savoir Admin regarding this issue "
+   		    			+ "and send him/her the above error\n");
+   		    	
+   		    		// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   				}
+			}
+
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		initRegistration
+			// Author:			Justin Hickey
+			// Purpose:			To instantiate the device registration view
+			// Input Vars:		none
+			// Return Vars:		none
+			// Date Created:	Mar 14, 2011
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initRegistration():void
+			{
+   				var getResTypesXmlStr:String;			// XML data of message element
+   				var getResTypesDelegate:OAuthDelegate;	// Oauth delegate to send message to SAVOIR server
+   				var parameterObj:Object;				// Object containing message to send to SAVOIR server
+   				
+   				// Build the message XML
+   				getResTypesXmlStr = "<message action=\"get_resource_types\" sessionID=\""
+   					+ Application.application.userSessionId + "\" />\n";
+    
+    			// Send the message to the SAVOIR server
+    			parameterObj = {savoirmsg:getResTypesXmlStr};
+      			getResTypesDelegate = Application.application.client.sendRequest("/SavoirResourceAdmin",
+      				URLRequestMethod.GET, parameterObj);
+      				
+      			// Add an event listener to handle the response
+      			getResTypesDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+      				handleGetResTypesComplete);
+			}
+			
+			// ======================= Private Functions ============================
+
+//			//////////////////////////////////////////////////////////////////////////////////////////
+//			// Function:     	adjustComboPadding
+//			// Author:       	Justin Hickey
+//			// Purpose:      	To readjust the size of the combo boxes so that text is not clipped.
+//			//					For some reason, Flex does not size the combo box properly so that
+//			//					the item with the longest label has the end of the label partially
+//			//					covered by the drop down button. This function simply adds a bit of
+//			//					space to the combo box so the text is not clipped. This function also
+//			//					ensures that the new width cannot be greater than the maximum allowed
+//			//					width. Note that the maximum allowed width is defined as the width
+//			//					of the parent form minus the sum of the x values of the
+//			//					combo box and all it's parents and the padding on the right side of
+//			//					the DeviceWindowShade
+//			// Input Vars:   	combo - Combo box to adjust
+//			// Return Vars:  	none
+//			// Date Created: 	Mar 14, 2011
+//			//////////////////////////////////////////////////////////////////////////////////////////
+//			private function adjustComboPadding(combo:ComboBox):void
+//			{
+//				var comboTextInp:TextInput;				// Text input area of combo box
+//				var maxWidth:Number;					// Maximum width of form
+//				var newWidth:Number;					// New width of combo box
+//				
+//				// Calculate the maximum width and the new width
+//				maxWidth = regForm.width - (combo.x + typeItem.x);
+//				newWidth = combo.dropdownWidth + 20;
+//				
+//				// Check if the new width is greater than the maximum width
+//				if (newWidth > maxWidth)
+//				{
+//					newWidth = maxWidth;
+//				}
+//				
+//				// Set the combo box width
+//				combo.width = newWidth;
+//				
+//				// Also increase the height slightly since tails of letters like p and g are clipped
+//				// We need to get the combo box text input component first which happens to be the
+//				// third child of the combo box - child indices start at 0
+//				comboTextInp = combo.getChildAt(2) as TextInput;
+//				comboTextInp.height += 3;
+//   			}
+
+
+		]]>
+    </mx:Script>
+
+</mx:VBox>

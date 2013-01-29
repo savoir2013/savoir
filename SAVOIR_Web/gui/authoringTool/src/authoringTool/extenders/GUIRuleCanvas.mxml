@@ -1,0 +1,948 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" creationComplete="guiRuleCasComp()" >
+   <mx:Script>
+   	<![CDATA[
+   	    import mx.controls.Alert;
+   		import mx.events.ListEvent;
+   		import mx.controls.TextInput;
+   		import mx.collections.ArrayCollection;
+   		import authoringTool.extenders.RuleCanvas;
+   		import mx.utils.StringUtil;
+   		import mx.managers.PopUpManager;
+   		import authoringTool.scenarioChart.components.EdgeDeviceComponent;
+   		import savoirComp.InfoPopupWindow;
+   		
+   		private var _ruleCas:RuleCanvas;
+   		
+   		public function set ruleCanvas(value:RuleCanvas):void{
+   			_ruleCas = value;
+   			//oprCollection = _ruleCas.keywordXMLDic.word.(@wordType='Operator');
+   		}
+   		
+   		private var _theRuleStr:String = "";
+   		public function get theRule():String{
+   			return _theRuleStr;
+   		}
+   		
+   		public function set theRule(value:String):void{
+   			_theRuleStr = value;
+   			
+   		}
+   		
+   		[Bindable]
+   		private var parameterValueType:ArrayCollection = new ArrayCollection([
+   		                                                   {type:"",index:0},
+   		                                                   {type:"Value", index:1},
+   		                                                   {type:"Variable", index:2},
+   		                                                   {type:"Expression",index:3}, 
+   		                                                 ]);
+   		[Bindable]
+   		private var actionType:ArrayCollection = new ArrayCollection([
+   		                                         {type:"", index:0},
+   		                                         {type:"setParameter", index:1},
+   		                                         {type:"start", index:2},
+   		                                         {type:"stop", index:3},
+   		                                         {type:"pause", index:4},
+   		                                         {type:"resume", index:5},
+   		                                         ]);                                                 
+   		                                                 
+   		[Bindable]
+   		private var paraCollection:ArrayCollection = new ArrayCollection();
+   		[Bindable]
+   		private var actionCollection:ArrayCollection =  new ArrayCollection();
+   		
+   		[Bindable]
+   		private var oprCollection:XMLList = null;
+   		
+   		private function fillWhenCanvas():void{
+   			
+   		}
+   		
+   		[Bindable]
+   		private var whenResCombBoxData:ArrayCollection = new ArrayCollection();
+   		
+   		[Bindable]
+   		private var thenResComBoxData:ArrayCollection = new ArrayCollection();
+   		
+   		[Bindable]
+   		private var parameters:XMLList;
+   		
+   		public var _currentRule:XML = <rule>
+   		                              </rule>;
+   		public function get currentRule():XML{
+   			return _currentRule;
+   		}
+   		
+   		public function set currentRule(value:XML):void{
+   			_currentRule = value;
+   			
+   		}
+   		
+   		private var menuItem:ContextMenuItem;
+   		[Bindable]
+   		private var customContextMenu:ContextMenu;
+   		
+   		private var paraMenuItem:ContextMenuItem;
+   		[Bindable]
+   		private var paraContextMenu:ContextMenu;                            
+   		
+   		private function guiRuleCasComp():void{
+   			menuItem= new ContextMenuItem("Delete It");
+			menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,handleActionDelete);
+			
+			customContextMenu = new ContextMenu();
+			customContextMenu.hideBuiltInItems();
+			customContextMenu.builtInItems.print = false;
+			
+		    customContextMenu.customItems.push(menuItem);
+		    
+		    paraMenuItem= new ContextMenuItem("Delete It");
+			paraMenuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT,handleParaDelete);
+			
+			paraContextMenu = new ContextMenu();
+			paraContextMenu.hideBuiltInItems();
+			paraContextMenu.builtInItems.print = false;
+			
+		    paraContextMenu.customItems.push(paraMenuItem);
+			//this.actionLS.contextMenu = customContextMenu;
+   		}
+   		
+   		public function init():void{
+   			var infoWindow:InfoPopupWindow = null;
+   			if(_ruleCas.upperNode == null || _ruleCas.lowerNode == null){
+//	   			var upperResName:String = _ruleCas.upperNode.resourceProfile.@name;
+//	   			var upperResActName:String = _ruleCas.upperNode.activity.name;
+//	   			whenResCombBoxData = new ArrayCollection([
+//	   			                                          {label:upperResName + " activity " + upperResActName, data:0}
+//	   			                                        ]);
+//	   			parameters = _ruleCas.upperNode.getParameters();
+
+                infoWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+                infoWindow.title = "Warning: Missing the node of edge device";
+                infoWindow.setMessage("Please add upstream and downstream edge device nodes before you edit any transition rule!");
+                infoWindow.formatInfoBox();
+                PopUpManager.centerPopUp(infoWindow);
+                
+                                                        
+   			}else{
+   				var upperResName:String = _ruleCas.upperNode.resourceProfile.@name;
+   				
+	   			if(upperResName == "UnKnown"){
+	   				infoWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+	                infoWindow.title = "Warning: You forget initialize the upstream node of edge device";
+	                infoWindow.setMessage("Please click upstream edge device nodes before you edit any transition rule!");
+	                infoWindow.formatInfoBox();
+	                PopUpManager.centerPopUp(infoWindow);
+	   			}
+	   			var lowerResName:String = _ruleCas.lowerNode.resourceProfile.@name;
+	   			if(lowerResName == "UnKnown"){
+	   				infoWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+	                infoWindow.title = "Warning: You forget initialize the downstream node of edge device";
+	                infoWindow.setMessage("Please click downstream edge device nodes before you edit any transition rule!");
+	                infoWindow.formatInfoBox();
+	                PopUpManager.centerPopUp(infoWindow);
+	   			}
+//   			if(_ruleCas.lowerNode != null){
+//   			var lowerResName:String = _ruleCas.lowerNode.resourceProfile.@name;
+//   			var lowerResActName:String = _ruleCas.lowerNode.activity.name;
+//   			
+//   			thenResComBoxData = new ArrayCollection([
+//   			                                          {label:upperResName + " activity " + upperResActName,data:0},
+//   			                                          {label:lowerResName + " activity " + lowerResActName,data:1}
+//   			                                        ])
+                
+//   			}                                       
+   		    //resCBInWhenCas.dataProvider = whenResCombBoxData;
+   		    
+   		    //paraCBInWhenCas.labelField = "name";
+   		    //paraCBInWhenCas.dataProvider = parameters;
+   		    //oprCBInWhenCas.labelField = "value";
+   		    oprCollection = _ruleCas.keywordXMLDic.word.(@wordType=='Operator');
+   		    //var emptyXML:XML = <word id="0" wordType="Operator" description="empty"></word>;
+   		    //oprCollection = oprCollection + emptyXML;
+   		    
+   		    //this.setWhenFromXML();
+   		    
+   		    //resCBInThenCas.dataProvider = thenResComBoxData;
+   		    this._theRuleStr = this._currentRule.toXMLString();
+   		    
+   		    
+   		 }
+   		}
+   		
+   		private function handleActionDelete(event:Event):void{
+   			var currIndex:Number = this.actionLS.selectedIndex;
+   			var node:EdgeDeviceComponent = null;
+   			if(resCBInThenCas.selectedIndex == 0){
+   				node = this._ruleCas.upperNode;
+   			}else{
+   				node = this._ruleCas.lowerNode;
+   			}
+   			var action:String = actionLS.selectedItem.label;
+   			deleteAction(node,action);
+   			actionCollection.removeItemAt(currIndex);
+   		}
+   		
+   		private function handleParaDelete(event:Event):void{
+   			var currIndex:Number = this.paraSetLS.selectedIndex;
+   			var node:EdgeDeviceComponent = null;
+   			if(resCBInThenCas.selectedIndex == 0){
+   				node = this._ruleCas.upperNode;
+   			}else{
+   				node = this._ruleCas.lowerNode;
+   			}
+   			var paraId:String = findOutPara(this.paraSetLS.selectedItem.label);
+   			//Alert.show(paraId + node.nodeID);
+   			deletePara(node,paraId);
+   			this.paraCollection.removeItemAt(currIndex);
+   		}
+   		
+   		private function findOutPara(paraLabel:String):String{
+   			var paraName:String = null;
+   			var labelAry:Array = paraLabel.split("=");
+   			if(labelAry.length == 2){
+   				paraName = StringUtil.trim(labelAry[0]);
+   			}
+   			return paraName;
+   		}
+   		
+   		private function handleWhenCasCreateComplete(event:Event):void{
+   			trace("In GUIRuleCas create complete" + this._currentRule.toXMLString());
+   			this.setWhenFromXML();
+   			trace("visiability is" + this.visible);
+   		    
+   		}
+   		
+   		private var showInitData:Boolean = true;
+   		
+   		private function handleRuleThenCasCreateComplete(event:Event):void{
+   			trace("in handleRuleThenCasCreateComplete")
+   			if(showInitData){
+   				trace("set then from xml");
+   				this.setThenFromXML();
+   				showInitData = false;
+   			}
+   		}
+   		                                                 
+   		private function handleParaVTCBChange(event:Event):void{
+   			var type:String = ComboBox(event.target).selectedItem.type;
+   			var lastIndex:Number = setParaHBInThenCas.numChildren - 1;
+   			if(setParaHBInThenCas.getChildAt(lastIndex).name != "parameterType"){
+   				setParaHBInThenCas.removeChildAt(lastIndex);
+   			}
+   			if(type == "Value" || type == "Expression"){
+   				var valueTI:TextInput =  new TextInput();
+   				valueTI.width = 50;
+   				setParaHBInThenCas.addChild(valueTI);
+   			}else{
+   				var valueCB:ComboBox = new ComboBox();
+   				setParaHBInThenCas.addChild(valueCB);
+   				var selectIndex:Number = resCBInThenCas.selectedIndex;
+   				valueCB.labelField = "name";
+   				//changed by yyh the variables must be upper stream node
+   				valueCB.dataProvider = this._ruleCas.upperNode.variables;
+//   				if(selectIndex == 0){
+//   				    valueCB.dataProvider = this._ruleCas.upperNode.variables;
+//   				}else{
+//   					valueCB.dataProvider = this._ruleCas.lowerNode.variables;
+//   				}
+   			}
+   		}
+   		private function isContainParameter(para:String):Boolean{
+   			for each(var paraObj:Object in paraCollection){
+   				var paraLabel:String = paraObj.label;
+   				if(paraLabel.indexOf(para) != -1){
+   					return true;
+   				}
+   			}
+   			return false;
+   		} 
+   		private function handleAddParaClick(event:MouseEvent):void{
+   			var item:Object = new Object();
+   			var numChild:Number = setParaHBInThenCas.numChildren;
+   			var valueStr:String = "";
+   			if(setParaHBInThenCas.getChildAt(numChild - 1) is TextInput){
+   				valueStr = (TextInput(setParaHBInThenCas.getChildAt(numChild - 1))).text
+   			}else if(setParaHBInThenCas.getChildAt(numChild - 1) is ComboBox){
+   				valueStr = (ComboBox(setParaHBInThenCas.getChildAt(numChild - 1))).selectedLabel;
+   			}
+   			item.label = paraCBInThenCas.selectedLabel + " = " + valueStr;
+   			if(isContainParameter(paraCBInThenCas.selectedLabel)){
+   				return;
+   			}
+   			paraCollection.addItem(item);
+   			var paraNode:XML = XML(formParameterXMLStr());
+   			var node:EdgeDeviceComponent = null;
+   			if(resCBInThenCas.selectedIndex == 0){
+   				node = this._ruleCas.upperNode;
+   			}else{
+   				node = this._ruleCas.lowerNode;
+   			}
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			var actName:String = actionsCBInThenCas.selectedLabel;
+   			var theResList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID);
+   			var theRes:XML = XML(theResList[0]);
+   			var actionList:XMLList = theRes.action.(@actionName==actName);
+   			var theAction:XML = XML(actionList[0]);
+   			theAction.appendChild(paraNode);
+   			var otherActionList:XMLList = theRes.action.(@actionName != actName);
+   			var allActionList:XMLList = otherActionList + theAction;
+   			theRes.setChildren(allActionList);
+   			var otherResList:XMLList = this._currentRule.then.resource.(@id!=resID || @activityID!=actID)
+   			var allResList:XMLList = otherResList + theRes;
+   			var thenXMLList:XMLList = this._currentRule.then;
+   			var thenXML:XML = XML(thenXMLList[0]);
+   			thenXML.setChildren(allResList);
+   			this._currentRule.replace("then",thenXML);
+   			modifyCurrentRule();
+   		}
+   		private function resetThen():void{
+   			resCBInThenCas.selectedIndex = 0;
+   			actionsCBInThenCas.selectedIndex = 0;
+   			resetParameter();
+   			
+   		}
+   		
+   		private function modifyCurrentRule():void{
+   			this._theRuleStr = this._currentRule.toXMLString();
+   			this._ruleCas.updateRule(_theRuleStr);
+   			this._ruleCas.updateRuleXML(this._currentRule);
+   		}
+   		
+//   		private function formRuleStrWhenRuleXMLChanged():void{
+//   			var whenXMLList:XMLList = this._currentRule.when;
+//   			if(whenXML.length() == 0){
+//   				return;
+//   			}
+//   			var whenXML:XML = XML(whenXMLList[0]);
+//   			var whenResXMLList:XMLList = whenXML.resource;
+//   			if(whenResXMLList.length() == 0){
+//   				return;
+//   			}
+//   			var whenStr:String = formWhenStr();
+//   			var thenXMLList:XMLList = this._currentRule.then;
+   			 
+   			
+//   		}
+   		
+   		private function setThenFromXML():void{
+   			var upperResName:String = _ruleCas.upperNode.resourceProfile.@name;
+	   		var upperResActName:String = _ruleCas.upperNode.activity.name;
+   			var lowerResName:String = _ruleCas.lowerNode.resourceProfile.@name;
+  			var lowerResActName:String = _ruleCas.lowerNode.activity.name;
+   			thenResComBoxData = new ArrayCollection([
+   			                                          {label:upperResName + " activity " + upperResActName,data:0},
+   			                                          {label:lowerResName + " activity " + lowerResActName,data:1}
+   			                                        ]);
+   			resCBInThenCas.dataProvider = thenResComBoxData;                                        
+   			var resList:XMLList = this._currentRule.then.resource;
+   			var res:XML = XML(resList[0]);
+   			var resID:String = res.@id;
+   			var upperResID:String = this._ruleCas.upperNode.resourceID;
+   			if(resID == upperResID){
+   				resCBInThenCas.selectedIndex = 0;
+   				
+   			}else{
+   				resCBInThenCas.selectedIndex = 1;
+   			}
+   			resCBInThenCas.dispatchEvent(new ListEvent(ListEvent.CHANGE));
+   			
+   		}
+   		
+   		private function resetWhen():void{
+   			paraValueTIInWhenCas.text = "";
+   			paraCBInWhenCas.selectedIndex = 0;
+   		}
+   		
+   		public function setWhenFromXML():void{
+   			
+   			var upperResName:String = _ruleCas.upperNode.resourceProfile.@name;
+//   			if(upperResName == "UnKnown"){
+//   				var infoWindow:InfoPopupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+//                infoWindow.title = "Warning: You forget initialize the upper node of edge device";
+//                infoWindow.setMessage("Please click upstream edge device nodes before you edit any transition rule!");
+//                infoWindow.formatInfoBox();
+//                PopUpManager.centerPopUp(infoWindow);
+//   			}
+	   		var upperResActName:String = _ruleCas.upperNode.activity.name;
+	   		whenResCombBoxData = new ArrayCollection([
+	   			                                          {label:upperResName + " activity " + upperResActName, data:0}
+	   			                                        ]);
+   			parameters = _ruleCas.upperNode.getParameters();
+   			//Alert.show(_ruleCas.upperNode.resourceProfile.toXMLString());
+   			//Alert.show(_ruleCas.upperNode.nodeID.toString());
+   			//Alert.show(_ruleCas.upperNode.getParameters().toXMLString());
+   			var resInstanceName:String = this._ruleCas.upperNode.resourceIntanceName;
+   			whenResCombBoxData.removeAll();
+   			whenResCombBoxData.addItem({label:resInstanceName, data:0});
+   			var whenXMLList:XMLList = this._currentRule.when;
+   			if(whenXMLList.length() == 0){
+   				return;
+   			}
+   			var paraName:String = "";
+   			var paraList:XMLList = this._currentRule.when.parameter;
+   			if(paraList.length() > 0){
+   				paraName = paraList[0];
+   			}
+   			var opr:String = "";
+   			var oprList:XMLList = this._currentRule.when.operator;
+   			if(oprList.length() > 0){
+   				opr = oprList[0];
+   			}
+   			var value:String = "";
+   			var valueList:XMLList = this._currentRule.when.value;
+   			if(valueList.length() > 0){
+   				value = valueList[0];
+   			}
+   			//var theParaList:XMLList = parameters.(@name=={paraName});
+   			var selectionIndex:Number = findOutSelectionIndexOfParameter(paraName);
+   			//paraCBInWhenCas.selectedItem = theParaList[0];
+   			paraCBInWhenCas.selectedIndex = selectionIndex;
+   			//var selectedOprItem:Object = _ruleCas.keywordXMLDic.word.(@wordType=='Operator' && @description=={opr});
+   			//oprCBInWhenCas.selectedItem = selectedOprItem;
+   			selectionIndex = findOutSelectionIndexOfOpr(opr);
+   			oprCBInWhenCas.selectedIndex = selectionIndex;
+   			paraValueTIInWhenCas.text = value;
+   			this.validateDisplayList();
+   		}
+   		
+   		
+   		
+   		private function findOutSelectionIndexOfParameter( name:String):Number{
+   			var index:Number = 0;
+   			for(var i:Number = 0; i < parameters.length(); i++){
+   				var para:XML = parameters[i];
+   				var theName:String = para.@name;
+   				if(name == theName){
+   					index = i;
+   				}
+   			}
+   			return index;
+   		}
+   		
+   		private function findOutSelectionIndexOfOpr(opr:String):Number{
+   			var index:Number = 0;
+   			for(var i:Number = 0; i < oprCollection.length(); i++){
+   				var theOpr:XML = oprCollection[i];
+   				var theOprValue:String = theOpr.@description;
+   				if(theOprValue == opr){
+   					index = i;
+   				}
+   			}
+   			return index;
+   		}
+   		
+   		  
+   		
+   		private function resetParameter():void{
+   			var numChild:Number = setParaHBInThenCas.numChildren;
+   			
+   			if(setParaHBInThenCas.getChildAt(numChild - 1) is TextInput || setParaHBInThenCas.getChildAt(numChild - 1) is ComboBox){
+   				setParaHBInThenCas.removeChildAt(numChild - 1);
+   			}
+   			paraCBInThenCas.selectedIndex = 0;
+   			paraVTCBInThenCas.selectedIndex = 0;
+   		}
+   		
+   		private function setParameter():void{
+   			
+   		}
+   		
+   		private function formWhenStr():String{
+   			
+   			var whenStr:String = "When resource " + resCBInWhenCas.selectedLabel + " "
+   			             + " parameter " + paraCBInWhenCas.selectedLabel + " "
+   			             + oprCBInWhenCas.selectedLabel + " " 
+   			             + paraValueTIInWhenCas.text + " "
+   			             ;
+   		           
+   			return whenStr;
+   		}
+   		
+   		private function formWhenXMLStr():String{
+   			var whenXMLStr:String = "<when>\n" + this._ruleCas.upperNode.getXMLIDOfNode()
+   			                       + "</resource>"
+   			                       + formWhenParameterXMLStr()
+   			                       + "</when>";
+   			return whenXMLStr;                       
+   		}
+   		
+   		private function formWhenParameterXMLStr():String{
+   			var paraXMLStr:String = "";
+   			if(paraCBInWhenCas.selectedIndex != -1){
+   				paraXMLStr = "<parameter>" + paraCBInWhenCas.selectedLabel + "</parameter>\n"
+   	                       + "<operator>" + (XML(oprCBInWhenCas.selectedItem)).@description + "</operator>\n"
+   	                       + "<value>" + paraValueTIInWhenCas.text  + "</value>\n";
+   			}
+   			return paraXMLStr;
+   		}
+   		
+   		private function formParameterStr():String{
+   			var paraStr:String = "";
+   			for each(var itemObj:Object in paraCollection){
+   				paraStr  = paraStr + " " + itemObj.label;
+   			} 
+   			return paraStr;
+   		}
+   		
+   		private function formParameterXMLStr():String{
+   			var paraXMLStr:String = "";
+//   			for each(var itemObj:Object in paraCollection){
+//   				var paraStr:String  = itemObj.label;
+//   				var part:Array = paraStr.split("=");
+//   				var paraId:String = StringUtil.trim(part[0]);
+//   				var paraVale:String = StringUtil.trim(part[1]);
+//   				paraXMLStr = paraXMLStr + "\n" + "<parameter "
+//   				            + "id=\"" + paraId + "\"" + " "
+//   			}
+            var valueType:String = paraVTCBInThenCas.selectedLabel;
+            if(valueType == "Value"){
+            	paraXMLStr = "<parameter " + "id=\"" + paraCBInThenCas.selectedLabel + "\""
+            	            + " value=\"" + (TextInput(setParaHBInThenCas.getChildAt(setParaHBInThenCas.numChildren - 1))).text + "\"/>";
+            }else if(valueType == "Variable"){
+            	paraXMLStr = "<parameter " + "id=\"" + paraCBInThenCas.selectedLabel + "\""
+            	            + " variable=\"" + (ComboBox(setParaHBInThenCas.getChildAt(setParaHBInThenCas.numChildren - 1))).selectedLabel + "\"/>";
+            }else if(valueType == "Expression"){
+            	paraXMLStr = "<parameter " + "id=\"" + paraCBInThenCas.selectedLabel + "\""
+            	            + " expression=\"" + (TextInput(setParaHBInThenCas.getChildAt(setParaHBInThenCas.numChildren - 1))).text + "\"/>";
+            }
+   			return paraXMLStr; 
+   		}
+   		
+   		private function formResStrInThen():String{
+   			var resStr:String = "Then resource " + resCBInThenCas.selectedLabel + " "
+   			             + actionsCBInThenCas.selectedLabel + " ";
+   			var actTp:String = actionsCBInThenCas.selectedLabel;             
+   			if(actTp == "setParameter"){
+   				resStr = resStr + formParameterStr();
+   			}
+   			return resStr;            
+   		}
+   		
+   		private function formResStrInThenFromXML(node:EdgeDeviceComponent):String{
+   			var resStr:String = "";
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			var resInstanceName:String = node.resourceIntanceName;
+   			var xmlNode:XMLList = _currentRule.resource.(@id==resID && @activityID==actID);
+   			if(xmlNode != null && xmlNode.length() == 1){
+   				resStr = " resource " + resInstanceName;
+   				var resXML:XML = XML(xmlNode[0]);
+   				var actions:XMLList =  resXML.action;
+   				for each(var action:XML in actions){
+   					var actName:String = action.@actionName;
+   					resStr = resStr + " " + actName;
+   					
+   					if(actName == "setParameter"){
+   						var actParameters:XMLList = action.parameter;
+   						for each(var para:XML in actParameters){
+   							var att:XMLList = para.attributes();
+   							resStr = resStr + " " + att[0] + " = " + att[1];
+   						}
+   					}
+   				}
+   			}
+   			return resStr;
+   		}
+   		
+   		private function formResXMLNodeStrInThen():String{
+   			var resXMLStr:String = "";
+   			if(resCBInThenCas.selectedIndex == 0){
+   				//up stream
+   				resXMLStr = this._ruleCas.upperNode.getXMLIDOfNode() + "</resource>";
+   			}else{
+   				//down stream
+   				resXMLStr = this._ruleCas.lowerNode.getXMLIDOfNode() + "</resource>";
+   			}
+   			
+   			return resXMLStr;
+   		}
+   		
+   		private function formActionNodeXMLStr():String{
+   			var actionXMLStr:String = "<action actionName=\"" + actionsCBInThenCas.selectedLabel + "\">" 
+   			                        + "</action>";
+   			
+   			return actionXMLStr;
+   		}
+   		
+   		private function isTheResInThenAlready(node:EdgeDeviceComponent):Boolean{
+   			var res:Boolean = false;
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			var xmlNode:XMLList = _currentRule.then.resource.(@id==resID && @activityID==actID);
+   			if(xmlNode != null && xmlNode.length() > 0){
+   				res = true;
+   			}else{
+   				res = false;
+   			}
+   			return res;
+   		}
+   		
+   		private function handleAddResClick(event:MouseEvent):void{
+   			
+   			if(_theRuleStr.length == 0){
+   				 _theRuleStr = formWhenStr();
+   			}
+   			_theRuleStr = _theRuleStr + " " + formResStrInThen();
+   		}
+   		
+   		private function handleDoneEditWhen(event:MouseEvent):void{
+   			var whenXML:XML = XML(formWhenXMLStr());
+   			if(_theRuleStr.length == 0){
+   				 //_theRuleStr = whenXML.toXMLString();
+   				 this._currentRule.appendChild(whenXML);
+   			}else{
+   				var whenXMLList:XMLList = this._currentRule.when;
+   				var thenXMLList:XMLList = this._currentRule.then;
+   				if(whenXMLList.length() == 0 && thenXMLList.length() == 0)
+   				{
+   					//_theRuleStr = whenXML.toXMLString();
+   					this._currentRule.appendChild(whenXML);
+   				}else if(whenXMLList.length() == 0 && thenXMLList.length() > 0){
+   					this._currentRule.insertChildAfter(null, whenXML);
+   				}else if(whenXMLList.length() > 0){
+   					
+   					this._currentRule.replace("when",whenXML);
+   					//_theRuleStr = _currentRule.toXMLString();
+   				}
+   			}
+   			guiRuleAccordion.selectedIndex = 1;
+   			modifyCurrentRule();
+   			
+   		}
+   		
+   		private function formThenStrFromXML():String{
+   			var thenStr:String = " then " + formResStrInThenFromXML(this._ruleCas.upperNode) 
+   			                   + " \n " + formResStrInThenFromXML(this._ruleCas.lowerNode);
+   			
+   			return thenStr;
+   		}
+   		
+   		private function handleDoneEditRuleClick(event:MouseEvent):void{
+   			//_theRuleStr = _theRuleStr + formThenStrFromXML();
+   			modifyCurrentRule();
+   			//this._ruleCas.enlargeRuleGrid();
+   			
+   			//this._ruleCas.rulesDataGrid.dispatchEvent(new MouseEvent(MouseEvent.CLICK));
+   			//event.stopImmediatePropagation();
+   			
+   			//_ruleCas.addRule(this._theRuleStr);
+   			//_ruleCas.addRuleXML(this._currentRule);
+   			trace(_currentRule.toXMLString());
+   			//this.resetParameter();
+   			//this.resetThen();
+   			//this.resetWhen();
+   			
+   		}
+   		
+   		private function isContainTheAction(act:String):Boolean{
+   			for each(var item:Object in actionCollection){
+   				var actStr:String = item.label;
+   				if(actStr == act){
+   					return true;
+   				}
+   			}
+   			return false;
+   		}
+   		
+   		private function handleActionTypeChange(event:Event):void{
+   			var actTypeStr:String = actionsCBInThenCas.selectedLabel;
+   			
+   			if(actTypeStr == "setParameter"){
+   				setParaVBoxinThenCas.visible = true;
+   				var selectIndex:Number = resCBInThenCas.selectedIndex;
+   				var resNameLabel:String = resCBInThenCas.selectedLabel;
+   				var endIndexOfRes:Number = resNameLabel.indexOf("activity");
+   				var resName:String = resNameLabel.substring(0, endIndexOfRes);
+   				if(selectIndex == 0){
+   					paraCBInThenCas.dataProvider = this._ruleCas.upperNode.getParameters()
+   				}else{
+   					paraCBInThenCas.dataProvider = this._ruleCas.lowerNode.getParameters()
+   				}
+   			}else{
+   				setParaVBoxinThenCas.visible = false;
+   			}
+   			if(actTypeStr == ""){
+   				return;
+   			}
+   			var obj:Object = new Object();
+   			obj.label = actTypeStr;
+   			
+   			if(!isContainTheAction(actTypeStr)){
+   				actionCollection.addItem(obj);
+   				var actionNode:XML = XML(this.formActionNodeXMLStr());
+   				var node:EdgeDeviceComponent = null;
+	   			if(resCBInThenCas.selectedIndex == 0){
+	   				node = this._ruleCas.upperNode;
+	   			}else{
+	   				node = this._ruleCas.lowerNode;
+	   			}
+	   			var resID:String = node.resourceID;
+   			    var actID:String = node.activityID;
+   			    var thenPart:XMLList = this._currentRule.then;
+   			    var then:XML = <then>
+   			                   </then>;
+   			    var curRes:XML = <resource id={resID} activityID={actID}>
+   			    	             </resource>;
+   			    	                            
+   			    if(thenPart.length() == 1){
+   			    	then = XML(thenPart[0]);
+   			    }
+   		    	var curResList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID);
+   		    	
+   		    	if(curResList.length() == 1){
+   		    		curRes = XML(curResList[0]);
+   		    	}
+	   			 
+	   			curRes.appendChild(actionNode);
+	   			var otherRes:XMLList = this._currentRule.then.resource.(@id!=resID || @activityID!=actID);
+	   			var allRes:XMLList = otherRes + curRes;
+	   			
+	   			
+	   			then.setChildren(allRes);
+	   			if(thenPart.length() == 0){
+   			    	this._currentRule.appendChild(then);
+   			    }else{
+		   			this._currentRule.replace("then",then);
+   			    }
+   			    actionLS.selectedIndex = actionCollection.length - 1;
+   			    modifyCurrentRule();
+   			}
+   		}
+   		
+   		private function handleResChangeInThenCas(event:Event):void{
+   			var node:EdgeDeviceComponent = null;
+   			if(resCBInThenCas.selectedIndex == 0){
+   				node = this._ruleCas.upperNode;
+   			}else{
+   				node = this._ruleCas.lowerNode;
+   			}
+   			if(!this.isTheResInThenAlready(node)){
+   				var resNodeXML:XML = XML(this.formResXMLNodeStrInThen());
+   				var thenNode:XML = <then>
+   				                   </then>;
+   				var thenXMLList:XMLList = this._currentRule.then;                   
+   				if(thenXMLList.length() == 0){
+   					thenNode.appendChild(resNodeXML);
+   				}else{
+   					
+   					thenNode = XML(thenXMLList[0]);
+   					thenNode.appendChild(resNodeXML);
+   				}
+   				this._currentRule.replace("then",thenNode);
+   				modifyCurrentRule();
+   			}
+   			updateResUIInThenCas(node)
+   			
+   		}
+   		
+   		private function updateResUIInThenCas(node:EdgeDeviceComponent):void{
+   			
+   			updateActionCollection(node);
+   			actionsCBInThenCas.selectedIndex = 0;
+   			actionsCBInThenCas.dispatchEvent(new ListEvent(ListEvent.CHANGE));
+   			actionLS.selectedIndex = 0;
+   		}
+   		
+   		private function handleActionLSChange(event:Event):void{
+   			var node:EdgeDeviceComponent = null;
+   			if(resCBInThenCas.selectedIndex == 0){
+   				node = this._ruleCas.upperNode;
+   			}else{
+   				node = this._ruleCas.lowerNode;
+   			}
+   			var action:String = actionLS.selectedItem.label;
+   			updateParaCollection(node,action);
+   			
+   		}
+   		
+   		private function updateActionCollection(node:EdgeDeviceComponent):void{
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			var actions:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action;
+   			actionCollection.removeAll();
+   			for each (var item:XML in actions){
+   				var name:String = item.@actionName;
+   				var obj:Object = new Object();
+   				obj.label = name;
+   				actionCollection.addItem(obj);
+   			}
+   		}
+   		
+   		private function updateParaCollection(node:EdgeDeviceComponent, action:String):void{
+   			
+   			
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			paraCollection.removeAll();
+   			if(action == "setParameter"){
+	   			var theAct:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action.(@actionName==action);
+	   			if(theAct.length() > 0){
+		   		    var paraList:XMLList = theAct[0].parameter;
+		   		    
+		   		    for each(var item:XML in paraList){
+		   		    	var atts:XMLList = item.attributes();
+		   		    	var obj:Object = new Object();
+		   		    	obj.label = atts[0] + " = " + atts[1];
+		   		    	paraCollection.addItem(obj);
+		   		    }
+	   		   }
+   		   }
+   		}
+   		
+   		private function deleteAction(node:EdgeDeviceComponent, action:String):void{
+   			
+   			
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			paraCollection.removeAll();
+   			//if(action == "setParameter"){
+	   			var theActList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action.(@actionName!=action);
+	   			if(theActList.length() > 0){
+		   		    var theResList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID);
+		   		    var theResXML:XML = theResList[0];
+		   		    theResXML.setChildren(theActList);
+		   		    var otherResList:XMLList = this._currentRule.then.resource.(@id!=resID || @activityID!=actID);
+		   		    var thenList:XMLList = this._currentRule.then;
+		   		    var thenXML:XML = <then>
+		   		                   </then>;
+		   		     thenXML.setChildren(otherResList);
+		   		     thenXML.appendChild(theResXML);
+		   		     var whenList:XMLList = this._currentRule.when;
+		   		     var theWhenXML:XML = whenList[0];
+		   		     var theNewRule:XML = <rule>
+		   		                          </rule>;
+		   		     theNewRule.appendChild(theWhenXML);
+		   		     theNewRule.appendChild(thenXML);
+		   		     this._currentRule = theNewRule;
+		   		     this.modifyCurrentRule();
+		   		     this.actionsCBInThenCas.selectedIndex = 0;
+		   		     this.actionsCBInThenCas.dispatchEvent(new ListEvent(ListEvent.CHANGE));                                   
+//		   		    for each(var item:XML in paraList){
+//		   		    	var atts:XMLList = item.attributes();
+//		   		    	var obj:Object = new Object();
+//		   		    	obj.label = atts[0] + " = " + atts[1];
+//		   		    	paraCollection.addItem(obj);
+//		   		    }
+	   		   //}
+   		   }
+   		}
+   		private function deletePara(node:EdgeDeviceComponent, para:String):void{
+   			if(node == null || para == null){
+   				return;
+   			}
+   			var resID:String = node.resourceID;
+   			var actID:String = node.activityID;
+   			//Alert.show(resID + ":" + actID);
+   			var theNonActList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action.(@actionName!='setParameter');
+   			var theActList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action.(@actionName=='setParameter');
+   			var theOtherParaList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID).action.(@actionName=='setParameter').parameter.(@id!=para);
+   			//Alert.show(theNonActList.toXMLString());
+   			//Alert.show(theActList.toXMLString());
+   			if(theActList.length() > 0 ){
+   				var act:XML = theActList[0];
+   				act.setChildren(theOtherParaList);
+   				var theAllActList:XMLList = theNonActList + act;
+   				
+	   		    var theResList:XMLList = this._currentRule.then.resource.(@id==resID && @activityID==actID);
+	   		    var theResXML:XML = theResList[0];
+	   		    theResXML.setChildren(theAllActList);
+	   		    //Alert.show(theResXML.toXMLString());
+	   		    var otherResList:XMLList = this._currentRule.then.resource.(@id!=resID || @activityID!=actID);
+	   		    var allResList:XMLList = otherResList + theResXML;
+	   		    //Alert.show(allResList.toXMLString());
+	   		    //var thenList:XMLList = this._currentRule.then;
+	   		    var thenXML:XML = <then>
+	   		                   </then>;
+	   		     thenXML.setChildren(allResList);
+	   		     //thenXML.appendChild(theResXML);
+	   		     var whenList:XMLList = this._currentRule.when;
+	   		     var theWhenXML:XML = whenList[0];
+	   		     var theNewRule:XML = <rule>
+	   		                          </rule>;
+	   		     theNewRule.appendChild(theWhenXML);
+	   		     theNewRule.appendChild(thenXML);
+	   		     this._currentRule = theNewRule;
+	   		     this.modifyCurrentRule();                                   
+//		   		    for each(var item:XML in paraList){
+//		   		    	var atts:XMLList = item.attributes();
+//		   		    	var obj:Object = new Object();
+//		   		    	obj.label = atts[0] + " = " + atts[1];
+//		   		    	paraCollection.addItem(obj);
+//		   		    }
+	   		   
+   		   }
+   		}
+   		
+   		
+   		                                               
+   	]]>
+   </mx:Script>
+  
+	<mx:Accordion id="guiRuleAccordion"  width="100%" height="100%"  >
+		<mx:Canvas label="Rule When Conditions" width="100%" height="100%" creationComplete="handleWhenCasCreateComplete(event)" >
+			<mx:VBox height="100%" width="100%" >
+			
+				<mx:HBox  width="100%" >
+					<mx:Label text="When Resource"/>
+					<mx:ComboBox id="resCBInWhenCas" dataProvider="{whenResCombBoxData}"></mx:ComboBox>
+				</mx:HBox>
+				<mx:HBox width="100%">	
+					<mx:Label text="Parameter"/>
+					<mx:ComboBox id="paraCBInWhenCas" dataProvider="{parameters}" labelField="@name"></mx:ComboBox>
+					<mx:ComboBox id="oprCBInWhenCas" dataProvider="{oprCollection}" labelField="value"></mx:ComboBox>
+					<mx:TextInput id="paraValueTIInWhenCas"/>
+					
+				</mx:HBox>
+				<mx:Button label="Done Editing When" click="handleDoneEditWhen(event)"/>
+				
+		    </mx:VBox>
+		</mx:Canvas>
+		<mx:Canvas label="Rule Then Reaction" width="100%" height="100%" creationComplete="handleRuleThenCasCreateComplete(event)">
+		   <mx:VBox width="100%" height="100%">	
+		   	  <mx:HBox  width="100%">
+				<mx:Label text="Then Resource"/>
+				<mx:ComboBox id="resCBInThenCas" change="handleResChangeInThenCas(event)" dataProvider="{thenResComBoxData}"></mx:ComboBox>
+				<mx:Label text="Action"/>
+				<mx:ComboBox id="actionsCBInThenCas" dataProvider="{actionType}" labelField="type" change="handleActionTypeChange(event)"></mx:ComboBox>
+			  </mx:HBox>
+			  <mx:HRule width="100%" height="10"/>
+			  <mx:Canvas id="setParaCasinThenCas" visible="true"  width="100%" height="100%">
+			        <mx:VBox width="100%" height="100%">
+			            <mx:VBox id="setParaVBoxinThenCas" width="100%" height="100%" visible="false" >
+			            	
+				        	<mx:HBox id="setParaHBInThenCas" width="100%">
+				        		<mx:Label text="Parameter"/>
+				        		<mx:ComboBox id="paraCBInThenCas" labelField="@name"/>
+				        		<mx:Label text=" = "/>
+				        		<mx:ComboBox id="paraVTCBInThenCas" name="parameterType" dataProvider="{parameterValueType}" labelField="type" change="handleParaVTCBChange(event)"/>
+				        			
+				        		
+				        	</mx:HBox>
+				        	<mx:Button label="Add the Parameter" click="handleAddParaClick(event)"/>
+			        	</mx:VBox>
+			        	<mx:HBox width="100%" height="100%">
+				        	<mx:VBox width="30%" height="100%">
+					        	<mx:Label text="Actions"/>	
+					        	<mx:List id="actionLS" contextMenu="{customContextMenu}" editable="false" dataProvider="{actionCollection}" labelField="label" width="100%" height="100%" enabled="true" borderStyle="solid" borderThickness="2" change="handleActionLSChange(event)"/>
+				        	</mx:VBox>
+				        	<mx:VBox width="70%" height="100%">
+				            	<mx:Label text="Set Parameters"/>	
+					        	<mx:List id="paraSetLS" contextMenu="{paraContextMenu}" editable="false"  dataProvider="{paraCollection}" labelField="label" width="100%" height="100%" enabled="true" borderStyle="solid" borderThickness="2"/>
+				        	</mx:VBox>
+			        	</mx:HBox>
+			        </mx:VBox>
+			    </mx:Canvas>
+			    <!--<mx:Button label="Add the resource" click="handleAddResClick(event)"/>-->
+			    <!--<mx:Button label="Done Editing Rule" click="handleDoneEditRuleClick(event)"/>--> 
+			</mx:VBox>
+		</mx:Canvas>
+	</mx:Accordion>
+	
+</mx:Canvas>

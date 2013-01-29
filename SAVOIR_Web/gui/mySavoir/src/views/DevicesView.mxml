@@ -1,0 +1,1496 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/DevicesView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/"
+	width="100%" height="100%" paddingTop="20" xmlns:savoirComp="savoirComp.*" xmlns:savoirlib="savoirlib.*">
+
+	<flexlib:Docker id="dockParent" horizontalScrollPolicy="off" height="100%" width="100%">
+		
+		<flexlib:FlowBox id="winShadeTile" width="100%" name="Window Shade Tile" paddingBottom="10" paddingLeft="30"
+			paddingRight="10" paddingTop="10" verticalGap="50" horizontalGap="50"
+			mouseDown="handleDragMouseClick(event)" mouseUp="handleDragMouseClick(event)">
+		</flexlib:FlowBox>
+		
+		<flexlib:DockableToolBar id="iconBar" width="100%" height="60" initialPosition="bottom"
+			paddingBottom="3" paddingLeft="25" paddingTop="3" draggable="false">
+		</flexlib:DockableToolBar>
+
+	</flexlib:Docker>
+
+	<mx:Script>
+    	<![CDATA[
+
+			// ======================= External Modules =============================
+
+   	        import mx.core.Application;
+   			import mx.core.DragSource;
+   			import mx.core.IFlexDisplayObject;
+   			import mx.core.IUIComponent;
+   			import mx.managers.DragManager;
+   			import mx.managers.PopUpManager;
+    		import mx.containers.FormItem;
+    		import mx.containers.Tile;
+   			import mx.controls.Alert;
+    		import mx.controls.CheckBox;
+    		import mx.controls.ComboBox;
+    		import mx.controls.Image;
+    		import mx.controls.TextInput;
+   			import mx.collections.ArrayCollection;
+    		import mx.collections.IViewCursor;
+    		import mx.collections.Sort;
+    		import mx.collections.SortField;
+   			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+    		import mx.events.MoveEvent;
+    		import mx.binding.utils.ChangeWatcher;
+  			import events.SavoirEvent;
+  			import messages.LaunchMessage;
+  			import savoirComp.DeviceWindowShade;
+  			import savoirComp.InfoPopupWindow;
+  			import savoirlib.DeviceProfile;
+  			import savoiroauth.OAuthClient;
+  			import savoiroauth.OAuthDelegate;
+			
+			// ======================= Public Members ===============================
+
+			public var serverName:SharedObject;		// SAVOIR server name
+
+			// ====================== Private Properties ============================
+   
+   			private var _client:OAuthClient;
+
+			// ======================= Private Members ==============================
+
+			private var serverNameStr:String = new String();	// SAVOIR server name
+			
+			private var initIconUrl:Array = new Array;	// Initial icon image URL for error message
+			private var initErrText:Array = new Array;	// Initial error text for error message
+			private var imgErrCount:Array = new Array;	// Number of times icon image failed to load
+
+   			private var mouseIsDown:Boolean=false;		// Flag to indicate mouse button is down
+   			private var allowDrag:Boolean=true;			// Flag to indicate dragging device is allowed
+   			private var accWin:DeviceWindowShade;		// Destination window of drop event 
+   			private var popupWindow:InfoPopupWindow;	// Error message popup window
+
+			private var userResources:ArrayCollection;	// Array of resoureces user has access to
+   			private var resourceCursor:IViewCursor;		// Cursor for traversing user resources array
+   			private var resourceSort:Sort;				// Sort function for user resources array
+			
+   			private var closedDevices:ArrayCollection;	// Array of devcies user has closed
+   			private var closedDevCursor:IViewCursor;	// Cursor for traversing closed devices array
+   			private var closedDevSort:Sort;				// Sort function for closed devices array
+
+   			private var multiOptionCursor:IViewCursor;	// Cursor for traversing multi-option array
+   			private var multiOptionSort:Sort;			// Sort function for multi-option array
+			
+			private var devProfile:DeviceProfile;		// Profile of device
+   			private var thisWatcher:ChangeWatcher;		// Watcher for trigger when profile complete
+   			private var smallIcon:Image;				// Image used for icon dock at bottom of page
+   			
+   			private var activities:ArrayCollection;		// Array of device activities 
+   			private var options:ArrayCollection;		// Array of device options
+   				
+			// ======================= Setter Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	set client
+			// Author:       	Justin Hickey
+			// Purpose:      	To set the client member of the class
+			// Input Vars:   	value - value of the new client
+			// Return Vars:  	none
+			// Date Created: 	Mar 24, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			public function set client(value:OAuthClient):void
+			{
+				_client = value;
+   			}
+
+			// ======================= Getter Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	get client
+			// Author:       	Justin Hickey
+			// Purpose:      	To get the current value of the client member of the class
+			// Input Vars:   	none
+			// Return Vars:  	_client
+			// Date Created: 	Mar 24, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			public function get client():OAuthClient
+			{
+				return _client;
+   			}
+
+			// =================== Interaction Event Handlers =======================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDragMouseClick
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To initialize some flags that are required for the drag and drop
+			//					functionality of the device widgets.
+			// Input Vars:   	event - event triggered by pressing the mouse down or letting the
+			//					up anywhere inside the flow box containg the device widgets
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleDragMouseClick(event:MouseEvent):void
+			{
+				if (event.buttonDown)
+				{
+					mouseIsDown = true;
+				}
+				else
+				{
+					mouseIsDown = false;
+					allowDrag = true;
+				}
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDragInit
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To initialize the drag functionality.
+			// Input Vars:   	event - event triggered by moving the mouse within a device widget
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+   			private function handleDragInit(event:MouseEvent):void
+   			{
+				var initiator:IUIComponent;		// Component where the mouse move was started
+    			var ds:DragSource				// Drag source object to facilitate the drag function
+    			
+     			// The current target of the event is the object that is tied to
+     			// the event handler - in this case, the device window shade
+				initiator = event.currentTarget as IUIComponent;
+    			ds = new DragSource();
+
+    			// If we are allowed to drag, then initiate the drag functionality
+    			if (mouseIsDown && allowDrag)
+    			{
+     				ds.addData(initiator, "objFormat");
+     				DragManager.doDrag(initiator, ds, event);
+    			}
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDragEnter
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To enable the destination component to accept the drop.
+			// Input Vars:   	event - event triggered by entering a potential destination while
+			//					dragging the source
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+    		private function handleDragEnter(event:DragEvent):void
+    		{
+    			if (event.dragSource.hasFormat("objFormat"))
+    			{
+     				DragManager.acceptDragDrop(IUIComponent(event.target));
+    			}
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDragDrop
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To obtain the destination window when the source is dropped
+			// Input Vars:   	event - event triggered by dropping the source onto the destination
+			//					component
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+   			private function handleDragDrop(event:DragEvent):void
+   			{
+  				// The current target of the event is the object that is tied to
+  				// the event handler - in this case, the device window shade
+    			accWin = event.currentTarget as DeviceWindowShade;
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDragComplete
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To swap the positions of the source and destination device widgets to
+			//					complete the drag and drop functionality.
+			// Input Vars:   	event - event triggered by dropping the source onto the destination
+			//					component - but called after handleDragDrop()
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleDragComplete(event:DragEvent):void
+   			{
+    			var initWin:DeviceWindowShade;		// Device widget that initiated the drag and drop
+    			var initWinIdx:Number;				// Index of source device child in flow box
+    			var accWinIdx:Number;				// Index of destination device child in flow box
+
+				// Get the source device widget
+				initWin = event.dragInitiator as DeviceWindowShade;
+				
+    			// Swap the device widgets in the flow box
+    			if (accWin != null && accWin != initWin)
+    			{
+     				initWinIdx = initWin.parent.getChildIndex(initWin);
+     				accWinIdx = accWin.parent.getChildIndex(accWin);
+
+   					accWin.parent.setChildIndex(accWin, initWinIdx);
+   					accWin.parent.setChildIndex(initWin, accWinIdx);
+    			}
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleLocalizedMouseMove
+			// Author:       	Justin Hickey
+			// Purpose:      	To stop the propagation of the mouse move event so that the drag and
+			//					drop features of device widgets are not invoked. This is used when a
+			//					user moves a scroll bar in a list while choosing an option for the
+			//					device or when selecting text in a text input box.
+			// Input Vars:   	event - event triggered by moving the mouse on a scrollbar or
+			//					text input
+			// Return Vars:  	none
+			// Date Created: 	Jan 11, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleLocalizedMouseMove(event:MouseEvent):void
+			{
+				// Stop propagation of this event
+				event.stopPropagation();
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleLocalizedMouseDown
+			// Author:       	Justin Hickey
+			// Purpose:      	To set the flag that will not allow the drag operation to work since
+			//					the mouse was clicked on a component that requires other functionality
+			//					than dragging the device widget.
+			// Input Vars:   	event - event triggered by clicking the mouse on a scrollbar or
+			//					text input
+			// Return Vars:  	none
+			// Date Created: 	Jan 12, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleLocalizedMouseDown(event:MouseEvent):void
+			{
+				// Set the allow drag flag to false
+				allowDrag = false;
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDeviceLaunch
+			// Author:       	Justin Hickey
+			// Purpose:      	To launch an unauthored session for the appropriate device. This
+			//					function depends on the fact that the launch button is inside a
+			//					container of the device widget. Thus, the device widget can be found
+			//					by moving up 3 spots in the component hierarchy. That is, with the
+			//					current implementation of the device window shade, the device widget
+			//					is the parent of the parent of the parent of the launch button. Thus,
+			//					any changes to the component hierarchy will require changes to this
+			//					function to reflect the new hierarchy.
+			//
+			//					This function essentially goes through the options of the device
+			//					widget and builds the launch URI for the device. It then sends the
+			//					launch URI to the socket proxy program to launch the device.
+			//
+			//					The launch URI can be either an HTTP URI or a custum SAVOIR URI. The
+			//					HTTP URI is used when the device is launched through a web service or
+			//					web site. The SAVOIR URI is used to launch programs installed on the
+			//					user's local computer. Since the SAVOIR URI simply passes options to
+			//					an application, the parameter Id's are not included in the URI.
+			//
+			// Input Vars:   	event - the event triggered by clicking the Launch button on a device
+			//					widget
+			// Return Vars:  	none
+			// Date Created: 	Dec 20, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+    		private function handleDeviceLaunch(event:MouseEvent):void
+    		{
+    			var deviceWidget:DeviceWindowShade;		// Device widget of clicked launch button
+    			var option:DisplayObject;				// Component containing an option
+    			var frmItem:FormItem;					// Form item container - part of option component
+    			var combo:ComboBox;						// Combo box for one of many option
+    			var textInp:TextInput;					// Text input field for user input option
+    			var tileBox:Tile;						// Tile container for check boxes 
+    			var chkBoxes:Array;						// Array of check boxes for many of many option
+    			var chkBox:CheckBox;					// Individual check box
+    			var found:Boolean = false;				// Flag indicating if check box data was found
+    			var launchUri:String = new String();	// Launch URI to launch device
+    			var haveHttp:Boolean = false;			// Flag indicating if launch URI is http URI
+    			var haveSavoir:Boolean = false;			// Flag indicating if launch URI is savoir URI
+    			var uriPtrn:RegExp;						// Regular expression do detect URI type
+    			var questionPtrn:RegExp;				// Regular expression to detect options in URI
+    			var endPtrn:RegExp;						// Regular expression to detect end of URI
+    			var i:Number;							// Counter
+    			var j:Number;							// Counter
+    			
+    			// Get the device widget that contained the launch button
+    			deviceWidget = event.currentTarget.parent.parent.parent as DeviceWindowShade;
+    			
+    			// Set the base URI
+    			if (deviceWidget.haveBaseRef)
+    			{
+    				// Base URI's will always be in a combo box if referenced
+    				combo = deviceWidget.optionWidgets[deviceWidget.baseIndex].
+    					getChildByName(deviceWidget.optionNames[deviceWidget.baseIndex]) as ComboBox;
+    				
+    				// Make sure an option is selected
+    				if (combo.selectedIndex < 0)
+    				{
+   		    			// Get the form item of this combo box to get the label of the option
+   		    			frmItem = combo.parent as FormItem;
+   		    			
+   		    			// Add a message to a popup window
+   		    			popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    				InfoPopupWindow, true));
+   		    			popupWindow.title = "ERROR: Device Launch Error";
+   		    			popupWindow.setMessage("ERROR: Missing option!\n"
+   		    				+ "Please select a choice for the " + frmItem.label + " option\n");
+   		    	
+						// Change the popup into an info only dialog box
+						popupWindow.formatInfoBox();
+				
+   		    			// Popup the message
+   		    			PopUpManager.centerPopUp(popupWindow);
+   		    				
+	    				// Return to allow the user to select an option
+   	    				return;
+    				}
+    				else
+    				{
+    					// Set the initial launch URI
+    					launchUri = combo.selectedItem.data;
+    				} 
+    			}
+    			else
+    			{
+    				// Set the initial launch URI
+    				launchUri = deviceWidget.baseUri;
+    			}
+
+    			// Check which type of URI we have
+    			uriPtrn = /^http/;
+    			
+    			if (uriPtrn.test(launchUri))
+    			{
+    				haveHttp = true;
+    			}
+    			
+    			uriPtrn = /^savoir/;
+    			
+    			if (uriPtrn.test(launchUri))
+    			{
+    				haveSavoir = true;
+    			}
+    			
+    			// If the flags are still false we have an error
+    			if (!haveHttp && !haveSavoir)
+    			{
+   		    		// Add a message to a popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Device Launch Error";
+   		    		popupWindow.setMessage("ERROR: Invalid launch URI\n"
+   		    			+ "The following URI must begin with \"http\" or \"savoir\":\n"
+   		    			+ launchUri + "\n"
+   		    			+ "Generated while trying to launch the device " + deviceWidget.winTitle + ".\n\n"
+						+ "Please contact your Savoir Admin regarding this issue "
+   		    			+ "and send him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+    			}
+    			
+    			// See if we need to add a separator to the launch URI
+    			if (deviceWidget.optionCount > 0)
+    			{
+    				// Check if we already have parameters - defined by a ? within the URI
+    				questionPtrn = /.\?./;
+    			
+    				if (questionPtrn.test(launchUri))
+    				{
+    					launchUri += "&";
+    				}
+    				else
+    				{
+    					launchUri += "?";
+    				}
+    			}
+    			
+    			// Go through each option component
+    			for (i = 0; i < deviceWidget.optionCount; i++)
+    			{
+    				// If this is the base refernce option then skip it
+    				if (i == deviceWidget.baseIndex)
+    				{
+    					continue;
+    				}
+    				
+    				// Get the option component that contains the user's selection
+    				option = deviceWidget.optionWidgets[i].getChildByName(deviceWidget.optionNames[i]);
+    			
+    				// Process the option based on the component type
+    				if (option is ComboBox)
+    				{
+    					// Get the combo box
+    					combo = option as ComboBox;
+    					
+    					// Make sure an option is selected
+    					if (combo.selectedIndex < 0)
+    					{
+   		    				// Get the form item of this combo box to get the label of the option
+   		    				frmItem = combo.parent as FormItem;
+   		    			
+   		    				// Add a message to a popup window
+   		    				popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    					InfoPopupWindow, true));
+   		    				popupWindow.title = "ERROR: Device Launch Error";
+   		    				popupWindow.setMessage("ERROR: Missing option!\n"
+   		    					+ "Please select a choice for the " + frmItem.label + " option\n");
+   		    	
+							// Change the popup into an info only dialog box
+							popupWindow.formatInfoBox();
+				
+   		    				// Popup the message
+   		    				PopUpManager.centerPopUp(popupWindow);
+   		    				
+   		    				// Return to allow the user to select an option
+   		    				return;
+    					}
+    					else if (deviceWidget.optionParamIds[i] != null)
+    					{
+    						
+    						// Add the parameter values and possibly the parameter id to the URI
+    						if (haveHttp)
+    						{
+	   							launchUri += deviceWidget.optionParamIds[i] + "="
+    								+ combo.selectedItem.data + "&";
+    						}
+    						else if (haveSavoir)
+    						{
+								launchUri += combo.selectedItem.data + "&";
+							}
+    					}
+    				}
+    				else if (option is TextInput)
+    				{
+    					// Get the text input
+    					textInp = option as TextInput;
+
+    					// Add the parameter values and possibly the parameter id to the URI
+    					if (deviceWidget.optionParamIds[i] != null)
+    					{
+    						if (haveHttp)
+    						{
+    							launchUri += deviceWidget.optionParamIds[i] + "="
+    								+ textInp.text + "&";
+    						}
+    						else if (haveSavoir)
+    						{
+								launchUri += textInp.text + "&";
+							}
+    					}
+    				}
+    				else if (option is Tile)
+    				{
+    					// Get the tile container
+    					tileBox = option as Tile;
+
+    					// Get the checkboxes from the tile box
+    					chkBoxes = tileBox.getChildren();
+    					
+   						// Create a cursor for finding multiple options
+   						multiOptionCursor = deviceWidget.
+   							multiOptionData[deviceWidget.optionNames[i]].createCursor();
+   						
+    					// Sort the options
+                		deviceWidget.multiOptionData[deviceWidget.optionNames[i]].sort = multiOptionSort;
+                		deviceWidget.multiOptionData[deviceWidget.optionNames[i]].refresh();
+    			
+    					// Go through the checkboxes
+    					for (j = 0; j < chkBoxes.length; j++)
+    					{
+    						// Get the check box
+    						chkBox = chkBoxes[j] as CheckBox;
+    						
+    						// Check if the checkbox is selected
+    						if (chkBox.selected)
+    						{
+   								// Find the option data associated with this checkbox
+   								found = multiOptionCursor.findAny({label:chkBox.name});
+   				
+   								if (found)
+   								{
+   									// Add the parameter values and possibly the parameter id to the URI
+   									if (haveHttp)
+   									{
+   										launchUri += multiOptionCursor.current.paramId + "="
+   											+ multiOptionCursor.current.data + "&";
+   									}
+   									else if (haveSavoir)
+   									{
+										launchUri += multiOptionCursor.current.data + "&";
+									}
+   								}
+    						}
+    					}
+    				}
+    			}
+    			
+    			// Strip off the last question mark if it's there
+    			endPtrn = /\?$/;
+    			launchUri = launchUri.replace(endPtrn, "");
+
+    			// Strip off the last ampersand if it's there
+    			endPtrn = /&$/;
+    			launchUri = launchUri.replace(endPtrn, "");
+
+    			// Encode the launch URI into a URI encoded string and send it to the socket proxy
+    			launchUri = encodeURI(launchUri);
+    			sendLaunchMessage(launchUri);
+   			}
+   				
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDevSmallIconClick
+			// Author:       	Justin Hickey
+			// Purpose:      	To restore the device to the flow box and then save the user
+			//					preferences.
+			// Input Vars:   	event - event triggered by clicking the small icon in the dock
+			// Return Vars:  	none
+			// Date Created: 	Dec 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleDevSmallIconClick(event:MouseEvent):void
+			{
+				var deviceId:String;		// Name used for identifying device widget
+				var strIndex:Number;		// Index used for stripping off device name
+				var found:Boolean;			// Flag to indicate device widget was found
+				
+    			// Strip off the device name to search the closed devices
+    			strIndex = event.currentTarget.id.indexOf("SmallIcon", 0)
+    			deviceId = event.currentTarget.id.substring(0, strIndex);
+    			
+    			// Sort the closed devices
+                closedDevices.sort = closedDevSort;
+                closedDevices.refresh();
+    			
+   				// Find the resource data that is associated with this device
+   				found = closedDevCursor.findAny({devName:deviceId});
+   				
+   				if (found)
+   				{
+   					// Set the view state to MAXIMIZED
+   					closedDevCursor.current.devWidget.opened = true;
+   					closedDevCursor.current.devWidget.viewState = "MAXIMIZED";
+   					
+   					// Add the device to the flow box and remove it from the closed devices
+   					winShadeTile.addChild(closedDevCursor.current.devWidget);
+   					closedDevCursor.remove();
+
+					// Save the user preferences
+        			sendSaveUserPrefReq();
+   				}
+   			}
+
+			// =================== Application Event Handlers =======================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleSaveUserPrefComplete
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To pop up an error message if saving the user preferences failed.
+			// Input Vars:   	event - the data event that indicates that saving the user preferences
+			//					is complete
+			// Return Vars:  	none
+			// Date Created: 	Nov 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleSaveUserPrefComplete(event:SavoirEvent):void
+			{
+   				var saveUserPrefXML:XML;	// Returned XML data
+   	 			
+   	 			// Get the returned XML data
+   	 			saveUserPrefXML = XML(event.data);
+   	 
+   	 			// Check if the preferences were saved successfully
+   	 			if (saveUserPrefXML.result != "success")
+   	 			{
+   		    		// Add a message to a popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow,
+   		    			true));
+   		    		popupWindow.title = "ERROR: Save Preferences Error";
+   		    		popupWindow.setMessage("ERROR: Failed to save your preferences to the server\n"
+   		    			+ "Generated while trying to save your preferences.\n\n"
+						+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+   		    		// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+     			}
+   			}
+   
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleGetUserPrefComplete
+			// Author:       	Justin Hickey
+			// Purpose:      	To process the response from the server of all the resources
+			//					available for the current user. For each resource, a device profile
+			//					is loaded and the profile is obtained from the server and parsed.
+			//					Once the profile is parsed an event is triggered which then allows a
+			//					device widget to be created in the handleDevProfileComplete function.
+			//					An example of the XML data is as follows:
+			//					
+			//					<message action="get_user_profile_resp">
+			//						<resource id="000"
+			//							name="Resource_Name1"
+			//							preference="MAXIMIZED">
+			//						</resource>
+			//						<resource id="001"
+			//							name="Resource_Name2"
+			//							preference="MINIMIZED">
+			//						</resource>
+			//
+			//						<isAdmin>true</isAdmin>
+			//					</message>
+			//
+			// Input Vars:   	event - the data event that indicates the resources have been
+			//					obtained
+			// Return Vars:  	none
+			// Date Created: 	Nov 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+    		private function handleGetUserPrefComplete(event:SavoirEvent):void
+    		{
+   				var getUserPrefXml:XML;			// XML data returned from SAVOIR server
+   				var resourceXmlList:XMLList;	// Resource XML list containing all resource elements
+   				var isAdminXmlList:XMLList;		// IsAdmin XML list
+   				var resourceXml:XML;			// Single element of the resource XML list
+   				var isAdminXml:XML;				// Single element of the IsAdmin XML list
+   	
+    			// Get the XML data that was returned from the server
+    			getUserPrefXml = XML(event.data);
+				
+				// Check if the user is an admin user
+				if (getUserPrefXml.hasOwnProperty("isAdmin"))
+				{
+					isAdminXmlList = getUserPrefXml.isAdmin;
+					
+					for each (isAdminXml in isAdminXmlList)
+					{
+						// Set the admin link to visible if this is an admin user
+						if (isAdminXml == "true")
+						{
+							Application.application.adminLink.visible = true;
+						}
+						else
+						{
+							Application.application.adminLink.visible = false;
+						}
+					}
+				}
+				else
+				{
+					Application.application.adminLink.visible = false;
+				}
+				
+   				// If no resources were returned, pop up a message and return from the function
+   				if (!getUserPrefXml.hasOwnProperty("resource"))
+   				{
+   		    		// Add a message to a popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "INFO: Available Resources";
+   		    		popupWindow.setMessage("INFO: There are no resources available\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   					
+   		   			return;
+   				}
+   				
+   				// Clear out the resources list
+   				userResources.removeAll();
+   				
+				// Extract the resource list from the server response
+				resourceXmlList = getUserPrefXml.resource;
+
+   				// Go through the resources for the user
+   				for each (resourceXml in resourceXmlList)
+   				{
+   					// Add the resource data to the resource collection
+   					userResources.addItem({resId:resourceXml.@id, resName:resourceXml.@name,
+   						viewState:resourceXml.@preference});
+
+   					// Create a new device profile for the resource
+   					devProfile = new DeviceProfile();
+   					
+   					// Set a watch on the initDone variable so we know when the
+   					// profile has been parsed
+   					thisWatcher = ChangeWatcher.watch(devProfile, "initDone", handleDevProfileComplete);
+   					
+   					// Get the device profile
+   					devProfile.resourceId = resourceXml.@id;
+   					devProfile.resourceName = resourceXml.@name;
+   					devProfile.processDeviceProfile();
+   				}
+   			}
+   				
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleDevProfileComplete
+			// Author:       	Justin Hickey
+			// Purpose:      	To create the device widget from the profile information. Flags in the
+			//					DeviceProfile object are used to determine which sections of the
+			//					device widget to create. The general process is as follows:
+			//
+			//						1. Check for errors in the profile
+			//						2. Create the base device widget
+			//						3. Create the option components
+			//						4. Add event listeners to the device widget
+			//						5. Set the view state of the device widget
+			//						6. Create the small icon for the dock at the bottom
+			//
+			//					Different sections will need to parse XML from the profile. The
+			//					following are examples of the XML that is parsed.
+			//
+			//					Example of choice and option XML
+			//
+			//						<choices baseUri="{coffeeStore}">
+			//							<choice ID="coffeeStore" label="Coffee Store" type="activity"/>
+			//							<choice ID="size" label="Size" type="single" paramId="size">
+			//								<option name="Small" paramValue="small"/>
+			//								<option name="Medium" paramValue="medium"/>
+			//								<option name="Large" paramValue="large"/>
+			//							</choice>
+			//							<choice ID="extra" label="Additional Items" type="multiple">
+			//								<option name="Cream" paramId="cream" paramValue="1"/>
+			//								<option name="Sugar" paramId="sugar" paramValue="1"/>
+			//								<option name="Milk" paramId="milk" paramValue="1"/>
+			//							</choice>
+			//							<choice ID="name" label="Your Name" type="userEntered" paramId="custName"/>
+			//						</choices>
+			//
+			//					Example of activity XML
+			//
+			//						<activities>
+			//							<activity ID="1" name="Downtown"
+			//								paramValue="http://host.domain/coffeeShopExample/downtown.php"/>
+			//							<activity ID="2" name="Uptown"
+			//								paramValue="http://host.domain/coffeeShopExample/uptown.php"/>
+			//							<activity ID="3" name="Mall"
+			//								paramValue="http://host.domain/coffeeShopExample/mall.php"/>
+			//						</activities>
+			//
+			//					Note that these are simple examples. Please see the appropriate schema
+			//					documentation for a complete description of the XML schema since there
+			//					are many options to this schema.
+			//
+			// Input Vars:   	event - event triggered by the change of the initDone value in the
+			//					DeviceProfile object
+			// Return Vars:  	none
+			// Date Created: 	Nov 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+    		private function handleDevProfileComplete (event:Event):void
+    		{
+    			var profile:DeviceProfile;				// Profile for the device
+    			var deviceWidget:DeviceWindowShade;		// Device widget to display
+    			var found:Boolean;						// Flag to indicate resource was found
+    			var choiceXml:XML;						// Single choice element in device profile
+    			var optionXml:XML;						// Single option element in device profile
+    			var activityXml:XML;					// Single activity element in device profile
+    			var	index:Number;						// Index into the various option arrays
+    			var	combo:ComboBox;						// Combo box for an option of the device widget
+    			
+    			// Get the device profile
+    			profile = event.currentTarget as DeviceProfile;
+    			
+   				// Check if there was an error parsing the profile
+   				if (profile.haveError)
+   				{
+   		    		// Add a message to a popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Device Profile Error";
+   		    		popupWindow.setMessage(profile.errorMsg);
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+   		    		
+   					return;
+   				}
+   				
+   				// If there is no widget in the profile then return
+   				if (!profile.haveWidget)
+   				{
+   					return;
+   				}
+   				
+   				// Create a new device widget
+   				deviceWidget = new DeviceWindowShade(profile.widgetTitle, profile.widgetIconMed,
+   					profile.widgetDesc, profile.resourceId);
+
+    			// Sort the resources
+                userResources.sort = resourceSort;
+                userResources.refresh();
+    			
+   				// Find the resource data that is associated with this profile
+   				found = resourceCursor.findAny({resId:profile.resourceId});
+   				
+   				if (found)
+   				{
+   					// Set the preferred view state for the device widget
+   					deviceWidget.viewState = resourceCursor.current.viewState;
+   				}
+   				else
+   				{
+   					// We should never get here, but just in case, set the default view state
+   					// to MAXIMIZED since the device profile should be viewable at this point 
+   					deviceWidget.viewState = "MAXIMIZED";
+   				}
+
+				// Set the base URI and reference if necessary
+				deviceWidget.baseUri = profile.baseUri;
+				
+				// Set the base reference for the base URI if there is one
+				if (profile.haveBaseRef)
+				{
+					deviceWidget.baseUriRef = profile.baseUriRef;
+					deviceWidget.haveBaseRef = true;
+				}
+				
+				// Check if we need to add any options
+				if (profile.haveChoices)
+				{
+					// Add the option label and main option container
+					deviceWidget.addOptionContainer();
+					
+					// Go through the choices
+					for each (choiceXml in profile.choicesXmlList)
+					{
+						// Check if this choice contains a base URI
+						deviceWidget.checkBaseRef(choiceXml.@ID);
+						
+						// Check if the choice has a parameter id
+						if (choiceXml.@paramId.length() > 0)
+						{
+							deviceWidget.addParamId(choiceXml.@paramId);
+						}
+						else
+						{
+							deviceWidget.addParamId(null);
+						}
+									
+						// Check the type of choice
+						switch (String(choiceXml.@type))
+						{
+							case "single" :
+								
+								if (choiceXml.hasOwnProperty("option"))
+								{
+									options = new ArrayCollection();
+								
+									// Go through the options
+									for each (optionXml in choiceXml.option)
+									{
+										// Create the data provider for the combo box
+										options.addItem({label:optionXml.@name,
+											data:optionXml.@paramValue});
+									}
+								
+									// Create a new combo box
+									index = deviceWidget.addOptionComboBox(profile.serviceXmlList.@ID,
+										choiceXml.@label);
+									
+									// Set the options as the data provider
+									combo = deviceWidget.optionWidgets[index].
+										getChildByName(deviceWidget.optionNames[index]) as ComboBox;
+									combo.dataProvider = options;
+									
+									// Add an event listener for when the combo box is complete
+									// to adjust some spacing
+									combo.addEventListener(FlexEvent.CREATION_COMPLETE,
+										handleComboCreateComplete);
+								}
+								else
+								{
+   		    						// Add a message to a popup window
+   		    						popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    							InfoPopupWindow, true));
+   		    						popupWindow.title = "ERROR: Device Profile Error";
+   		    						popupWindow.setMessage("ERROR: Invalid XML! The XML file for this " 
+   		    							+ "profile (" + profile.widgetTitle + ") indicates that\n" 
+   		    							+ "options should be included for the "	+ choiceXml.@ID
+   		    							+ " choice, but no options were found.\n"
+   		    							+ "Generated while processing the device profile.\n\n"
+										+ "Please contact your Savoir Admin regarding this issue "
+   		    							+ "and send him/her the above error\n");
+   		    	
+									// Change the popup into an info only dialog box
+									popupWindow.formatInfoBox();
+				
+   		    						// Popup the message
+   		    						PopUpManager.centerPopUp(popupWindow);
+								}
+								
+								break;
+							
+							case "multiple" :
+								
+								if (choiceXml.hasOwnProperty("option"))
+								{
+									options = new ArrayCollection();
+								
+									// Go through the options
+									for each (optionXml in choiceXml.option)
+									{
+										// Create the data provider for the check boxes
+										options.addItem({label:optionXml.@name,
+											data:optionXml.@paramValue, paramId:optionXml.@paramId});
+									}
+								
+									// Create a new component with the check boxes
+									deviceWidget.addOptionChkTile(profile.serviceXmlList.@ID,
+										choiceXml.@label, options);
+										
+									// Add event listeners to prevent mouse moves from being used
+									// to drag the device widget
+									deviceWidget.chkTileHolder.addEventListener(MouseEvent.MOUSE_MOVE,
+										handleLocalizedMouseMove)
+									deviceWidget.chkTileHolder.addEventListener(MouseEvent.MOUSE_DOWN,
+										handleLocalizedMouseDown)
+								}
+								else
+								{
+   		    						// Add a message to a popup window
+   		    						popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    							InfoPopupWindow, true));
+   		    						popupWindow.title = "ERROR: Device Profile Error";
+   		    						popupWindow.setMessage("ERROR: Invalid XML! The XML file for this " 
+   		    							+ "profile (" + profile.widgetTitle + ") indicates that\n" 
+   		    							+ "options should be included for the "	+ choiceXml.@ID
+   		    							+ " choice, but no options were found.\n"
+   		    							+ "Generated while processing the device profile.\n\n"
+										+ "Please contact your Savoir Admin regarding this issue "
+   		    							+ "and send him/her the above error\n");
+   		    	
+									// Change the popup into an info only dialog box
+									popupWindow.formatInfoBox();
+				
+   		    						// Popup the message
+   		    						PopUpManager.centerPopUp(popupWindow);
+								}
+								
+								break;
+							
+							case "activity" :
+								
+								// Make sure we have activities
+								if (profile.haveActivities)
+								{
+									activities = new ArrayCollection();
+									
+									// Go through the activities
+									for each (activityXml in profile.activityXmlList)
+									{
+										// Create the data provider for the combo box
+										activities.addItem({label:activityXml.@name,
+											data:activityXml.@paramValue});
+									}
+									
+									// Create a new combo box
+									index = deviceWidget.addOptionComboBox(profile.serviceXmlList.@ID,
+										 choiceXml.@label);
+									
+									// Set the activities as the data provider
+									combo = deviceWidget.optionWidgets[index].
+										getChildByName(deviceWidget.optionNames[index]) as ComboBox;
+									combo.dataProvider = activities;
+									
+									// Add an event listener for when the combo box is complete
+									// to adjust some spacing
+									combo.addEventListener(FlexEvent.CREATION_COMPLETE,
+										handleComboCreateComplete);
+								}
+								else
+								{
+   		    						// Add a message to a popup window
+   		    						popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    							InfoPopupWindow, true));
+   		    						popupWindow.title = "ERROR: Device Profile Error";
+   		    						popupWindow.setMessage("ERROR: Invalid XML! The XML file for this " 
+   		    							+ "profile (" + profile.widgetTitle + ") indicates that\n" 
+   		    							+ "activities should be included, but no activities were "
+   		    							+ "found.\n"
+   		    							+ "Generated while processing the device profile.\n\n"
+										+ "Please contact your Savoir Admin regarding this issue "
+   		    							+ "and send him/her the above error\n");
+   		    	
+									// Change the popup into an info only dialog box
+									popupWindow.formatInfoBox();
+				
+   		    						// Popup the message
+   		    						PopUpManager.centerPopUp(popupWindow);
+								}
+								
+								break;
+							
+							case "userEntered" :
+								
+								// Create a new text input component
+								deviceWidget.addOptionTextInput(profile.serviceXmlList.@ID,
+									choiceXml.@label, 50);
+								
+								// Add event listeners to prevent mouse moves from being used
+								// to drag the device widget
+								deviceWidget.textInputHolder.addEventListener(MouseEvent.MOUSE_MOVE,
+									handleLocalizedMouseMove)
+								deviceWidget.textInputHolder.addEventListener(MouseEvent.MOUSE_DOWN,
+									handleLocalizedMouseDown)
+								
+								break;
+							
+							default :
+   		    					
+   		    					// Add a message to a popup window
+   		    					popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this,
+   		    						InfoPopupWindow, true));
+   		    					popupWindow.title = "ERROR: Device Profile Error";
+   		    					popupWindow.setMessage("ERROR: Invalid type for choice in profile "
+   		    						+ profile.widgetTitle + " :\nChoice ID = "
+   		    					 	+ choiceXml.@ID + "\nChoice label = " + choiceXml.@label
+   		    					 	+ "\nChoice type = " + choiceXml.@type + "\n"
+   		    						+ "Generated while processing the device profile.\n\n"
+									+ "Please contact your Savoir Admin regarding this issue "
+   		    						+ "and send him/her the above error\n");
+   		    	
+								// Change the popup into an info only dialog box
+								popupWindow.formatInfoBox();
+				
+   		    					// Popup the message
+   		    					PopUpManager.centerPopUp(popupWindow);
+								
+								break;
+						}
+					}
+				}
+				else
+				{
+					// Since we don't have any options, hide the top horizontal rule to avoid
+					// having two rules visible
+					deviceWidget.topHRule.visible = false;
+				}
+				
+				// Add the launch button with the proper listener
+				deviceWidget.launchBut.addEventListener(MouseEvent.CLICK, handleDeviceLaunch);
+				deviceWidget.allContentBox.addChild(deviceWidget.botHRule);
+				deviceWidget.allContentBox.addChild(deviceWidget.butBox);
+   				
+   				// Add the event listeners for drag and drop capability
+   				deviceWidget.addEventListener(MouseEvent.MOUSE_MOVE, handleDragInit);
+   				deviceWidget.addEventListener(DragEvent.DRAG_ENTER, handleDragEnter);
+   				deviceWidget.addEventListener(DragEvent.DRAG_DROP, handleDragDrop);
+   				deviceWidget.addEventListener(DragEvent.DRAG_COMPLETE, handleDragComplete);
+   				deviceWidget.addEventListener(MoveEvent.MOVE, calculateNewHeight);
+   				
+   				// Check the view state of the widget
+   				if (deviceWidget.viewState == "MAXIMIZED")
+   				{
+   					// If the view state is MAXIMIZED add the widget to the tile container
+   					winShadeTile.addChild(deviceWidget);
+   				}
+   				else if (deviceWidget.viewState == "MINIMIZED")
+   				{
+   					// If the view state is MINIMIZED, then add the widget to the closed devices
+					closedDevices.addItem({devName:deviceWidget.id, devWidget:deviceWidget});
+   				}
+   				else if (deviceWidget.viewState == "SHADED")
+   				{
+   					// If the view state is SHADED, then add the widget in the closed state
+   					deviceWidget.opened = false;
+   					winShadeTile.addChild(deviceWidget);
+   				}
+   				
+   				// Create the  small icon
+   				smallIcon = new Image();
+   				smallIcon.id = deviceWidget.id + "SmallIcon";
+
+				// Set the error message counter to 0 for this image and save the URL
+				imgErrCount[smallIcon.id] = 0;
+				initIconUrl[smallIcon.id] = profile.widgetIconSmall;
+
+   				// Load the small icon
+   				smallIcon.load(profile.widgetIconSmall);
+   				
+   				// Add listeners for a mouse click and I/O errors
+   				smallIcon.addEventListener(MouseEvent.CLICK, handleDevSmallIconClick);
+				smallIcon.addEventListener(IOErrorEvent.IO_ERROR, handleFileError);
+				
+				// Add the small icon to the icon dock
+   				iconBar.addChild(smallIcon);
+    		}
+    		
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleComboCreateComplete
+			// Author:       	Justin Hickey
+			// Purpose:      	To readjust the size of the combo boxes so that text is not clipped.
+			//					For some reason, Flex does not size the combo box properly so that
+			//					the item with the longest label has the end of the label partially
+			//					covered by the drop down button. This function simply adds a bit of
+			//					space to the combo box so the text is not clipped. This function also
+			//					ensures that the new width cannot be greater than the maximum allowed
+			//					width. Note that the maximum allowed width is defined as the width
+			//					of the parent DeviceWindowShade minus the sum of the x values of the
+			//					combo box and all it's parents and the padding on the right side of
+			//					the DeviceWindowShade.
+			//
+			//					This function depends on the fact that the combo box is inside a
+			//					container of the device widget. Thus, the device widget can be found
+			//					by moving up 4 spots in the component hierarchy. That is, with the
+			//					current implementation of the device window shade, the device widget
+			//					is the parent of the parent of the parent of the parent of the combo
+			//					box. Also, the x values of the various containers depends on the
+			//					component hierarchy. Thus, any changes to the component hierarchy will
+			//					require changes to this function to reflect the new hierarchy.
+			//
+			// Input Vars:   	event - event triggered by the creation of the combo box
+			// Return Vars:  	none
+			// Date Created: 	Jan 13, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleComboCreateComplete(event:FlexEvent):void
+			{
+				var deviceWidget:DeviceWindowShade;		// Device widget containing the combo box
+				var combo:ComboBox;						// Combo box to be adjusted
+				var comboTextInp:TextInput;				// Text input area of combo box
+				var maxWidth:Number;					// Maximum width of device widget
+				var newWidth:Number;					// New width of combo box
+				
+				// Get the combo box and device widget
+				combo = event.currentTarget as ComboBox;
+				deviceWidget = combo.parent.parent.parent.parent as DeviceWindowShade;
+				
+				// Calculate the maximum width and the new width
+				maxWidth = deviceWidget.width - (combo.x + combo.parent.x + combo.parent.parent.x
+					+ combo.parent.parent.parent.x + deviceWidget.getStyle("paddingRight"));
+				newWidth = combo.dropdownWidth + 20;
+				
+				// Check if the new width is greater than the maximum width
+				if (newWidth > maxWidth)
+				{
+					newWidth = maxWidth;
+				}
+				
+				// Set the combo box width
+				combo.width = newWidth;
+				
+				// Also increase the height slightly since tails of letters like p and g are clipped
+				// We need to get the combo box text input component first which happens to be the
+				// third child of the combo box - child indices start at 0
+				comboTextInp = combo.getChildAt(2) as TextInput;
+				comboTextInp.height += 3;
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	handleFileError
+			// Author:       	Justin Hickey
+			// Purpose:      	To set the small icon image to a default image if there is an error
+			//					loading the initial small image. If the default image also generates
+			//					an error then the function will pop up an error message. Note that
+			//					arrays are used to track the error information since there are usually
+			//					more than one small icon image. The index into these arrays is the
+			//					name of the small icon image which should be unique, since it is based
+			//					on the device name which contains the timestamp when the particular
+			//					device widget is created.
+			// Input Vars:   	event - event triggered by an I/O error while trying to load the icon
+			//					image
+			// Return Vars:  	none
+			// Date Created: 	Feb 02, 2011
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function handleFileError(event:IOErrorEvent):void
+			{
+				var iconImg:Image;		// Image that generated the event
+				var iconName:String;	// Name of the small icon image
+				
+				// Get the small icon image and its name
+				iconImg = event.currentTarget as Image;
+				iconName = iconImg.id;
+				
+				// If this is the first time called try to load the default small icon
+				if (imgErrCount[iconName] == 0)
+				{
+					// Save the error message text
+					initErrText[iconName] = event.text;
+					
+					// Load the default icon
+					iconImg.load("http://" + serverNameStr + "/images/small_noIcon.png");
+	
+					// Increment the error count
+					imgErrCount[iconName]++;
+				}
+				else
+				{
+	  		    	// Add a message to a popup window
+	   		    	popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+	   		    	popupWindow.title = "ERROR: File Load Error";
+	   		    	popupWindow.setMessage("ERROR: The small icon image " + initIconUrl[iconName]
+	   		    		+ " and the default\n"
+	   		    		+ "small image both failed to load from the server. The error returned was\n"
+	   		    		+ initErrText[iconName] + "\n"
+	   		    		+ "Generated while initializing the icon dock\n\n"
+						+ "Please contact your Savoir Admin regarding this issue "
+	   		    		+ "and send him/her the above error\n");
+	   		    	
+	   		    	// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+					
+					// Popup the message
+	   		    	PopUpManager.centerPopUp(popupWindow);
+				}
+			}
+				
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	initDevices
+			// Author:       	Yonghua You, Justin Hickey
+			// Purpose:      	To initialize the "Tools and Devices" page. Some data items are
+			//					created and then a request for the user's preferences is sent to the
+			//					SAVOIR server.
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	Feb 27, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			public function initDevices():void
+			{
+				// Get the server name
+				this.serverName = SharedObject.getLocal("serverName","/");
+				serverNameStr = this.serverName.data.serverName;
+			
+				// Allocate the array collections for the resources and the closed devices
+				userResources = new ArrayCollection();
+				closedDevices = new ArrayCollection();
+				
+				// Create a new sort for sorting the resources, closed devices, and multiple options
+                resourceSort = new Sort();
+                resourceSort.fields = [new SortField("resId", true)];
+                closedDevSort = new Sort();
+                closedDevSort.fields = [new SortField("devName", true)];
+                multiOptionSort = new Sort();
+                multiOptionSort.fields = [new SortField("label", true)];
+                
+   				// Create the cursors for the resource and closed devices collections
+   				resourceCursor = userResources.createCursor();
+   				closedDevCursor = closedDevices.createCursor();
+   	   	
+  				// Send the request for the user's preferences
+  				sendGetUserPrefReq();
+
+//  KEEP FOR REFERENCE  			this.checkSessionStatusTimer.addEventListener(TimerEvent.TIMER_COMPLETE,
+//   				checkSessionStatusTimerCompleteHandler);
+//  KEEP FOR REFERENCE  			this.checkSessionStatusTimer.addEventListener(TimerEvent.TIMER,
+//    				checkSessionStatusTimerHandler);
+// KEEP FOR REFERENCE   			this.inforWindowShowTimePeriodTimer.addEventListener(TimerEvent.TIMER_COMPLETE,
+//    				infoTimerCompleteHandler);
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	closeDevWindowShade
+			// Author:       	Justin Hickey
+			// Purpose:      	To close the given device window shade. 
+			// Input Vars:   	device - the device window shade to close
+			// Return Vars:  	none
+			// Date Created: 	Dec 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			public function closeDevWindowShade(device:DeviceWindowShade):void
+			{
+				// Set the view state of the device to MINIMIZED
+				device.viewState = "MINIMIZED";
+				
+				// Save the device in the closed devices array then remove it from the flow box
+				closedDevices.addItem({devName:device.id, devWidget:device});
+				winShadeTile.removeChild(device);
+				
+				// Save the user preferences
+				sendSaveUserPrefReq();
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendSaveUserPrefReq
+			// Author:       	Justin Hickey, Yonghua You
+			// Purpose:      	To send a save preferences request to the SAVOIR server. 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			public function sendSaveUserPrefReq():void
+			{
+   				var saveUserPrefXmlStr:String;				// XML data of message element
+   				var saveUserPrefDelegate:OAuthDelegate;		// Oauth delegate to send message to SAVOIR server
+   				var parameterObj:Object;					// Object containing message to send to SAVOIR server
+   				
+   				// Build the message XML
+   				saveUserPrefXmlStr = "<message action=\"save_user_profile\">\n"
+            		+ "<service>" + generateResPrefStr() + "\n"
+            	    + "</service>\n"
+            	    + "</message>";
+    
+    			// Send the message to the SAVOIR server
+    			parameterObj = {savoirmsg:saveUserPrefXmlStr};
+      			saveUserPrefDelegate = client.sendRequest("/SavoirWebBroker",
+      				URLRequestMethod.GET, parameterObj);
+      				
+      			// Add an event listener to handle the response
+      			saveUserPrefDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+      				handleSaveUserPrefComplete);
+			}
+
+			// ======================= Private Functions ============================
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendLaunchMessage
+			// Author:       	Yonghua You
+			// Purpose:      	To send a launch message to the Socket Proxy program
+			// Input Vars:   	launchURI - complete URI to launch the specific device
+			// Return Vars:  	none
+			// Date Created: 	Mar 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+   			private function sendLaunchMessage(launchURI:String):void
+   			{
+   				var launchMsg:LaunchMessage;	// Instance of a launch message object
+   				
+   				// Create a new launch message
+   				launchMsg = new LaunchMessage(LaunchMessage.LAUNCH);
+   				
+   				// Set the launch URI into the message and then send the message
+   				launchMsg.launchURI = launchURI;
+   				launchMsg.send();
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	sendGetUserPrefReq
+			// Author:       	Justin Hickey, Yonghua You
+			// Purpose:      	To send a get preferences request to the SAVOIR server. 
+			// Input Vars:   	none
+			// Return Vars:  	none
+			// Date Created: 	May 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function sendGetUserPrefReq():void
+    		{
+   				var getUserPrefXmlStr:String;			// XML data of message element
+   				var getUserPrefDelegate:OAuthDelegate;	// Oauth delegate to send message to SAVOIR server
+    			var parameterObj:Object;				// Object containing message to send to SAVOIR server
+    			
+    			// Build the message XML
+    			getUserPrefXmlStr = "<message action=\"get_user_profile\"></message>";
+    	
+    			// Send the message to the SAVOIR server
+    			parameterObj = {savoirmsg:getUserPrefXmlStr};
+    			getUserPrefDelegate = client.sendRequest("/SavoirWebBroker",
+    				URLRequestMethod.GET,parameterObj);
+    			
+    			// Add an event listener to handle the response
+    			getUserPrefDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE,
+    				handleGetUserPrefComplete);
+    		}
+    		
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	calculateNewHeight
+			// Author:       	Justin Hickey
+			// Purpose:      	To recalculate the height of the window shade flow box. For some
+			//					reason, the flow box calculates its height signifcantly larger than it
+			//					actually is. Therefore, the height of the flow box needs to be
+			//					recalculated every time a widget is dragged and dropped in the flow
+			//					box. This prevents a large blank area being defined under the device
+			//					widgets.
+			//
+			//					This function basically calculates the maximum height of each row and
+			//					adds them up with a little padding at the end for the new height.
+			//
+			// Input Vars:   	event - event triggered by moving a device widget
+			// Return Vars:  	none
+			// Date Created: 	Nov 25, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function calculateNewHeight(event:MoveEvent):void
+			{
+				var child:IFlexDisplayObject;	// Individual child of the flow box
+				var currY:Number = -1;			// Current y value of a row 
+				var totalHeight:Number = 0;		// Final height of the flow box
+				var maxRowHeight:Number = 0;	// Maximum height of a row
+				var i:Number;					// Counter
+				
+				// Go through the children in the flow box
+				for (i = 0; i < winShadeTile.numChildren; i++)
+				{
+					child = IFlexDisplayObject(winShadeTile.getChildAt(i));
+					
+					// If we have a new row, calculate the new height
+					if (child.y > currY)
+					{
+						// Add the height of the previous row
+						totalHeight += maxRowHeight;
+						
+						// Add the padding between the previous row and this row
+						currY = child.y;
+						totalHeight = totalHeight + (currY - totalHeight);
+						
+						// Set this row height to 0
+						maxRowHeight = 0;
+					}
+					
+					// If this child is higher than a previous one update the maximum
+					if (child.height > maxRowHeight)
+					{
+						maxRowHeight = child.height;
+					}
+				}
+				
+				// Add the height of the last row plus some padding
+				totalHeight += maxRowHeight;
+				totalHeight += 10;
+				
+				// Reset the height of the flow box
+				winShadeTile.height = totalHeight;
+   			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////
+			// Function:     	generateResPrefStr
+			// Author:       	Justin Hickey, Yonghua You
+			// Purpose:      	To generate the XML for the user's resource preferences, including
+			//					visible resources and those that the user has closed. 
+			// Input Vars:   	none
+			// Return Vars:  	resourceStr - XML of all resource preferences
+			// Date Created: 	May 06, 2010
+			//////////////////////////////////////////////////////////////////////////////////////////
+			private function generateResPrefStr():String
+			{
+   				var resourceStr:String = new String();	// XML elements for resource preferences
+   				var displayDevices:Array;				// Array of children in the flow box
+   				var device:DeviceWindowShade;			// Individual device widget
+   				var closedDev:Object;					// Individual closed device widget
+   				
+   				// Clear the resource string
+   				resourceStr = "";
+   				
+   				// All resources are either in the flow box or the closed devices
+  				// First, get the resources from the flow box
+   				displayDevices = winShadeTile.getChildren();
+   				
+   				// Go through the resources
+   				for each (device in displayDevices)
+   				{
+   					resourceStr += "<resource resourceId=\"" + device.resourceId + "\" "
+   						+ "preference=\"" + device.viewState + "\" />\n";
+   				}
+   				
+   				// Second, go through the closed devices
+    			for each (closedDev in closedDevices)
+   				{
+   					resourceStr += "<resource resourceId=\"" + closedDev.devWidget.resourceId + "\" "
+   						+ "preference=\"" + closedDev.devWidget.viewState + "\" />\n";
+   				}
+   				  				
+   				return resourceStr;
+   			}
+
+		]]>
+    </mx:Script>
+</mx:VBox>

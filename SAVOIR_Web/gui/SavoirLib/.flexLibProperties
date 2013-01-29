@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flexLibProperties version="1">
+<includeClasses>
+<classEntry path="renderers.DeviceWinShadeHdrRndr"/>
+<classEntry path="savoirAutoComplete.AutoComplete"/>
+<classEntry path="savoirAutoComplete.components.ExpandingTextArea"/>
+<classEntry path="savoirAutoComplete.utils.ArrayCollectionUtils"/>
+<classEntry path="savoirAutoComplete.utils.KeyboardUtil"/>
+<classEntry path="savoirAutoComplete.utils.StringUtils"/>
+<classEntry path="savoirComp.DeviceWindowShade"/>
+<classEntry path="savoirComp.InfoPopupWindow"/>
+<classEntry path="savoirComp.SesnOrScnInfo"/>
+<classEntry path="savoirlib.Scenario"/>
+<classEntry path="savoirlib.Session"/>
+</includeClasses>
+<includeResources/>
+<namespaceManifests>
+<namespaceManifestEntry manifest="manifest.xml" namespace="http://savoir.iit.nrc.ca/savoirlib"/>
+</namespaceManifests>
+</flexLibProperties>

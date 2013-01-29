@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- IMPORTANT NOTE - since this file contains Ant property keys (like ${savoir.release.ver}) you
+	need to use the HTML ASCII codes to literally represent property key strings that are meant to
+	be displayed on this page. Otherwise, Ant will try to replace them with property values. For
+	example, to display ${prebuild.prd.savoir.server.host} as is done for the
+	"prebuild.prd.tomcat.url" property, you need to encode the string as follows
+	&#36;&#123;prebuild.prd.savoir.server.host&#125; -->
+
+<html>
+<head>
+	<link href="../css/savoirDocs.css" rel="stylesheet" type="text/css">
+	<title>SAVOIR ${savoir.release.ver} Distribution Generic Properties</title>
+</head>
+
+<body>
+
+<img src="/images/savoirLogoDarkLargeTrans.png" />
+
+<center><h1>List of SAVOIR ${savoir.release.ver} Generic Properties</h1></center>
+
+<h2>Table of Contents</h2>
+
+<ol>
+	<li><a href="#intro">Introduction</a></li>
+	<li><a href="#props">Generic Properties</a></li>
+</ol>
+
+<h2><a name="intro">Introduction</a></h2>
+
+This page lists all the user editable properties and their generic values.
+
+<h2><a name="props">Generic Properties</a></h2>
+
+The following table details these properties and their default values.
+
+<p>
+
+<table>
+
+	<tr>
+		<th colspan="2">Generic Default Poperties
+
+	<tr>
+		<th>Property
+		<th>Generic Value
+
+	<tr>
+		<td colspan="2" class="subHeader">Global Properties
+
+	<tr>
+		<td>prebuild.deploy.server
+		<td>production
+
+	<tr>
+		<td colspan="2" class="subHeader">Production Server Properties
+
+	<tr>
+		<td>prebuild.prd.savoir.server.host
+		<td>0.0.0.0
+
+	<tr>
+		<td>prebuild.prd.db.username
+		<td>mySqlUser
+
+	<tr>
+		<td>prebuild.prd.db.password
+		<td>password
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.name
+		<td>John Doe
+
+	<tr>
+		<td>prebuild.prd.savoir.admin.email
+		<td>John.Doe@some.mail.com
+
+	<tr>
+		<td>prebuild.prd.web.server.dir
+		<td>/var/www/html
+
+	<tr>
+		<td>prebuild.prd.tomcat.username
+		<td>tomcatScriptManager
+
+	<tr>
+		<td>prebuild.prd.tomcat.password
+		<td>password
+
+	<tr>
+		<td>prebuild.prd.tomcat.port
+		<td>8080
+
+	<tr>
+		<td>prebuild.prd.tomcat.url
+		<td>http://&#36;&#123;prebuild.prd.savoir.server.host&#125;:&#36;&#123;prebuild.prd.tomcat.port&#125;/manager/text
+
+	<tr>
+		<td>prebuild.prd.mule.lib.directory
+		<td>/usr/local/savoir/mule/lib/user
+
+	<tr>
+		<td>prebuild.prd.mule.conf.directory
+		<td>/usr/local/savoir/mule/savoir-esb/conf
+
+	<tr>
+		<td>prebuild.prd.mule.conf.file
+		<td>savoir-prd-bus-config.xml
+
+	<tr>
+		<td>prebuild.prd.smtp.host
+		<td>smtp.gmail.com
+
+	<tr>
+		<td>prebuild.prd.smtp.port
+		<td>587
+
+	<tr>
+		<td>prebuild.prd.smtp.email.address
+		<td>someuser@gmail.com
+
+	<tr>
+		<td>prebuild.prd.smtp.username
+		<td>smtpUser
+
+	<tr>
+		<td>prebuild.prd.smtp.password
+		<td>password
+
+	<tr>
+		<td>prebuild.prd.smtp.useSSL
+		<td>false
+
+	<tr>
+		<td>prebuild.prd.smtp.useTLS
+		<td>true
+
+	<tr>
+		<td>prebuild.prd.FLEX_HOME
+		<td>/usr/local/flexSDK-3.6.0/
+
+	<tr>
+		<td>prebuild.prd.flash.ant.dir
+		<td>/usr/local/savoir/ant/lib/
+
+	<tr>
+		<td>prebuild.prd.activemq.version
+		<td>5.5.0
+
+	<tr>
+		<td>prebuild.prd.activemq.url
+		<td>tcp://&#36;&#123;prebuild.prd.savoir.server.host&#125;
+
+	<tr>
+		<td>prebuild.prd.activemq.system.url
+		<td>http://&#36;&#123;prebuild.prd.savoir.server.host&#125;:8891
+
+	<tr>
+		<td colspan="2" class="subHeader">Development Server Properties
+
+	<tr>
+		<td>prebuild.dev.savoir.server.host
+		<td>0.0.0.0
+
+	<tr>
+		<td>prebuild.dev.db.username
+		<td>mySqlUser
+
+	<tr>
+		<td>prebuild.dev.db.password
+		<td>password
+
+	<tr>
+		<td>prebuild.dev.savoir.admin.name
+		<td>John Doe
+
+	<tr>
+		<td>prebuild.dev.savoir.admin.email
+		<td>John.Doe@some.mail.com
+
+	<tr>
+		<td>prebuild.dev.web.server.dir
+		<td>/var/www/html
+
+	<tr>
+		<td>prebuild.dev.tomcat.username
+		<td>tomcatScriptManager
+
+	<tr>
+		<td>prebuild.dev.tomcat.password
+		<td>password
+
+	<tr>
+		<td>prebuild.dev.tomcat.port
+		<td>8080
+
+	<tr>
+		<td>prebuild.dev.tomcat.url
+		<td>http://&#36;&#123;prebuild.dev.savoir.server.host&#125;:&#36;&#123;prebuild.dev.tomcat.port&#125;/manager/text
+
+	<tr>
+		<td>prebuild.dev.mule.lib.directory
+		<td>/usr/local/savoir/mule/lib/user
+
+	<tr>
+		<td>prebuild.dev.mule.conf.directory
+		<td>/usr/local/savoir/mule/savoir-esb/conf
+
+	<tr>
+		<td>prebuild.dev.mule.conf.file
+		<td>savoir-dev-bus-config.xml
+
+	<tr>
+		<td>prebuild.dev.smtp.host
+		<td>smtp.gmail.com
+
+	<tr>
+		<td>prebuild.dev.smtp.port
+		<td>587
+
+	<tr>
+		<td>prebuild.dev.smtp.email.address
+		<td>someuser@gmail.com
+
+	<tr>
+		<td>prebuild.dev.smtp.username
+		<td>smtpUser
+
+	<tr>
+		<td>prebuild.dev.smtp.password
+		<td>password
+
+	<tr>
+		<td>prebuild.dev.smtp.useSSL
+		<td>false
+
+	<tr>
+		<td>prebuild.dev.smtp.useTLS
+		<td>true
+
+	<tr>
+		<td>prebuild.dev.FLEX_HOME
+		<td>/usr/local/flexSDK-3.6.0/
+
+	<tr>
+		<td>prebuild.dev.flash.ant.dir
+		<td>/usr/local/savoir/ant/lib/
+
+	<tr>
+		<td>prebuild.dev.activemq.version
+		<td>5.5.0
+
+	<tr>
+		<td>prebuild.dev.activemq.url
+		<td>tcp://&#36;&#123;prebuild.dev.savoir.server.host&#125;
+
+	<tr>
+		<td>prebuild.dev.activemq.system.url
+		<td>http://&#36;&#123;prebuild.dev.savoir.server.host&#125;:8891
+
+</table>
+
+<h2></h2>
+
+<center>
+	<small>Copyright &copy; <script type="text/javascript">
+		document.write(new Date().getFullYear());
+		</script>, National Research Council of Canada
+	</small>
+</center>
+
+</body>
+</html>

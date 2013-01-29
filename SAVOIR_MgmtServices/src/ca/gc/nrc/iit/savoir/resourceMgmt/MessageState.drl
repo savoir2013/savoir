@@ -1,0 +1,332 @@
+#created on: 4-Jun-2010
+#author: Aaron Moss
+package ca.gc.nrc.iit.savoir.resourceMgmt
+dialect "mvel"
+
+import ca.gc.nrc.iit.savoir.model.session.Action
+import ca.gc.nrc.iit.savoir.model.session.Message
+import ca.gc.nrc.iit.savoir.resourceMgmt.ResourceMgrImpl.MgmtProxy
+import ca.gc.nrc.iit.savoir.thresholdMgmt.MessageSender
+
+# service to send outgoing messages
+global MessageSender bus
+# proxy object wrapping mgmtServices features this rulebase needs
+global MgmtProxy mgmtProxy
+# session ID of the session this rulebase is running for
+global Integer sessionId
+
+# === HOW THESE RULES WORK ===
+# 
+# See package documentation for this package for an overview of these rules' 
+# operation.
+#
+# The majority of the rules implement conditions to discard or send queued 
+# messages, usually based solely on the message action and the current state 
+# of the resource instance the message is addressed to. A message with 
+# suitable values for these fields is selected in the condition of the rule, 
+# and then sent or discarded and removed from the knowledge base in the 
+# consequence of the rule. (Exceptions to this pattern are documented in 
+# comments in the rules.) InstanceState objects are added and removed by the 
+# Resource Manager, which is also responsible for queueing new messages.
+
+rule "Send_authenticate"
+	salience 20
+	
+	when
+		$msg : ResourceMessage(msg.action == Action.AUTHENTICATE, 
+				resource.state == ResourceState.INACTIVE)
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_authenticate"
+	salience 10
+	
+	when
+		$msg : ResourceMessage(msg.action == Action.AUTHENTICATE, 
+				resource.state in (ResourceState.AUTHENTICATED,
+					ResourceState.LOADED, ResourceState.RUNNING, 
+					ResourceState.PAUSED, ResourceState.SENT_STOP, 
+					ResourceState.STOPPED))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_endSession"
+	salience 20
+	
+	when
+		$msg : ResourceMessage(msg.action == Action.END_SESSION, 
+				resource.state in (ResourceState.STOPPED, 
+					ResourceState.INACTIVE))
+#				resource.state == ResourceState.INACTIVE)
+		#only send end session if all resources are stopped
+		not InstanceState(
+			state not in (ResourceState.STOPPED, ResourceState.INACTIVE))
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+#rule "Discard_endSession"
+#	
+#	when
+#		$msg : ResourceMessage(msg.action == Action.END_SESSION, 
+#				resource.state == ResourceState.INACTIVE)
+#	then 
+#		drools.retract($msg);
+#		
+#end
+
+rule "Send_getStatus"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.GET_STATUS, 
+				resource.state in (ResourceState.RUNNING, ResourceState.PAUSED))
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_getStatus"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.GET_STATUS, 
+				resource.state in (ResourceState.STOPPED, 
+					ResourceState.INACTIVE))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_load"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.LOAD, 
+			resource.state == ResourceState.AUTHENTICATED)
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_load"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.LOAD, 
+				resource.state in (ResourceState.RUNNING, ResourceState.PAUSED, 
+					ResourceState.SENT_STOP, ResourceState.STOPPED))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_pause"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.PAUSE, 
+				resource.state == ResourceState.RUNNING, $res : resource, 
+				$num : num)
+		#sequences with other pause/resume messages
+		# (will not send if there is an earlier message to pause/resume)
+		not ResourceMessage(resource == $res, num < $num, 
+				msg.action in (Action.PAUSE, Action.RESUME))
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_pause"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.PAUSE, 
+				resource.state == ResourceState.STOPPED)
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_resume"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.RESUME, 
+				resource.state == ResourceState.PAUSED, $res : resource, 
+				$num : num)
+		#sequences with other pause/resume messages
+		# (will not send if there is an earlier message to pause/resume)
+		not ResourceMessage(resource == $res, num < $num, 
+				msg.action in (Action.PAUSE, Action.RESUME))
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_resume"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.RESUME, 
+				resource.state == ResourceState.STOPPED)
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_setParameter"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.SET_PARAMETER, 
+				resource.state in (ResourceState.RUNNING, 
+					ResourceState.PAUSED), $res : resource, $num : num)
+		#sequences with other setParameter messages
+		# (will not send if there is an earlier message to setParameter)
+		not ResourceMessage(resource == $res, num < $num, 
+				msg.action == Action.SET_PARAMETER)
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_setParameter"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.SET_PARAMETER, 
+				resource.state in (ResourceState.STOPPED, 
+					ResourceState.INACTIVE))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_start"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.START, 
+				resource.state == ResourceState.LOADED)
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Discard_start"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.START, 
+				resource.state in (ResourceState.RUNNING, ResourceState.PAUSED, 
+					ResourceState.SENT_STOP, ResourceState.STOPPED))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_stop"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.STOP, 
+				resource.state in (ResourceState.AUTHENTICATED, 
+					ResourceState.LOADED, ResourceState.RUNNING, 
+					ResourceState.PAUSED), 
+				$iid : resource.id)
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		mgmtProxy.notifyResourceStateChanged(sessionId, $iid, 
+				ResourceState.SENT_STOP);
+		
+end
+
+rule "Discard_stop"
+	salience 10
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.STOP, 
+				resource.state in (ResourceState.SENT_STOP, 
+					ResourceState.STOPPED, ResourceState.INACTIVE))
+	then 
+		drools.retract($msg);
+		
+end
+
+rule "Send_getProfile"
+	salience 20
+		
+	when
+		$msg : ResourceMessage(msg.action == Action.GET_PROFILE)  
+	then 
+		bus.sendMessage($msg.endpoint, $msg.msg, true);
+		drools.retract($msg);
+		
+end
+
+rule "Notify_loaded"
+	salience 0
+	
+	when
+		#triggers when all resources are loaded
+		InstanceState()
+		not InstanceState(state != ResourceState.LOADED)
+	then
+		mgmtProxy.notifySessionLoaded(sessionId);
+	
+end
+
+# NOTE now done through RM
+#inserts a flag fact when this session is ending (determined by the presence 
+# of an "endSession" message)
+#rule "Flag_ending"
+#	#higher salience than "Send_endSession" to make sure it finds the message
+#	salience 25
+#	
+#	when
+#		exists ResourceMessage(msg.action == Action.END_SESSION)
+#		not SessionEndingFlag()
+#	then
+#		drools.insert(new SessionEndingFlag());
+#	
+#end
+
+rule "Notify_ended"
+	salience 0
+	
+	when
+		#triggers when session is ending and either all messages are sent
+		# or any that are unsent are to inactive resources
+		exists SessionEndingFlag()
+		forall ( ResourceMessage(resource.state == ResourceState.INACTIVE) )
+	then
+		mgmtProxy.notifySessionEnded(sessionId);
+
+end
+
+query "messagesByInstaceId" (InstanceId iId)
+	message : ResourceMessage(resource.id == iId)
+end
+
+query "qMessages"
+	message : ResourceMessage()
+end
+
+query "qStates"
+	state : InstanceState()
+end

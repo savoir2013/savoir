@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<jnlp spec="1.0" codebase="http://0.0.0.0/" href="savoirServerBridge.jnlp">
+<information>
+<title>SAVOIR-Start Server Bridge</title>
+<vendor>NRC IIT</vendor>
+<offline-allowed/> 
+</information>
+<security>
+   <all-permissions/>
+</security>
+<resources>
+<j2se version="1.6.0_04+" href="http://java.sun.com/products/autodl/j2se"/>
+</resources>
+<application-desc main-class="socketproxy.Main">
+</application-desc>
+
+</jnlp>
+

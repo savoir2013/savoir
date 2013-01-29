@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<mx:TextArea xmlns="savoirAutoComplete.components.*" xmlns:mx="http://www.adobe.com/2006/mxml" verticalScrollPolicy="on" horizontalScrollPolicy="off" initialize="init()">
+	<mx:Metadata>
+		[Event(name="change")]
+		[Event(name="buttonClick")]		
+	</mx:Metadata>
+	<mx:Script>
+		<![CDATA[
+		    import mx.controls.Alert;
+		    import mx.controls.List;
+		    import mx.collections.ListCollectionView;
+		    import mx.events.ListEvent;
+		    import mx.managers.PopUpManager;
+		    import mx.managers.SystemManager;
+		    import mx.core.Application;
+		    import mx.core.EdgeMetrics;
+		    import savoirAutoComplete.utils.*;
+		    private var searchStr:String = "";
+   		    private var startCollectingSearchStr:Boolean = false;
+   		    private var _dropDown:List;
+   		    private var _matchType:String = MATCH_WORD;
+   		    
+   		    protected var _labelField:String
+   		    
+   		    /**
+			 * The name of the field in the data provider items to display as the label.
+			 */
+			public function set labelField( value:String ):void
+			{
+				_labelField = value;
+			}
+   		    
+   		    [Bindable]
+			protected var _dataProvider:ListCollectionView;
+			
+			
+   		    
+   		     public function set dataProvider( value:ListCollectionView ):void
+			{
+				_dataProvider = value;
+				invalidateProperties();
+				
+			}
+			
+			public function get dataProvider():ListCollectionView
+			{
+				return _dataProvider;
+			}
+//			private var _listData:DataGridListData;
+//			
+//			override public function get listData():BaseListData
+//            {
+//            	return _listData;
+//            }
+//			
+//            public function set listData( value:BaseListData ):void
+//            {
+//            	
+//            	
+//            	_listData = DataGridListData( value );            	
+//            } 
+			
+   		    
+   		    public static const MATCH_BEGINNING:String 	= "beginning";
+			public static const MATCH_WORD:String		= "word";
+			public static const MATCH_ANY_PART:String	= "anyPart";
+			
+			private var editor:AutoComplete;
+			
+//			override public function set data( value:Object ):void
+//            {
+//                super.data = value;
+				//Alert.show("Call data set");
+//				if (!data || !data[ _listData.dataField ])
+//				{
+//					return;
+//				}
+				//this.text = String(value.name);
+				//callLater(validateSize);
+//			    resizeTextArea();
+//				callLater( callLater, [_setData] );				
+//            }
+   		    
+			private function init():void
+			{
+				addEventListener( Event.CHANGE, handleTextChange );		
+				//this.addEventListener(KeyboardEvent.KEY_DOWN, handleAuthCompleteKeyDown);	
+			}
+			
+			private function handleAuthCompleteKeyDown(event:KeyboardEvent):void{
+				this.validateNow();
+				
+				var noOfLines:int = this.mx_internal::getTextField().numLines;
+                // iterating through all lines of 
+                // text in the text area
+                var totalHeight:uint = 0;
+                
+                for (var i:int = 0; i < noOfLines; i++) 
+                {
+                     // getting the height of one text line
+                     var textLineHeight:int = 
+                         this.mx_internal::getTextField().getLineMetrics(i).height;
+                     // adding the height to the total height
+                     totalHeight += textLineHeight;
+                }
+                // setting the new calculated height
+                this.height = totalHeight;
+                trace(this.height);
+			}
+			
+   		    private function handleTextChange(event:Event):void{
+	   			//Alert.show("changed");
+	   			trace("catch change event");
+	   			editor = this;
+	   			var curIndex:Number = this.selectionBeginIndex;
+	   			var localStr:String = this.text;
+	   			trace(localStr);
+	   			if((localStr.charAt(curIndex - 2 ) == " " || curIndex == 1 || localStr.charAt(curIndex - 2 ) == "\n" || localStr.charAt(curIndex - 2 ) == "\r") && localStr.charAt(curIndex-1 ) != " "){
+	   				searchStr = "";
+	   				
+	   				startCollectingSearchStr = true;
+	   			}
+	   			if(localStr.charAt(curIndex-1 ) == " " || localStr.charAt(curIndex - 1 ) == "\n" || localStr.charAt(curIndex - 1 ) == "\r"){
+	   				startCollectingSearchStr = false;
+	   				searchStr = ""
+	   			}
+	   			if(startCollectingSearchStr == true){
+	   				searchStr = searchStr + localStr.charAt(curIndex-1 );
+	   				this.rightSelectionIndex = this.selectionBeginIndex;
+	   				filterData();
+	   				if (isDropDownVisible()){
+		   				this._dropDown.selectedIndex = 0;
+	   				}
+	   				//then call filter function
+	   			}
+	   			
+	   			if (isDropDownVisible())
+				{
+					var selectChar:String = this.text.charAt(this.selectionBeginIndex - 1);
+					
+					if(selectChar == "\r"){
+						var firstPart:String = this.text.substring(0,this.selectionBeginIndex - 1);
+						trace(firstPart);
+						var secondPart:String = this.text.substring(this.selectionBeginIndex);
+						trace(secondPart);
+						this.text = firstPart + secondPart;
+						var newSelectionIndex:Number = this.selectionBeginIndex;
+						this.setSelection(newSelectionIndex,newSelectionIndex);
+					}
+					if (searchStr.length == 0)
+					{
+						hideDropDown();
+					}
+				}
+				else
+				{
+					if (_dataProvider != null && searchStr.length > 0 && _dataProvider.length > 0)
+					//if (_dataProvider != null && searchStr.length > 0 )
+					{
+						showDropDown();	
+					}
+//					if(_dataProvider != null && searchStr.length == 0){
+//						searchStr = " ";
+//						filterData();
+//						showDropDown();
+//						
+//					}
+                   
+				}
+				
+				//this.listData[_labelField] = this.text;
+//				this.validateNow();
+//				
+//				var noOfLines:int = this.mx_internal::getTextField().numLines;
+//                // iterating through all lines of 
+//                // text in the text area
+//                var totalHeight:uint = 0;
+//                
+//                for (var i:int = 0; i < noOfLines; i++) 
+//                {
+//                     // getting the height of one text line
+//                     var textLineHeight:int = 
+//                         this.mx_internal::getTextField().getLineMetrics(i).height;
+//                     // adding the height to the total height
+//                     totalHeight += textLineHeight;
+//                }
+//                // setting the new calculated height
+//                this.measuredMinHeight = totalHeight;
+//                this.measuredHeight = totalHeight;
+//                this.height = totalHeight;
+////                this.invalidateProperties();
+//                trace(this.height + "::"+ this.textHeight);
+//                this.validateNow();
+//
+//				callLater(invalidateSize);
+//				
+//				this.invalidateDisplayList();
+//				this.height = this.textHeight;
+                //this.visible = false;
+                //this.visible = true;
+				
+				//this.validateSize(true);
+//				if(_dropDown != null && focusManager != null){
+//				focusManager.setFocus(_dropDown);
+//				}
+				//this.positionDropDown();
+				//focusManager.setFocus(this);
+				//var preNumber:Number = this.selectionBeginIndex;
+				//this.selectionBeginIndex = this.selectionBeginIndex - 1;
+				//this.selectionEndIndex = preNumber;
+				
+				//focusManager.hideFocus();
+				//focusManager.setFocus(this);
+//				if(_dataProvider.length == 0 && this.isDropDownVisible()){
+//				this.hideDropDown();
+//				}
+				//focusManager.setFocus(editor);
+				
+	   			//Alert.show(searchStr + ":" + curIndex);
+	   			
+	   			//resizeTextArea();
+	   			//this.invalidateDisplayList();
+//	   			Application.application.dg.validateDisplayList();
+//	   			dispatchEvent( event );
+	   			
+   		    }
+   		    
+   		   
+   		    
+   		    public function filterData():void
+			{
+				if(_dataProvider ==  null){
+					return;
+				}
+				_dataProvider.filterFunction = filterFunctionWrapper;
+				_dataProvider.refresh();
+			}
+			
+			private function filterFunctionWrapper( item:Object ):Boolean
+			{
+				return defaultFilterFunction( item, searchStr );
+			}
+			
+			private function defaultFilterFunction( item:Object, searchStr:String ):Boolean
+			{
+				if (searchStr.length == 0)
+				{
+					return true;
+				}
+				
+				var str:String = this.defaultLabelFunction(item);
+				
+				switch (_matchType)
+				{
+					case MATCH_ANY_PART:
+						return StringUtils.contains( str, searchStr );
+					case MATCH_BEGINNING:
+						return StringUtils.beginsWith( str, searchStr );
+					case MATCH_WORD:
+						return StringUtils.anyWordBeginsWith( str, searchStr );
+				}
+				
+				return false;
+			}
+			
+			
+   		    
+   		    public function showDropDown():void
+			{
+				if (_dropDown == null)
+				{
+					createDropDown();
+					
+				}
+				
+				if (focusManager)
+				{
+					focusManager.defaultButtonEnabled = false;
+					
+				}				
+				
+				_dropDown.width = this.width;
+				_dropDown.owner = this;
+				_dropDown.scrollToIndex(0);
+				
+				PopUpManager.addPopUp( _dropDown, this );
+				rightSelectionIndex = this.selectionBeginIndex;
+				trace("rightSelectionIndex " + rightSelectionIndex);
+
+				callLater( initDropDown );
+				callLater( callLater, [positionDropDown] );
+				//callLater(callLater,[setFocusOnDropDown]);
+				
+			}
+			
+			private function setFocusOnDropDown():void{
+				if(focusManager){
+				focusManager.setFocus(this._dropDown);
+				}
+			}
+			
+			private function createDropDown():void
+			{
+				_dropDown = new List();
+				//_dropDown.focusEnabled 	= false;
+				_dropDown.dataProvider 	= _dataProvider;
+				_dropDown.labelFunction = defaultLabelFunction;
+				//_dropDown.rowCount		= _dropDownRowCount;
+				//_dropDown.itemRenderer  = _dropDownItemRenderer ? _dropDownItemRenderer : new ClassFactory( DropDownItemRenderer );
+				_dropDown.addEventListener( ListEvent.ITEM_CLICK, handleDropDownItemClick );				
+				_dropDown.addEventListener(KeyboardEvent.KEY_DOWN, handleDropDownItemKeyDown);
+				systemManager.addEventListener( MouseEvent.MOUSE_DOWN, handleMouseDown );
+				systemManager.addEventListener( KeyboardEvent.KEY_DOWN, handleKeyDown );
+				 				
+			}
+			private var rightSelectionIndex:Number = 0;
+			
+			private function handleKeyDown( event:KeyboardEvent):void{
+				trace("catched key down by system manager!");
+				if (isDropDownVisible()){
+					
+					if (event.keyCode == Keyboard.ENTER){
+//						var selectItemStr:String = defaultLabelFunction(_dropDown.selectedItem) ;
+//						var subStrIndex:Number = this.searchStr.length;
+//						var subStr:String = selectItemStr.substring(subStrIndex);
+//						focusManager.setFocus(this); 
+//						this.text = this.text +  subStr;
+//						this.setSelection(this.selectionBeginIndex + selectItemStr.length, this.selectionBeginIndex + selectItemStr.length); 
+//						this.hideDropDown();
+                        var selectItemStr:String = defaultLabelFunction(_dropDown.selectedItem) ;
+						var subStrIndex:Number = this.searchStr.length;
+						var subStr:String = selectItemStr.substring(subStrIndex);
+						
+						var curIndex:Number = rightSelectionIndex;
+						//focusManager.setFocus(this);
+						 
+						var orgTextStr:String = this.text;
+						var firstPart:String = orgTextStr.substring(0,curIndex);
+						var lastPart:String = orgTextStr.substring(curIndex);
+					    text =  firstPart + subStr + lastPart;
+					    
+					    var newBegin:Number = rightSelectionIndex + subStr.length - 1;
+					    var newEnd:Number = newBegin;
+						this.setSelection(newBegin, newEnd); 
+						//this.hideDropDown();
+						//this.invalidateSize();
+						this.validateNow();
+						
+					}else if(event.keyCode == Keyboard.UP){
+						
+						if(_dropDown.selectedIndex > 0){
+							_dropDown.selectedIndex = _dropDown.selectedIndex - 1;
+						}
+					}else if(event.keyCode == Keyboard.DOWN){
+						if(_dropDown.selectedIndex < this._dataProvider.length){
+							_dropDown.selectedIndex = _dropDown.selectedIndex + 1;
+						}
+					}
+				}
+
+			}
+			
+			private function initDropDown():void
+			{
+				_dropDown.selectedIndex = 0;
+				//_dropDown.rowCount = (_dataProvider.length < _dropDownRowCount ? _dataProvider.length : _dropDownRowCount);							
+			}
+			
+			public function positionDropDown():void
+			{
+				if (!isDropDownVisible())
+				{
+					return;
+				}
+				
+				var localPoint:Point = new Point( 0, this.y );
+				var globalPoint:Point = localToGlobal( localPoint );
+								
+				_dropDown.x = globalPoint.x;
+				
+				var fitsBelow:Boolean = Application.application.height - globalPoint.y > _dropDown.height;
+				var fitsAbove:Boolean = globalPoint.y > _dropDown.height;
+				
+				// check if it will fit below the textInput 
+				if (fitsBelow || !fitsAbove)	
+				{
+					_dropDown.y = globalPoint.y + this.height;
+				}
+				else
+				{
+					_dropDown.y = globalPoint.y - _dropDown.height;
+				}				
+			}
+			
+			public function hideDropDown():void
+			{
+				if (focusManager)
+				{
+					focusManager.defaultButtonEnabled = true;
+				}				
+				
+				PopUpManager.removePopUp( _dropDown );
+			}
+			
+			private function handleDropDownItemClick( event:ListEvent ):void
+			{
+				trace("catch dropdown Item click!");
+				var selectItemStr:String = defaultLabelFunction(_dropDown.selectedItem) ;
+				var subStrIndex:Number = this.searchStr.length;
+				var subStr:String = selectItemStr.substring(subStrIndex);
+				var curIndex:Number = this.selectionBeginIndex;
+				//focusManager.setFocus(this); 
+				var orgTextStr:String = this.text;
+				var firstPart:String = orgTextStr.substring(0,curIndex);
+				var lastPart:String = orgTextStr.substring(curIndex);
+			    text =  firstPart + subStr + lastPart;
+				this.setSelection(this.selectionBeginIndex + subStr.length, this.selectionBeginIndex + subStr.length); 
+				this.hideDropDown();
+				//this.invalidateSize();
+				this.validateNow();
+				//this.invalidateDisplayList();
+				//this.height = this.textHeight;
+				//dispatchEvent( new Event( Event.CHANGE ) );
+			}
+			
+			private function handleDropDownItemKeyDown( event:KeyboardEvent):void{
+				trace("catched drop down Item key down event!");
+				if (isDropDownVisible()){
+					if (event.keyCode == Keyboard.ENTER){
+						var selectItemStr:String = defaultLabelFunction(_dropDown.selectedItem) ;
+						var subStrIndex:Number = this.searchStr.length;
+						var subStr:String = selectItemStr.substring(subStrIndex);
+						if(focusManager){
+							focusManager.setFocus(this);
+					    } 
+						this.text = this.text +  subStr;
+						this.setSelection(this.selectionBeginIndex + selectItemStr.length, this.selectionBeginIndex + selectItemStr.length); 
+						this.hideDropDown();
+						//dispatchEvent( new Event( Event.CHANGE ) );
+					}
+				}
+			}
+			
+			/**
+			 * If the list is visible and we click somewhere else we're going to close it
+			 */
+			private function handleMouseDown( event:MouseEvent ):void
+			{
+				if (!isDropDownVisible())
+				{
+					return;
+				}
+				
+				var p:Point = _dropDown.localToGlobal( new Point( 0, 0 ) );
+				var rect:Rectangle = new Rectangle( p.x, p.y, _dropDown.width, _dropDown.height );
+				
+				if (!rect.contains( event.stageX, event.stageY ))
+				{
+					hideDropDown();
+				}
+			}		
+			
+			public function isDropDownVisible():Boolean
+			{
+				return _dropDown && _dropDown.parent;
+			}
+			
+			private function defaultLabelFunction( item:Object ):String
+			{
+				if (_labelField && item.hasOwnProperty( _labelField ))
+				{
+					return item[ _labelField ];
+				}
+				else
+				{
+					return item.toString();
+				}
+			}
+			
+			override protected function measure():void{
+				super.measure();
+//				var comp:DisplayObject = DisplayObject(this.textField);
+//	        	var height:int = comp.y + comp.height;
+	        	
+//	        	if (height > 0)
+//	        	{
+//	        		var vm:EdgeMetrics = viewMetricsAndPadding;
+//	        		height += vm.bottom + vm.top;
+	        	
+//	        		measuredHeight = measuredMinHeight = height;
+//	        	}
+//				var autoHeight:Number = this.textHeight;
+//				if (autoHeight > 0)
+//	        	{
+//	        		//var vm:EdgeMetrics = viewMetricsAndPadding;
+//	        		//autoHeight += vm.bottom + vm.top;
+//	        	
+//	        		measuredHeight = measuredMinHeight = autoHeight;
+//	        		this.height = autoHeight;
+//	        		this.measuredMinHeight = autoHeight;
+//	        	}
+				//resizeTextArea();
+				
+				trace(this.textHeight);
+			}
+			
+			private var preHeight:Number = 10;
+			
+//			override protected function updateDisplayList( unscaledWidth:Number, unscaledHeight:Number ):void{
+				
+//				var noOfLines:int = this.mx_internal::getTextField().numLines;
+//                // iterating through all lines of 
+//                // text in the text area
+//                var totalHeight:uint = 0;
+//                
+//                for (var i:int = 0; i < noOfLines; i++) 
+//                {
+//                     // getting the height of one text line
+//                     var textLineHeight:int = 
+//                         this.mx_internal::getTextField().getLineMetrics(i).height;
+//                     // adding the height to the total height
+//                     totalHeight += textLineHeight;
+//                }
+//                // setting the new calculated height
+//                this.measuredMinHeight = totalHeight;
+//                this.measuredHeight = totalHeight;
+//                if(this.textHeight != preHeight){
+//                this.height = this.textHeight;
+//                preHeight = this.textHeight;
+//                }
+//                super.updateDisplayList(unscaledWidth, unscaledHeight);
+//				trace(this.textHeight + "::" + preHeight);
+//			}
+
+//           override public function set text(value:String):void
+//           {
+//                // calling super method 
+//                super.text = value;
+//                // if is auto resizable we call 
+//                // the resize method
+//                resizeTextArea();
+//           }
+// 
+           // resize function for the text area
+           private function resizeTextArea():void
+           {
+                // initial height value
+                // if set to 0 scroll bars will 
+                // appear to the resized text area 
+                var totalHeight:uint = 10;
+                // validating the object
+                this.validateNow();
+                // find the total number of text lines 
+                // in the text area
+                var noOfLines:int = this.mx_internal::getTextField().numLines;
+                // iterating through all lines of 
+                // text in the text area
+                for (var i:int = 0; i < noOfLines; i++) 
+                {
+                     // getting the height of one text line
+                     var textLineHeight:int = 
+                         this.mx_internal::getTextField().getLineMetrics(i).height;
+                     // adding the height to the total height
+                     totalHeight += textLineHeight;
+                }
+                // setting the new calculated height
+                this.height = totalHeight;
+           }
+
+   		    
+		]]>
+	</mx:Script>
+	
+</mx:TextArea>

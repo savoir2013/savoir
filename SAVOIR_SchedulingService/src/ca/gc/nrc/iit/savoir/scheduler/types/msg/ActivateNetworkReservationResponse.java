@@ -1,0 +1,19 @@
+// Licensed under Apache 2.0
+// Copyright 2011, National Research Council of Canada
+// Property of Lakehead University
+
+package ca.gc.nrc.iit.savoir.scheduler.types.msg;
+
+public class ActivateNetworkReservationResponse {
+
+	private boolean successful;
+
+	public boolean isSuccessful() {
+		return successful;
+	}
+
+	public void setSuccessful(boolean successful) {
+		this.successful = successful;
+	}
+	
+}

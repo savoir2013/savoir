@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<project name="SAVOIR_Bus_Stubs" default="dist" basedir=".">
+	
+	<description>Author: Aaron Moss</description>
+	
+	<property file="buildStubs.properties"/>
+	
+	<!-- Generates build dirs -->
+	<target name="initDist">
+		<mkdir dir="${dist.dir}"/>
+	</target>
+	
+	<!-- cleans build artifacts -->
+	<target name="clean">
+		<delete dir="${dist.dir}"/>
+	</target>
+	
+	<!-- Generates distribution code -->
+	<target name="dist" depends="initDist">
+		<jar destfile="${proj.jar.file}" update="true">
+			<!-- includes library code -->
+			<fileset dir="${bin.dir}" includes="Services/*.class"/>
+		</jar>
+	</target>
+	
+	<!-- Packages data types for talking to MgmtServices -->
+	<target name="dist_types" depends="initDist">
+		<jar destfile="${types.jar.file}" update="true">
+			<fileset dir="${bin.dir}" 
+				includes="ca/gc/nrc/iit/savoir/bus/SavoirCommunication*.class
+					ca/gc/nrc/iit/savoir/bus/SavoirMessage*.class
+					ca/gc/nrc/iit/savoir/bus/transform/SavoirMessageTransformer.class"/>
+		</jar>
+	</target>
+	
+</project>

@@ -1,0 +1,95 @@
+/* Licensed under Apache 2.0 */
+/* Copyright 2011, National Research Council of Canada */
+/* Property of Lakehead University */
+
+/* 
+	File:			savoirDocs.css
+	Author:			Justin Hickey
+	Purpose:		To provide default styles for the HTML documents for SAVOIR
+	Date Created:	Jun 08, 2012
+*/
+
+/****** Styles for HTML elements for the entire document ******/
+body
+{
+	background-color: #EEDEBE;				/* Beige */
+}
+
+h2
+{
+	border-bottom-style: solid;
+	border-bottom-width: 2px;
+}
+
+li
+{
+	padding-top: 8px;
+}
+
+table
+{
+	background-color: #CEE6D8;				/* Pale Green */
+	border: 2px #888888 solid;				/* Grey */
+	border-collapse: collapse;
+	clear: both;
+}
+
+th
+{
+	background-color: #C6C6C6;				/* Light Grey */
+	white-space: nowrap;
+	border: 2px #888888 solid;				/* Grey */
+	padding: 5px;
+}
+
+td
+{
+	border: 1px #888888 solid;				/* Grey */
+	padding: 5px;
+}
+
+/****** Style classes for elements occasionally used ******/
+span.editText
+{
+	color: #FF00FF;							/* Magenta */
+	font-weight: bold;
+}
+
+span.highlightNote
+{
+	background: #FFFF00;					/* Yellow */
+	font-weight: bold;
+}
+
+span.highlightCyan
+{
+	background: #00DDDD;					/* Almost Cyan */
+	font-weight: bold;
+}
+
+span.highlightEdit
+{
+	color: #FF00FF;							/* Magenta */
+	background: #00DDDD;					/* Almost Cyan */
+	font-weight: bold;
+}
+
+td.subHeader
+{
+	color: #CD2539;							/* Red */
+	text-align: center;
+	font-weight: bold;
+	font-size:larger;
+	border: 1px #888888 solid;				/* Grey */
+	padding: 5px;
+}
+
+td.subHeader2
+{
+	color: #CD2539;							/* Red */
+	text-align: center;
+	font-weight: normal;
+	border: 1px #888888 solid;				/* Grey */
+	padding: 5px;
+}
+

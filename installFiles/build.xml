@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2012, National Research Council of Canada -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Installation Files
+* AUTHOR(S):	Justin Hickey
+* PURPOSE:		This build file defines the targets for preparing the
+*				distribution file for SAVOIR. Note that only the init, package,
+*				clean, and clean-all targets should ever be defined. It will
+*				check out the source code from the SAVOIR repository and create
+*				a directory to collect the files for the SAVOIR distribution.
+* DATE CREATED:	Jun 06, 2012
+*
+********************************************************************************
+-->
+
+<project name="SavoirInstallFiles" default="package">
+
+	<description>Build file for the SAVOIR install files</description>
+
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Make sure you have checked it out from the repository."
+		unless="prop.file.exists" />
+
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- A task def below requires the ant-contrib jar file so make sure it is downloaded
+		Download ant-contrib from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.inst.cont.jar.dir}" />
+	<get src="${savoir.inst.cont.url}/${savoir.inst.cont.install.version}/${savoir.inst.cont.jar.file}"
+		dest="${savoir.inst.cont.jar.dir}/${savoir.inst.cont.jar.file}" usetimestamp="true"
+		skipexisting="true" />
+	
+	<!-- **************************** Properties *************************** -->
+
+	<!-- Distribution directories -->
+	<property name="bin.home" value="${basedir}/src/bin" />
+	<property name="resrc.home" value="${basedir}/src/resources" />
+	<property name="dist.home" value="${savoir.inst.dist.home}/savoir-${savoir.inst.release.ver}" />
+	<property name="dist.src.home" value="${dist.home}/src" />
+	<property name="dist.bin.home" value="${dist.home}/bin" />
+	<property name="dist.doc.home" value="${dist.home}/docs" />
+	<property name="dist.resrc.home" value="${dist.home}/resources" />
+	
+	<!-- Savoir project names -->
+	<property name="savoir.inst.mast.name" value="SAVOIR_MasterBuild" />
+	<property name="savoir.inst.pers.name" value="SAVOIR_Persistence" />
+	<property name="savoir.inst.util.name" value="SAVOIR_Utils" />
+	<property name="savoir.inst.oaut.name" value="SAVOIR_OAuth" />
+	<property name="savoir.inst.bus.name" value="SAVOIR_Bus" />
+	<property name="savoir.inst.sced.name" value="SAVOIR_SchedulingService" />
+	<property name="savoir.inst.mgmt.name" value="SAVOIR_MgmtServices" />
+	<property name="savoir.inst.webr.name" value="SAVOIR_WebBroker" />
+	<property name="savoir.inst.web.name" value="SAVOIR_Web" />
+	<property name="savoir.inst.samp.name" value="SAVOIR_SampleDevices" />
+	<property name="savoir.inst.docs.name" value="SAVOIR_Docs" />
+
+	<!-- **************************** File Sets **************************** -->
+
+	<!-- Ant excludes svn directories by default so set this to false -->
+	<fileset id="svn.files" dir="${dist.src.home}" defaultexcludes="false">
+		<include name="**/.svn/**" />
+	</fileset>
+
+	<fileset id="notice.files" dir="${dist.src.home}/${savoir.inst.docs.name}/dist">
+		<include name="NOTICE" />
+		<include name="LICENSE" />
+		<include name="README" />
+	</fileset>
+
+	<fileset id="install.guide.files" dir="${dist.src.home}/${savoir.inst.docs.name}/dist/installation/" />
+
+	<fileset id="css.files" dir="${dist.src.home}/${savoir.inst.docs.name}/dist/css">
+		<include name="savoirDocs.css" />
+	</fileset>
+
+	<fileset id="image.files" dir="${dist.src.home}/${savoir.inst.web.name}/Images/images/">
+		<include name="savoirLogoDarkLargeTrans.png" />
+	</fileset>
+
+	<fileset id="bin.files" dir="${bin.home}/" />
+	<fileset id="resource.files" dir="${resrc.home}/" />
+	
+	<!-- *************************** Class Paths *************************** -->
+
+	<!-- none -->
+
+	<!-- ************************* Task Definitions ************************ -->
+
+	<!-- Define the ant-contrib ant tasks -->
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpath="${savoir.inst.cont.jar.dir}/${savoir.inst.cont.jar.file}" />
+	
+	<!-- Checkout the master build source code -->
+	<macrodef name="get-master-build-code" description="Checks out the SAVOIR master build source code for distribution">
+		<sequential>
+			<echo message="Macrodef: get-master-build-code" />
+			<echo message=" " />
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.mast.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.mast.name}" />
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<!-- Reset the master build properties to generic values -->
+	<macrodef name="reset-master-build-props" description="Resets the master build properties to generic values">
+		<sequential>
+			<echo message="Macrodef: reset-master-build-props" />
+			<echo message=" " />
+			<propertyfile file="${dist.src.home}/${savoir.inst.mast.name}/localDefault.properties">
+				<entry key="prebuild.deploy.server" value="production" />
+
+				<entry key="prebuild.prd.savoir.server.host" value="0.0.0.0" />
+				<entry key="prebuild.prd.db.username" value="mySqlUser" />
+				<entry key="prebuild.prd.db.password" value="password" />
+				<entry key="prebuild.prd.savoir.admin.name" value="John Doe" />
+				<entry key="prebuild.prd.savoir.admin.email" value="John.Doe@some.mail.com" />
+				<entry key="prebuild.prd.web.server.dir" value="/var/www/html" />
+				<entry key="prebuild.prd.tomcat.username" value="tomcatScriptManager" />
+				<entry key="prebuild.prd.tomcat.password" value="password" />
+				<entry key="prebuild.prd.tomcat.port" value="8080" />
+				<entry key="prebuild.prd.tomcat.url" value="http://${prebuild.prd.savoir.server.host}:${prebuild.prd.tomcat.port}/manager/text" />
+				<entry key="prebuild.prd.mule.lib.directory" value="/usr/local/savoir/mule/lib/user" />
+				<entry key="prebuild.prd.mule.conf.directory" value="/usr/local/savoir/mule/savoir-esb/conf" />
+				<entry key="prebuild.prd.mule.conf.file" value="savoir-prd-bus-config.xml" />
+				<entry key="prebuild.prd.smtp.host" value="smtp.gmail.com" />
+				<entry key="prebuild.prd.smtp.port" value="587" />
+				<entry key="prebuild.prd.smtp.email.address" value="someuser@gmail.com" />
+				<entry key="prebuild.prd.smtp.username" value="smtpUser" />
+				<entry key="prebuild.prd.smtp.password" value="password" />
+				<entry key="prebuild.prd.smtp.useSSL" value="false" />
+				<entry key="prebuild.prd.smtp.useTLS" value="true" />
+				<entry key="prebuild.prd.FLEX_HOME" value="/usr/local/flexSDK-3.6.0/" />
+				<entry key="prebuild.prd.flash.ant.dir" value="/usr/local/savoir/ant/lib/" />
+				<entry key="prebuild.prd.activemq.version" value="5.5.0" />
+				<entry key="prebuild.prd.activemq.url" value="tcp://${prebuild.prd.savoir.server.host}" />
+				<entry key="prebuild.prd.activemq.system.url" value="http://${prebuild.prd.savoir.server.host}:8891" />
+
+				<entry key="prebuild.dev.savoir.server.host" value="0.0.0.0" />
+				<entry key="prebuild.dev.db.username" value="mySqlUser" />
+				<entry key="prebuild.dev.db.password" value="password" />
+				<entry key="prebuild.dev.savoir.admin.name" value="John Doe" />
+				<entry key="prebuild.dev.savoir.admin.email" value="John.Doe@some.mail.com" />
+				<entry key="prebuild.dev.web.server.dir" value="/var/www/html" />
+				<entry key="prebuild.dev.tomcat.username" value="tomcatScriptManager" />
+				<entry key="prebuild.dev.tomcat.password" value="password" />
+				<entry key="prebuild.dev.tomcat.port" value="8080" />
+				<entry key="prebuild.dev.tomcat.url" value="http://${prebuild.dev.savoir.server.host}:${prebuild.dev.tomcat.port}/manager/text" />
+				<entry key="prebuild.dev.mule.lib.directory" value="/usr/local/savoir/mule/lib/user" />
+				<entry key="prebuild.dev.mule.conf.directory" value="/usr/local/savoir/mule/savoir-esb/conf" />
+				<entry key="prebuild.dev.mule.conf.file" value="savoir-dev-bus-config.xml" />
+				<entry key="prebuild.dev.smtp.host" value="smtp.gmail.com" />
+				<entry key="prebuild.dev.smtp.port" value="587" />
+				<entry key="prebuild.dev.smtp.email.address" value="someuser@gmail.com" />
+				<entry key="prebuild.dev.smtp.username" value="smtpUser" />
+				<entry key="prebuild.dev.smtp.password" value="password" />
+				<entry key="prebuild.dev.smtp.useSSL" value="false" />
+				<entry key="prebuild.dev.smtp.useTLS" value="true" />
+				<entry key="prebuild.dev.FLEX_HOME" value="/usr/local/flexSDK-3.6.0/" />
+				<entry key="prebuild.dev.flash.ant.dir" value="/usr/local/savoir/ant/lib/" />
+				<entry key="prebuild.dev.activemq.version" value="5.5.0" />
+				<entry key="prebuild.dev.activemq.url" value="tcp://${prebuild.dev.savoir.server.host}" />
+				<entry key="prebuild.dev.activemq.system.url" value="http://${prebuild.dev.savoir.server.host}:8891" />
+			</propertyfile>
+
+			<!-- Remove the timestamp inserted by the <propertyfile> task -->
+			<replaceregexp file="${dist.src.home}/${savoir.inst.mast.name}/localDefault.properties"
+				match="^#[Sun|Mon|Tue|Wed|Thu|Fri|Sat].*" replace="#" byline="true" />
+				
+			<!-- Remove the backslahes inserted by the <propertyfile> task -->
+			<replaceregexp file="${dist.src.home}/${savoir.inst.mast.name}/localDefault.properties"
+				match="\\" replace="" flags="g" />
+		</sequential>
+	</macrodef>
+
+	<!-- Check if the release versions are the same -->
+	<macrodef name="check-release-ver" description="Checks whether the release versions are the same">
+		<sequential>
+			<echo message="Macrodef: check-release-ver" />
+			<echo message=" " />
+			
+			<!-- Load in the localDefault.properties file -->
+			<property file="${dist.src.home}/${savoir.inst.mast.name}/localDefault.properties" />
+
+			<if>
+				<not>
+					<equals arg1="${savoir.inst.release.ver}" arg2="${prebuild.release.ver}" />
+				</not>
+				<then>
+					<fail>The release version of the install files does not match the SAVOIR code release version</fail>
+				</then>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<!-- Checkout the remaining source code -->
+	<macrodef name="get-source-code" description="Checks out the remaining SAVOIR source code for distribution">
+		<sequential>
+			<echo message="Macrodef: get-source-code" />
+			<echo message=" " />
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.pers.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.pers.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.util.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.util.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.oaut.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.oaut.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.bus.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.bus.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.sced.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.sced.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.mgmt.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.mgmt.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.webr.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.webr.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.web.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.web.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.samp.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.samp.name}" />
+			</exec>
+			<exec executable="svn" failonerror="true">
+				<arg value="co" />
+				<arg value="${savoir.inst.code.repo}/${savoir.inst.docs.name}/trunk" />
+				<arg value="${dist.src.home}/${savoir.inst.docs.name}" />
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<!-- ************************* Default Targets ************************* -->
+
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the install files project">
+		<echo message="==== Savoir install files init target ====" />
+
+		<!-- Make the required directories -->
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.src.home}" />
+		<mkdir dir="${dist.bin.home}" />
+		<mkdir dir="${dist.doc.home}" />
+		<mkdir dir="${dist.resrc.home}" />
+		
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" description="No target actions">
+		<echo message="==== Savoir install files build target ====" />
+		<echo message="Build target not supported." />
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="clean, init" description="Prepares the distribution directory">
+		<echo message="==== Savoir install files package target ====" />
+		
+		<!-- Checkout the master build source code -->
+		<get-master-build-code/>
+		
+		<!-- Reset the master build properties to generic values -->
+		<reset-master-build-props/>
+		
+		<!-- Make sure the version release values are the same -->
+		<check-release-ver/>
+		
+		<!-- Checkout the remaining source code -->
+		<get-source-code/>
+		
+		<!-- Remove all the .svn directories -->
+		<delete includeEmptyDirs="true">
+			<fileset refid="svn.files" />
+		</delete>
+		
+		<!-- Until further notice, remove the test directory from SAVOIR_Web/SocketProxy -->
+		<delete dir="${dist.src.home}/${savoir.inst.web.name}/SocketProxy/test" />
+		
+		<!-- Create the documentation files -->
+		<ant antfile="build.xml" dir="${dist.src.home}/${savoir.inst.mast.name}/" inheritAll="false"
+			target="build-docs" />
+		
+		<!-- Copy the notice, license, etc files -->
+		<copy todir="${dist.home}">
+			<fileset refid="notice.files" />
+		</copy>
+
+		<!-- Copy the installation guides and supporting files -->
+		<copy todir="${dist.doc.home}">
+			<fileset refid="install.guide.files" />
+			<fileset refid="css.files" />
+			<fileset refid="image.files" />
+		</copy>
+
+		<!-- Modify the paths to the supporting files -->
+		<replace dir="${dist.doc.home}">
+			<replacefilter
+				token="../css/"
+				value="" />
+			<replacefilter
+				token="/images/"
+				value="" />
+		</replace>
+		
+		<!-- Clean the created documentation files -->
+		<ant antfile="build.xml" dir="${dist.src.home}/${savoir.inst.mast.name}/" inheritAll="false"
+			target="clean-docs" />
+		
+		<!-- Copy the scripts -->
+		<copy todir="${dist.bin.home}">
+			<fileset refid="bin.files" />
+		</copy>
+
+		<!-- Copy the resource files -->
+		<copy todir="${dist.resrc.home}">
+			<fileset refid="resource.files" />
+		</copy>
+
+		<!-- Create the tar file to be distributed -->
+		<exec executable="tar" failonerror="true">
+			<arg value="--directory=${savoir.inst.dist.home}" />
+			<arg value="-cvf" />
+			<arg value="${savoir.inst.dist.home}/savoir-${savoir.inst.release.ver}.src.tar" />
+			<arg value="savoir-${savoir.inst.release.ver}" />
+		</exec>
+		
+		<!-- Compress the tar file -->
+		<echo message="Compressing tar file..." />
+		<exec executable="gzip" failonerror="true">
+			<arg value="${savoir.inst.dist.home}/savoir-${savoir.inst.release.ver}.src.tar" />
+		</exec>
+		
+		<!-- Tell the user where the file is -->
+		<echo message="Distribution tar file created. It is located here" />
+		<echo message="${savoir.inst.dist.home}/savoir-${savoir.inst.release.ver}.src.tar.gz" />
+		
+	</target>
+
+	<!-- **** Deploy **** -->
+	<target name="deploy" description="No target actions">
+		<echo message="==== Savoir install files deploy target ====" />
+		<echo message="Deploy target not supported." />
+	</target>
+
+	<!-- **** Clean **** -->
+	<target name="clean" depends="clean-code" description="Cleans anything that is built.">
+		<echo message="==== Savoir install files clean target ====" />
+
+		<!-- Delete the ant contrib jar file directory -->
+		<delete dir="${savoir.inst.cont.jar.dir}"  includeEmptyDirs="true" />
+		
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir install files undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir install files doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir install files javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<target name="test" description="No target actions">
+		<echo message="==== Savoir install files test target ====" />
+		<echo message="Test target not supported." />
+	</target>
+
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- **** Clean-code **** -->
+	<target name="clean-code" description="Clean just the distribution files">
+		<echo message="==== Savoir install files clean-code target ====" />
+
+		<!-- Delete the distribution directory -->
+		<delete dir="${savoir.inst.dist.home}"  includeEmptyDirs="true" />
+		
+	</target>
+
+	<!-- ********************* Project Specific Targets ******************** -->
+
+	<!-- none -->
+
+</project>

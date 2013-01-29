@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<profileMessage action="reportProfile">
+	<service ID="170" name="VaderDesktop_NRC" description="This is the vader desktop device." maxSimultaneousUsers="-1" ipAddress="" portNumber="" contactName="someone" contactEmail="somebody@some.com" timestamp="24082010:34:16">
+		
+		<widget title="Vader Desktop">
+			<description>Vader Desktop will launch an application that produces a breathing sound at the respiration rate provided. Please note that you will need the Vader Desktop Application installed on your computer. It can be found at http://0.0.0.0/sampleDevices/vaderDesktop/ You will also need the SAVOIR launch properties file found at http://0.0.0.0/sampleDevices/resources/ For instructions on installing these files please see the Vader Sample Device Guide found at http://0.0.0.0/savoirDocs/</description>
+			<icon name="Vader" format="png" />
+			<choices baseUri="savoir://VaderDesktop_NRC">
+				<choice ID="respirationRate" label="Respiration Rate" type="userEntered" paramId="respirationRate"/>
+			</choices>
+		</widget>		
+
+		<activities>
+			<activity ID="1" name="Set respiration rate" paramValue="0">
+				<activityParameters>
+					<activityParameter ID="1" name="respiration" dataType="xs:integer" />
+				</activityParameters>
+			</activity>
+		</activities>
+		
+	</service>
+</profileMessage> 

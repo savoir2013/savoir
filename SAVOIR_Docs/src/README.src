@@ -1,0 +1,20 @@
+
+SAVOIR ${savoir.release.ver} Distribution
+=======================
+
+The contents of this directory contain the software and documentation for
+SAVOIR ${savoir.release.ver}.
+
+In order to install SAVOIR, please follow the installation guide located in
+the file:
+
+docs/SavoirInstallGuide.html
+
+Once SAVOIR is installed, there will be more documentation available in the
+"savoirDocs" directory which should be installed under the SAVOIR web server
+root. For example, the URL should be something similar to the following:
+
+http://yourSavoirHost.domain.org/savoirDocs/
+
+Enjoy!
+

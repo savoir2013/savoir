@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+
+<!--
+********************************************************************************
+*
+*                    National Research Council Canada - IIT
+*
+* PROJECT:		SAVOIR Persistence
+* AUTHOR(S):	Justin Hickey, Rene Richard
+* PURPOSE:		The build infrastructure of SAVOIR is based on a series of build
+*				files to allow deployment on both a development server and a
+*				production server. Please see the "build.xml" file in the
+*				"SAVOIR_MasterBuild" directory for further information on how
+*				the build system works.
+*
+*				IMPORTANT NOTE:
+*				===============
+*					The project "build.xml" files can be used directly while
+*					developing, but they will need a "build.properties" file in
+*					order to run. Therefore, you should first run the
+*					"copy-build-properties" target in the master build file to
+*					create the "build.properties" files for the projects.
+*
+*				This build file defines the targets for building the persistence
+*				layer. It will then publish its jar files to a savoir repository
+*				in order that other projects can access them.
+* DATE CREATED:	Feb 03, 2011
+*
+********************************************************************************
+-->
+
+<project name="savoirPersistence" default="build" xmlns:ivy="antlib:org.apache.ivy.ant"
+	xmlns="antlib:org.apache.tools.ant">
+	
+	<description>Build file for the SAVOIR persistence layer</description>
+	
+	<!-- **************************** Properties *************************** -->
+	
+	<!-- Distribution directories -->
+	<property name="src.home" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="dist.home" value="${basedir}/dist" />
+	<property name="lib.home" value="${basedir}/libs" />
+	<property name="testing.results" value="${basedir}/testingResults" />
+	<property name="testing.build" value="${build.home}/testing" />
+	
+	<!-- Deployment files -->
+	<property name="pers.name" value="savoirPersistence" />
+	<property name="domObj.name" value="savoirDomainObjects" />
+	
+	<!-- ************************** Initialization  ************************ -->
+
+	<!-- Check if the property file exists -->
+	<available file="${basedir}/build.properties" property="prop.file.exists" />
+	<fail message="Build properties file missing! Use the copy-build-properties target of the top level build to create it."
+		unless="prop.file.exists" />
+	
+	<!-- Load in the main property file -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- The task def below requires the ivy.jar file so make sure it is downloaded
+		Download ivy from the web site so that it can be used even without
+		any special installation -->
+	<mkdir dir="${savoir.ivy.jar.dir}" />
+	<get src="${savoir.ivy.url}/${savoir.ivy.install.version}/${savoir.ivy.jar.file}"
+		dest="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" usetimestamp="true" skipexisting="true" />
+
+	<!-- **************************** File Sets **************************** -->
+	
+	<fileset id="master.libs" dir="${lib.home}/master">
+		<include name ="**/*.jar" />
+	</fileset>
+	
+	<fileset id="prop.files" dir="${basedir}/conf"
+		includes=	"log4j.properties
+					parameterType.properties
+					persistenceContext.xml" />
+	
+	<fileset id="jdbc.files" dir="${build.home}"
+		includes="jdbc.properties" />
+	
+	<fileset id="test.libs" dir="${lib.home}/test">
+		<include name ="**/*.jar" />
+	</fileset>
+
+			
+	<!-- *************************** Class Paths *************************** -->
+	
+	<path id="master.class.path">
+		<fileset refid="master.libs" />
+	</path>
+
+	<path id="testing.class.path">
+		<fileset refid="test.libs" />
+	</path>
+	
+	<!-- ************************* Task Definitions ************************ -->
+	
+	<!-- Define the ivy ant task -->
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+		uri="antlib:org.apache.ivy.ant" classpath="${savoir.ivy.jar.dir}/${savoir.ivy.jar.file}" />
+	
+	<!-- ************************* Default Targets ************************* -->
+	
+	<!-- **** Init **** -->
+	<target name="init" description="Initialises the persistence layer project">
+		<echo message="==== Savoir persistence init target ====" />
+		
+		<!-- Make the required diectories -->
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${lib.home}" />
+		<mkdir dir="${savoir.repo.home}" />
+		
+		<mkdir dir="${testing.build}" />
+		<mkdir dir="${testing.results}" />
+	
+	</target>
+
+	<!-- **** Build **** -->
+	<target name="build" depends="clean, init, retrieve-ivy-deps" description="Builds java classes">		
+		<echo message="==== Savoir persistence build target ====" />
+
+		<javac srcdir="${src.home}" destdir="${build.home}" includes="**" encoding="utf-8"
+	        source="${savoir.java.source.ver}" target="${savoir.java.target.ver}" includeAntRuntime="false">
+				<classpath refid="master.class.path" />
+	    </javac>
+	</target>
+
+	<!-- **** Package **** -->
+	<target name="package" depends="build" description="Copies default resources and calls jar target">
+		<echo message="==== Savoir persistence package target ====" />
+
+		<copy file="${basedir}/build.properties" tofile="${build.home}/jdbc.properties" />
+		<antcall target="package-daos" />
+		<antcall target="package-domain-objects" />
+	</target>
+	
+	<!-- **** Deploy **** -->
+	<target name="deploy" depends="package" description="Publishes all artifact files (jars) and the ivy xml file">
+		<echo message="==== Savoir persistence deploy target ====" />
+
+		<ivy:buildnumber organisation="ca.nrc.iit" module="savoirPersistence" revision="${ivy.revision}" />
+		<ivy:publish pubrevision="${ivy.new.revision}" conf="master" forcedeliver="true" overwrite="true"
+			artifactspattern="${dist.home}/[artifact].jar" resolver="savoir-lib-repo" status="release">
+		</ivy:publish>
+	</target>
+	
+	<!-- **** Clean **** -->
+	<target name="clean" description="Cleans anything that is built.">
+		<echo message="==== Savoir persistence clean target ====" />
+
+		<delete dir="${build.home}" includeEmptyDirs="true" />
+		<delete dir="${dist.home}" includeEmptyDirs="true" />
+		<delete dir="${lib.home}" includeEmptyDirs="true" />
+		
+		<!-- The bin directory is usually created by default -->
+		<delete dir="${basedir}/bin" includeEmptyDirs="true" />
+		
+		<delete dir="${testing.results}" includeEmptyDirs="true" />
+	</target>
+
+	<!-- **** Undeploy **** -->
+	<target name="undeploy" description="No target actions">
+		<echo message="==== Savoir persistence undeploy target ====" />
+		<echo message="Undeploy target not supported." />
+	</target>
+
+	<!-- **** Doc **** -->
+	<target name="doc" description="No target actions">
+		<echo message="==== Savoir persistence doc target ====" />
+		<echo message="Doc target not supported." />
+	</target>
+
+	<!-- **** Javadoc **** -->
+	<target name="javadoc" description="No target actions">
+		<echo message="==== Savoir persistence javadoc target ====" />
+		<echo message="Javadoc target not supported." />
+	</target>
+
+	<!-- **** Test **** -->
+	<!-- COMMENT OUT FOR NOW UNTIL WE CAN VERIFY TEST PROGRAMS
+	
+	<target name="test" depends="build" description="Builds and Runs JUnit Tests">
+		<echo message="==== Savoir persistence test target ====" />
+		
+	    <javac srcdir="test" includes="**" encoding="utf-8"
+	        destdir="${testing.build}"
+	        source="${savoir.java.source.ver}" target="${savoir.java.target.ver}">
+	      <classpath refId="testing.class.path" />
+	    </javac> -->
+
+		<!-- run tests -->
+		<!--COMMENT OUT FOR NOW UNTIL WE CAN VERIFY TEST PROGRAMS
+
+		<delete dir="${testing.results}" />
+		<mkdir dir="${testing.results}" />
+		
+		<copy todir="${testing.build}">
+	  	  <fileset dir="${basedir}/conf" includes="persistenceContext.xml" />
+	  	</copy>
+		
+		<copy file="${basedir}/build.properties" tofile="${build.home}/jdbc.properties" />
+		<junit errorProperty="test.failed"
+				failureProperty="test.failed"
+				fork="true" dir="${basedir}">
+
+			<classpath>
+				<path refid="testing.class.path" />
+			</classpath>
+
+			<formatter type="brief" usefile="false" />
+			<formatter type="xml" />
+			<batchtest todir="${testing.results}">
+				<fileset dir="${testing.build}" includes="**/Test*.class" />
+			</batchtest>
+		</junit>
+		<fail message="Tests failed."
+				if="test.failed" />
+		
+	</target>   -->
+	
+	<!-- ************************* Optional Targets ************************ -->
+
+	<!-- **** Retrieve-ivy-deps **** -->
+	<target name="retrieve-ivy-deps"
+		description="Retreive all library dependencies using Ivy to the project lib directory">
+		<echo message="==== Savoir persistence retrieve-ivy-deps target ====" />
+		
+		<!-- Note that retrieve does a resolve as well thus, we don't have an ivy  resolve target-->
+		<ivy:retrieve pattern="${lib.home}/[conf]/[artifact].[ext]" />
+	</target>
+
+	<!-- ********************* Project Specific Targets ******************** -->
+	
+	<!-- **** Package-daos **** -->
+	<target name="package-daos" description="Creates jar file for Data Access Objects. Only called by a package target">
+		<jar destfile="${dist.home}/${pers.name}.jar" basedir="${build.home}"
+			includes="**/*.class" excludes="ca/gc/nrc/iit/savoir/maintenance/*.class">
+           	
+			<fileset refid="prop.files" />
+			<fileset refid="jdbc.files" />
+		</jar>
+	</target>
+	
+	<!-- **** Package-domain-objects **** -->
+	<target name="package-domain-objects" description="Creates jar file for Domain Objects. Only called by a package target">
+		<jar destfile="${dist.home}/${domObj.name}.jar" basedir="${build.home}" includes="**/*.class"
+			excludes=	"ca/gc/nrc/iit/savoir/dao/**/*.class
+						ca/gc/nrc/iit/savoir/spring/**/*.class
+						ca/gc/nrc/iit/savoir/utils/**/*.class
+						ca/gc/nrc/iit/savoir/maintenance/**/*.class" />
+	</target>
+
+</project>

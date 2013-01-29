@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/DeviceWinShadeHdrRndr.mxml -->
+
+<flexlib:CanvasButton xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flexlib="http://code.google.com/p/flexlib/"
+	mouseChildren="true" width="100%" initialize="initButton()">
+							
+	<mx:HBox width="100%" styleName="winShadeHeaderHBox" mouseOver="handleHeaderMouseOver(event)"
+		 mouseOut="handleHeaderMouseOut(event)" click="handleHeaderClick(event)">
+		
+		<!-- Use an empty box for the header arrow button since the images will be
+			swapped between down and right as the user opens and closes the shade -->
+		<mx:HBox id="headerArrowBox" styleName="winShadeHeaderHBox" paddingBottom="3" paddingLeft="3"
+			paddingRight="3" paddingTop="3">
+		</mx:HBox>
+
+		<mx:Label id="headerLbl" text="{WindowShade(parent).name}" styleName="winShadeMouseOut"
+			mouseOver="handleHeaderMouseOver(event)"
+			mouseOut="handleHeaderMouseOut(event)" click="handleHeaderClick(event)"/>
+		
+		<!-- Need a text component with empty text to simulate a spacer since Flex requires a 
+			component to actually have something displayed for a click event to be generated - for
+			example a Spacer will not generate a click event even though it inherits the event -->
+		<mx:Text id="headerEmptyText" text=" " width="100%" height="100%"
+			mouseOver="handleHeaderMouseOver(event)"
+			mouseOut="handleHeaderMouseOut(event)" click="handleHeaderClick(event)"/>
+		
+		<mx:HBox styleName="winShadeHeaderHBox" paddingBottom="3" paddingLeft="3"
+			paddingRight="3" paddingTop="3">
+			
+			<mx:Image id="headerClose" click="handleHeaderClose(event)"/>
+
+		</mx:HBox>
+
+	</mx:HBox>
+
+	<mx:Script>
+		<![CDATA[
+
+			// ======================= External Modules =============================
+
+			import mx.core.Application;
+			import mx.controls.Alert;
+			import flexlib.containers.WindowShade;
+			import savoirComp.DeviceWindowShade;
+				
+			// ======================= Public Members ===============================
+			
+            public var serverName:SharedObject;           
+
+			// ====================== Private Properties ============================
+
+			private var serverNameStr:String = new String();
+			
+			private var downArrowImg:Image;
+			private var rightArrowImg:Image;
+   
+			// ======================= Private Members ==============================
+
+			// none
+			
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleHeaderMouseOver
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch style of the header text when the mouse is over the
+            //					window shade header
+            // Input Vars:   	event - mouse event triggered by moving the mouse over the
+            //					window shade header
+            // Return Vars:  	none
+            // Date Created: 	Feb 18, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleHeaderMouseOver(event:MouseEvent):void
+			{
+				headerLbl.styleName = "winShadeMouseOver";
+   			}
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleHeaderMouseOut
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch style of the header text when the mouse leaves the
+            //					header of the window shade
+            // Input Vars:   	event - mouse event triggered by moving the mouse out of the
+            //					window shade header
+            // Return Vars:  	none
+            // Date Created: 	Feb 18, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleHeaderMouseOut(event:MouseEvent):void
+			{
+				headerLbl.styleName = "winShadeMouseOut";
+   			}
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleHeaderClick
+            // Author:       	Justin Hickey
+            // Purpose:      	To switch the arrow icon to indicate the state of the window
+            //					shade. Some code is for only device widgets and as such is only
+            //					executed if the parent of the renderer is a device widget. This
+            //					code basically saves the state of the device window shade.
+            // Input Vars:   	event - mouse event triggered by clicking anywhere on the window
+            //					shade header except the close button
+            // Return Vars:  	none
+            // Date Created: 	Feb 24, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleHeaderClick(event:MouseEvent):void
+			{
+				
+				// Window shade hasn't changed yet so reverse the expected settings so that the
+				// icon is correct when the window shade changes
+				if (WindowShade(parent).opened)
+				{
+					headerArrowBox.removeChildAt(0);
+					headerArrowBox.addChildAt(rightArrowImg, 0);
+					
+					// Check if this is a device widget and set the view state
+					if (parent is DeviceWindowShade)
+					{
+						DeviceWindowShade(parent).viewState = "SHADED";
+					}
+				}
+				else
+				{
+					headerArrowBox.removeChildAt(0);
+					headerArrowBox.addChildAt(downArrowImg, 0);
+
+					// Check if this is a device widget and set the view state
+					if (parent is DeviceWindowShade)
+					{
+						DeviceWindowShade(parent).viewState = "MAXIMIZED";
+					}
+				}
+
+        		// If this is a device widget send a request to the SAVOIR server to save
+        		// the user preferences
+        		if (parent is DeviceWindowShade)
+        		{
+        			Application.application.devicesMainBox.sendSaveUserPrefReq();
+        		}
+   			}
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleHeaderClose
+            // Author:       	Justin Hickey
+            // Purpose:      	To close the window shade and remove it from the devices page
+            //					view. Note that the closeDevWindowShade() will save the user's
+            //					preferences so they don't need to be saved here. Also, the window
+            //					shades used on the Scenario's page do not have the close button so
+            //					this function is only called from device widgets.
+            // Input Vars:   	event - mouse event triggered by clicking the close button at the
+            //					right side of the header
+            // Return Vars:  	none
+            // Date Created: 	Feb 22, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleHeaderClose(event:MouseEvent):void
+			{
+				// Close the device widget
+				Application.application.devicesMainBox.closeDevWindowShade(DeviceWindowShade(parent));
+
+        		// Don't let the event proceed to the base HBox
+        		event.stopPropagation();
+   			}
+
+			
+			// =================== Application Event Handlers =======================
+
+			// none
+			
+			// ======================= Public Functions =============================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	initButton
+            // Author:       	Justin Hickey
+            // Purpose:      	To initialize the window shade header. The images used for the
+            //					arrow and the close button are created and loaded. Then the close
+            //					button is visualized if we are generating the device page.
+            //					Finally, the proper arrow image is added to the header. Note that
+            //					dynamic images are used for the SAVOIR project and thus the images
+            //					are loaded at run time. If performance becomes an issue, then
+            //					embedded images can be used. The images could be changed to Flex
+            //					link buttons and then the icon property could be used to set the
+            //					appropriate image.
+            // Input Vars:   	none
+            // Return Vars:  	none
+            // Date Created: 	Feb 24, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			public function initButton():void
+			{
+				// Get the server name from the shared object
+				this.serverName = SharedObject.getLocal("serverName","/");
+				serverNameStr = this.serverName.data.serverName;
+
+				// Create the images for the header arrow image
+				downArrowImg = new Image();
+                downArrowImg.addEventListener(MouseEvent.CLICK, handleHeaderClick);
+                downArrowImg.addEventListener(MouseEvent.MOUSE_OVER, handleHeaderMouseOver);
+                downArrowImg.addEventListener(MouseEvent.MOUSE_OUT, handleHeaderMouseOut);
+
+				rightArrowImg = new Image();
+                rightArrowImg.addEventListener(MouseEvent.CLICK, handleHeaderClick);
+                rightArrowImg.addEventListener(MouseEvent.MOUSE_OVER, handleHeaderMouseOver);
+                rightArrowImg.addEventListener(MouseEvent.MOUSE_OUT, handleHeaderMouseOut);
+
+				// Load the icons
+				downArrowImg.load("http://" + serverNameStr + "/images/downIconTrans.png");
+				rightArrowImg.load("http://" + serverNameStr + "/images/rightIconTrans.png");
+				headerClose.load("http://" + serverNameStr + "/images/closeIconTrans.png");
+				
+				// Make the close button visible if the window shade is on the devices page
+				if (WindowShade(parent).owner.name == "Window Shade Tile")
+				{
+					headerClose.visible = true;
+				}
+				else
+				{
+					headerClose.visible = false;
+				}
+				
+				// Select the proper arrow button icon
+				if (WindowShade(parent).opened)
+				{
+					headerArrowBox.addChildAt(downArrowImg, 0);
+				}
+				else
+				{
+					headerArrowBox.addChildAt(rightArrowImg, 0);
+				}
+   			}
+			
+			// ======================= Private Functions ============================
+
+			// none
+
+		]]>
+	</mx:Script>							
+</flexlib:CanvasButton>

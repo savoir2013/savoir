@@ -1,0 +1,1952 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Licensed under Apache 2.0 -->
+<!-- Copyright 2011, National Research Council of Canada -->
+<!-- Property of Lakehead University -->
+
+<!-- mxml/ScenariosView.mxml -->
+
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:flexlib="http://code.google.com/p/flexlib/" 
+	xmlns:savoirlib="http://savoir.iit.nrc.ca/savoirlib"
+	xmlns:components="components.*"
+	xmlns:handlers="handlers.*" xmlns:merapiproject="http://merapiproject.net/2009" xmlns:mxml="merapi.handlers.mxml.*" xmlns:messages="messages.*"
+	width="100%" height="100%" paddingBottom="10" paddingLeft="40" paddingRight="40" paddingTop="10"
+	verticalGap="10" initialize="initScenarios()">
+	
+	<!-- Create scenario container -->
+	
+    <mx:HBox width="100%" paddingTop="20">
+    	<mx:Label text="Scenarios" styleName="header1"/>
+    	<mx:Spacer id="spacer0" width="100%"/>
+    	<mx:Button enabled="true" label="{submitScenarioText}" click="handleSubmitScenario(event)"/>
+    	<mx:Button label="{createScenarioText}" click="handleCreateScenario(event)"/>
+    </mx:HBox>
+    <mx:HRule width="100%"/>
+    
+    <mx:HBox width="100%">
+    	<mx:VBox id="scenariosVBox" width="50%" paddingLeft="10">
+     	</mx:VBox>
+     	<mx:Spacer id="spacer1" width="100%"/>
+		<mx:VBox id="utilitiesVBox" horizontalAlign="right" verticalGap="30">
+    		
+    		<flexlib:WindowShade id="schedSessionShade" headerRenderer="renderers.DeviceWinShadeHdrRndr"
+    			name="Schedule a Session" opened="false">
+       		
+				<mx:VBox id="sessionVertBox" paddingBottom="10" paddingLeft="10" paddingRight="10"
+					paddingTop="10" verticalGap="10" borderStyle="solid">
+			
+					<mx:HBox id="sessionSelectScnBox" width="100%">
+						<mx:Label id="sessionSelectScnLbl" styleName="headingLabel"
+							text="{sessionSelectScnText}"/>
+						<mx:ComboBox id="sessionSelectScnList" width="100%"
+							dataProvider="{Application.application.scenarioData}"
+							labelField="title" prompt="Please select a scenario..."
+							change="handleScenarioChange(event)"/>
+						<mx:Label id="sessionSelectScnNoteLbl" text="{sessionSelectScnNoteText}"/>
+					</mx:HBox>
+					<mx:HRule id="sessionRule1" width="100%"/>
+
+					<mx:Label id="sessionTimeNoteLbl" text="{sessionTimeNoteText}"/>
+					<mx:Label id="sessionStartDateTimeLbl" styleName="headingLabel"
+						text="{sessionStartDateTimeText}"/>
+					<components:DateTimeSelector id="sessionStartDateTimeCal" enabled="false"/>
+					<mx:CheckBox id="sessionStartUndefChk" label="{sessionStartUndefText}"
+						selected="true" click="handleToggleStartTimeState(event)"/>
+					<mx:Label id="sessionEndDateTimeLbl" styleName="headingLabel"
+						text="{sessionEndDateTimeText}"/>
+					<components:DateTimeSelector id="sessionEndDateTimeCal" enabled="false"/>
+					<mx:CheckBox id="sessionEndUndefChk" label="{sessionEndUndefText}"
+						selected="true" click="handleToggleEndTimeState(event)"/>
+                    <!-- end change 07-05-10s-->
+					<mx:HRule id="sessionRule2" width="100%"/>
+			        
+<!--
+					<mx:HBox id="sessionApnBox" enabled="false">
+						<mx:VBox>
+							<mx:ComboBox id="apnSchList" dataProvider="{apnNS}"/>
+					    	<mx:HBox>
+					 	  
+								<mx:Label id="sessionSrcApnLbl" styleName="headingLabel"
+									text="{sessionSrcApnText}"/>
+						    	<mx:ComboBox id="sessionSrcApnList" dataProvider="{apnNodes}"/>
+						    	<mx:Label id="sessionDestApnLbl" styleName="headingLabel"
+									text="{sessionDestApnText}"/>
+						    	<mx:ComboBox id="sessionDestApnList" dataProvider="{apnNodes}"/>
+						  
+						 		<mx:VBox>
+						   			<mx:HBox>
+						   	 			<mx:Label text="Max BW(MB):"/>
+						   	 			<mx:TextInput id="maxBwTI" width="40"/>
+						   			</mx:HBox>
+						   			<mx:HBox>
+						   	 			<mx:Label text="Min BW(MB):"/>
+						   	 			<mx:TextInput id="minBwTI" width="40"/>
+						   			</mx:HBox>
+							
+						 		</mx:VBox>
+							</mx:HBox>
+							<mx:HBox>
+						   		<mx:Button label="Add Connection" click="handleAddConnection(event)"/>
+						   		<mx:Button label="Remove Connection" click="handleRemoveConnection(event)"/>
+							</mx:HBox>
+							<mx:TextArea id="connTA" width="100%" height="100%"/>
+						</mx:VBox>
+					</mx:HBox>
+					<mx:HRule id="sessionRule3" width="100%"/>
+-->		
+					<mx:HBox id="sessionInfoBox" width="100%">
+						<mx:VBox id="sessionTitleBox">
+							<mx:Label id="sessionTitleLbl" styleName="headingLabel"
+								text="{sessionTitleText}"/>
+							<mx:Label id="sessionDescLbl" styleName="headingLabel"
+								text="{sessionDescText}"/>
+						</mx:VBox>
+						
+						<!-- The maxChars values in the TextInput and TextArea must match the
+							corresponding lengths allowed in the database -->
+						<mx:VBox id="sessionDescBox" width="100%">
+							<mx:TextInput id="sessionTitleInput" width="100%" maxChars="128"/>
+							
+							<!-- A minHeight of 70 is about 4 lines of font size 12 -->
+							<mx:TextArea id="sessionDescArea" width="100%" minHeight="70"
+								maxChars="1024"/>
+						</mx:VBox>
+					</mx:HBox>
+					<mx:HRule id="sessionRule4" width="100%"/>
+					
+					<mx:VBox id="sessionUserLblBox">
+						<mx:Label id="sessionUserLbl" styleName="headingLabel"
+							text="{sessionUserText}"/>
+						<mx:Label id="sessionUserDesc" text="{sessionUserDescText}"/>
+					</mx:VBox>
+					
+					<mx:HBox id="sessionUserBox">
+						<mx:VBox id="sessionAuthUserBox" width="100%" height="100%"
+							verticalAlign="top">
+							<mx:Label id="sessionAuthGrpLbl" styleName="headingLabel"
+								text="{sessionAuthGrpText}"/>
+							<mx:List id="sessionAuthGrpLst" width="100%"
+								allowMultipleSelection="true"
+								dataProvider="{Application.application.groupList}"
+								labelField="groupName" click="testStuff(event)"/>
+							<mx:Label id="sessionAuthUserLbl" styleName="headingLabel"
+								text="{sessionAuthUserText}"/>
+							<mx:List id="sessionAuthUserLst" width="100%"
+								allowMultipleSelection="true"
+								dataProvider="{Application.application.userList}"
+								labelField="username" click="testStuff(event)"/>
+						</mx:VBox>
+
+						<mx:VBox id="sessionAuthActionBox" height="100%" verticalAlign="middle">
+							<mx:Button id="sessionAuthAddBut" width="100%" label="{sessionAddText}"
+								click="handleAddSesnAuthUsers(event)"/>
+							<mx:Button id="sessionAuthRemvBut" label="{sessionRemvText}"
+								click="handleRemvSesnAuthUsers(event)"/>
+						</mx:VBox>
+
+						<mx:VBox id="sessionAuthUserChsBox" width="100%" height="100%"
+							verticalAlign="top">
+							<mx:Label id="sessionAuthGrpChsLbl" styleName="headingLabel"
+								text="{sessionAuthGrpChsText}"/>
+							<mx:List id="sessionAuthGrpChsLst" width="100%"
+								allowMultipleSelection="true"
+								dataProvider="{chosenGroupsList}" labelField="groupName"/>
+							<mx:Label id="sessionAuthUserChsLbl" styleName="headingLabel"
+								text="{sessionAuthUserChsText}"/>
+							<mx:List id="sessionAuthUserChsLst" width="100%"
+								allowMultipleSelection="true"
+								dataProvider="{chosenUsersList}" labelField="username"/>
+						</mx:VBox>
+					
+					</mx:HBox>
+					<mx:HRule id="sessionRule5" width="100%"/>
+			
+					<mx:HBox id="sessionButBox" width="100%" horizontalAlign="center">
+						<mx:Button id="sessionCreateBut" label="{sessionCreateText}"
+							click="handleCreateSesn(event)" enabled="false"/>
+					</mx:HBox>
+				</mx:VBox>
+    		</flexlib:WindowShade>
+    		
+    		<flexlib:WindowShade id="removeScenarioShade" headerRenderer="renderers.DeviceWinShadeHdrRndr"
+    			name="Remove a Scenario or a Session" opened="false" width="100%"
+    			openEnd="handleOpenRemoveShade(event)" closeBegin="handleCloseRemoveShade(event)">
+    			
+				<mx:HBox id="removeScnSesnBox" width="100%" paddingBottom="10"
+					paddingLeft="10" paddingRight="10" paddingTop="10"
+					horizontalGap="30" borderStyle="solid">
+						
+					<mx:VBox id="removeScenarioBox" width="100%" height="100%" verticalAlign="top"
+						horizontalAlign="center">
+						<mx:Label id="removeScenarioLbl" styleName="headingLabel"
+							text="{removeScenarioText}"/>
+						<mx:List id="removeScenarioLst" width="100%" allowMultipleSelection="true"
+							dataProvider="{removableScnList}" labelField="scenarioName"
+							change="handleRemScnListChange(event)"/>
+						<mx:Button id="removeScenarioBut" enabled="false" label="{removeScenarioButText}"
+							click="handleRemoveScenarios(event)"/>
+					</mx:VBox>
+
+					<mx:VBox id="removeSessionBox" width="100%" height="100%" verticalAlign="top"
+						horizontalAlign="center">
+						<mx:Label id="removeSessionLbl" styleName="headingLabel"
+							text="{removeSessionText}"/>
+						<mx:List id="removeSessionLst" width="100%" allowMultipleSelection="true"
+							dataProvider="{removableSesnList}" labelField="sessionName"
+							change="handleRemSesnListChange(event)"/>
+						<mx:Button id="removeSessionBut" enabled="false" label="{removeSessionButText}"
+							click="handleRemoveSessions(event)"/>
+					</mx:VBox>
+					
+				</mx:HBox>
+			    			
+    		</flexlib:WindowShade>
+    	</mx:VBox>
+    </mx:HBox>
+
+	<mx:Metadata>
+		[ResourceBundle("savoirFlex")]
+	</mx:Metadata>
+	
+	<mx:Script>
+    	<![CDATA[
+
+			// ======================= External Modules =============================
+
+   	        import mx.core.Application;
+  			import mx.managers.PopUpManager;
+   			import mx.controls.Alert;
+   			import mx.collections.ArrayCollection;
+    		import mx.collections.IViewCursor;
+    		import mx.collections.Sort;
+    		import mx.collections.SortField;
+  			import flexlib.containers.WindowShade;
+  			import flexlib.events.WindowShadeEvent;
+  			import events.SavoirEvent;
+  			import events.FaultEvent;
+  			import savoirComp.SesnOrScnInfo;
+  			import savoirComp.InfoPopupWindow;
+  			import savoirlib.Scenario;
+   			import savoirlib.Session;
+  			import savoiroauth.OAuthDelegate;
+
+			// ======================= Public Members ===============================
+            
+            public var serverName:SharedObject;
+            
+			// ====================== Private Properties ============================
+
+			// none
+   
+			// ======================= Private Members ==============================
+
+			private var scenarioUploadStatus:String = new String();
+   			private var scenarioDisplay:Array = new Array();
+   			private var scenarioDispItem:SesnOrScnInfo;
+   			private var userSort:Sort;
+   			private var groupSort:Sort;
+   			private var remScnSort:Sort;
+   			private var remSesnSort:Sort;
+   			private var remScnIdSort:Sort;
+   			private var remSesnIdSort:Sort;
+   			
+   			private var remScnCursor:IViewCursor;
+   			private var remSesnCursor:IViewCursor;
+   			
+   			private var storeSessionDelegate:OAuthDelegate;
+   			private var getRemoveScnDelegate:OAuthDelegate;
+   			private var getRemoveSesnDelegate:OAuthDelegate;
+   			private var removeScnDelegate:OAuthDelegate;
+   			private var removeSesnDelegate:OAuthDelegate;
+   			private var getScenariosDelegate:OAuthDelegate;
+   			private var getScnDelegate:OAuthDelegate;
+   			private var getSesnDelegate:OAuthDelegate;
+
+   			private var popupWindow:InfoPopupWindow;
+   			
+			private var fileRef:FileReference = new FileReference();
+			
+			[Bindable]
+			private var submitScenarioText:String = new String();
+			[Bindable]
+			private var createScenarioText:String = new String();
+			[Bindable]
+			private var sessionSelectScnText:String = new String();
+			[Bindable]
+			private var sessionSelectScnNoteText:String = new String();
+			[Bindable]
+			private var sessionTimeNoteText:String;
+			[Bindable]
+			private var sessionStartDateTimeText:String;
+			[Bindable]
+			private var sessionStartUndefText:String;
+			[Bindable]
+			private var sessionEndDateTimeText:String;
+			[Bindable]
+			private var sessionEndUndefText:String;
+			[Bindable]
+			private var sessionSrcApnText:String;
+			[Bindable] 
+			private var sessionDestApnText:String;
+			[Bindable]
+			private var sessionTitleText:String;
+			[Bindable] 
+			private var sessionDescText:String;
+			[Bindable]
+			private var sessionUserText:String = new String();
+			[Bindable]
+			private var sessionUserDescText:String = new String();
+			[Bindable]
+			private var sessionAuthGrpText:String = new String();
+			[Bindable]
+			private var sessionAuthUserText:String = new String();
+			[Bindable]
+			private var sessionAuthGrpChsText:String = new String();
+			[Bindable]
+			private var sessionAuthUserChsText:String = new String();
+			[Bindable]
+			private var sessionAddText:String = new String();
+			[Bindable]
+			private var sessionRemvText:String = new String();
+			[Bindable]
+			private var sessionCreateText:String = new String();
+			[Bindable]
+			private var removeScenarioText:String = new String();
+			[Bindable]
+			private var removeSessionText:String = new String();
+			[Bindable]
+			private var removeScenarioButText:String = new String();
+			[Bindable]
+			private var removeSessionButText:String = new String();
+
+			[Bindable]
+			private var chosenGroupsList:ArrayCollection = new ArrayCollection();
+			[Bindable]
+			private var chosenUsersList:ArrayCollection = new ArrayCollection();
+			[Bindable]
+			private var removableScnList:ArrayCollection = new ArrayCollection();
+			[Bindable]
+			private var removableSesnList:ArrayCollection = new ArrayCollection();
+
+			private var scenarioCreateUrl:URLRequest = null;
+			private var operationSO:SharedObject = null;
+			
+            [Bindable]
+            private var apnNodes:ArrayCollection = new ArrayCollection(
+            	[{label:"Fredericton", data:1},
+              		{label:"Ottawa", data:2},
+              		{label:"Sunnyvale", data:3},
+              		{label:"Barcelona", data:4},
+              		{label:"NRC-IIT", data:5},
+              		{label:"CRC-BADLab", data:6},
+              		{label:"CRC-FS", data:7},
+              		{label:"Mcgill-Montreal", data:8},
+              		{label:"Mcgill2-Montreal", data:9},
+              		{label:"Sudbury", data:10},
+              		{label:"Steve", data:11},
+              		{label:"Stanford", data:12},
+              		{label:"Toronto", data:13},
+              		{label:"Thunderbay", data:14},
+              		{label:"Montreal", data:15},
+              		{label:"Banff", data:16},
+              		{label:"CRC-Ottawa", data:17},
+              		{label:"NOSM WEST", data:20},
+              		{label:"NOSM EAST", data:21},
+              		//add following sites for Hanxi Chronon test
+              		{label:"Canarie Site 1", data:22},
+              		{label:"Canarie Site 2", data:23},
+              		{label:"NOSM Site 1", data:24},
+              		{label:"NOSM Site 2", data:25},
+              		{label:"CRCVlan1 Site 1", data:26},
+              		{label:"CRCVlan1 Site 2", data:27},
+              		{label:"CRCVlan2 Site 1", data:28},
+              		{label:"CRCVlan2 Site 2", data:29},
+             	]
+            );
+            
+            //added by yyh at 07-05-10
+            [Bindable]
+            private var apnNS:ArrayCollection = new ArrayCollection(
+            [ {label:"SCENARIO_RESERVATION", data:1},
+              {label:"CHRONOS_RESERVATION", data:2},
+              {label:"HARMONY_RESERVATION", data:3},
+            ]);
+            
+            private var theConnections:Array = new Array();
+            
+            //end add 07-05-10
+
+			// ======================= Setter Functions =============================
+
+			// none
+
+			// ======================= Getter Functions =============================
+
+			// none
+
+			// =================== Interaction Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSubmitScenario
+            // Author:       	Justin Hickey
+            // Purpose:      	To submit an scenario XML file to Savoir starting with opening up
+            //					an open file dialog box 
+            // Input Vars:   	event - mouse event triggered by clicking "Submit Scenario File"
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Jul 4, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleSubmitScenario(event:MouseEvent):void
+            {
+            	var success:Boolean = new Boolean();
+            	var scenarioFilter:FileFilter;
+            	var allTypes:Array;
+            	
+            	scenarioFilter = new FileFilter("Scenarios (*.xml)", "*.xml");
+				allTypes = new Array(scenarioFilter);
+
+				// Add event listeners for file selection and upload complete
+				fileRef.addEventListener(Event.SELECT, handleSelectScenarioFile);
+				fileRef.addEventListener(Event.COMPLETE, handleScenarioUploadComplete);
+				fileRef.addEventListener(DataEvent.UPLOAD_COMPLETE_DATA, handleUploadCompData);
+            	
+            	// Have the user browse for the scenario file to upload
+            	try
+            	{
+            		success = fileRef.browse(allTypes);
+            	}
+				catch (error:Error)
+				{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to browse "
+   		    			+ "for scenario files.\n"
+   		    			+ "Generated in the click handler for the submit scenario button.\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+				}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleSelectScenarioFile
+            // Author:       	Justin Hickey
+            // Purpose:      	To upload the selected scenario file to Savoir
+            // Input Vars:   	event - mouse event triggered by clicking "Open" on the file
+            //					browser dialog box, or double clicking the file name
+            // Return Vars:  	none
+            // Date Created: 	Jul 4, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleSelectScenarioFile(event:Event):void
+			{
+    			var uploadRequest:URLRequest;
+    			
+    			uploadRequest = new URLRequest("http://" + this.serverName.data.serverName
+    				+ "/SAVOIR_WebBroker/SavoirScenarioAdmin");
+    			uploadRequest.method = URLRequestMethod.POST;
+    			
+    			try
+    			{
+        			fileRef.upload(uploadRequest);
+    			}
+    			catch (error:Error)
+    			{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: File Browser Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to upload "
+   		    			+ "the selected scenario file.\n"
+   		    			+ "Generated in the click handler for the open button of the scenario\n"
+   		    			+ "file browser.\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+    			}
+			}
+				
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleCreateScenario
+            // Author:       	Justin Hickey
+            // Purpose:      	To create a scenario by passing the create scenario information
+            //					to the authoring tool
+            // Input Vars:   	event - mouse event triggered by clicking "Create New Scenario"
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Dec 14, 2009
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleCreateScenario(event:MouseEvent):void
+            {
+        		operationSO = SharedObject.getLocal("authoringOperation","/");
+        		operationSO.clear();
+        		operationSO.flush();
+        		
+        		navigateToURL(scenarioCreateUrl, "_blank");
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleScenarioChange
+            // Author:       	Justin Hickey
+            // Purpose:      	To enable or disable the create new session button and update the
+            //					session title and session description fields
+            // Input Vars:   	event - mouse or keyboard event triggered when the selected item
+            //					in the scenario combo box changes
+            // Return Vars:  	none
+            // Date Created: 	Aug 19, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleScenarioChange(event:Event):void
+            {
+            	// Enable the create new session button if there is a scenario selected
+            	if (sessionSelectScnList.selectedIndex >= 0)
+            	{
+            		sessionCreateBut.enabled = true;
+					
+					// Update the session title and session description fields
+					sessionTitleInput.text = sessionSelectScnList.selectedItem.title;
+					sessionDescArea.text = sessionSelectScnList.selectedItem.description;
+            	}
+            	else
+            	{
+            		sessionCreateBut.enabled = false;
+					
+					// Update the session title and session description fields
+					sessionTitleInput.text = "";
+					sessionDescArea.text = "";
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleToggleStartTimeState
+            // Author:       	Justin Hickey
+            // Purpose:      	To toggle the state of the start time component. It should be
+            //					disabled if the undefined option is checked
+            // Input Vars:   	event - mouse event triggered when the start time undefined
+            //					checkbox is clicked
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleToggleStartTimeState(event:Event):void
+            {
+            	if (sessionStartDateTimeCal.enabled)
+            	{
+            		sessionStartDateTimeCal.enabled = false;
+            	}
+            	else
+            	{
+            		sessionStartDateTimeCal.enabled = true;
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleToggleEndTimeState
+            // Author:       	Justin Hickey
+            // Purpose:      	To toggle the state of the end time component. It should be
+            //					disabled if the undefined option is checked
+            // Input Vars:   	event - mouse event triggered when the end time undefined
+            //					checkbox is clicked
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleToggleEndTimeState(event:Event):void
+            {
+            	if (sessionEndDateTimeCal.enabled)
+            	{
+            		sessionEndDateTimeCal.enabled = false;
+            	}
+            	else
+            	{
+            		sessionEndDateTimeCal.enabled = true;
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	testStuff
+            // Author:       	Justin Hickey
+            // Purpose:      	To 
+            // Input Vars:   	event - mouse event triggered by clicking
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Aug 27, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function testStuff(event:MouseEvent):void
+            {
+            	var str:String = new String();
+            	var item:Object;
+            	
+            	return;
+            	
+            	str = "Selected Groups\n";
+            	
+            	for each (item in sessionAuthGrpLst.selectedItems)
+            	{
+            		str += "group = " + item.groupName + "id = " + item.groupId + "chosen = " + item.chosen + "\n";
+            	}
+            	
+            	str += "All Groups\n";
+            	
+            	for each (item in Application.application.groupList)
+            	{
+            		str += "group = " + item.groupName + "id = " + item.groupId + "chosen = " + item.chosen + "\n";
+            	}
+            	
+            	str += "Selected Users\n";
+            	
+            	for each (item in sessionAuthUserLst.selectedItems)
+            	{
+            		str += "user = " + item.username + "id = " + item.userId + "chosen = " + item.chosen + "\n";
+            	}
+            	
+            	str += "All Users\n";
+            	
+            	for each (item in Application.application.userList)
+            	{
+            		str += "user = " + item.username + "id = " + item.userId + "chosen = " + item.chosen + "\n";
+            	}
+            	
+            	Alert.show(str);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleAddSesnAuthUsers
+            // Author:       	Justin Hickey
+            // Purpose:      	To transfer users that will be authorized to run the session
+            // Input Vars:   	event - mouse event triggered by clicking "Add" link
+            // Return Vars:  	none
+            // Date Created: 	Aug 18, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleAddSesnAuthUsers(event:MouseEvent):void
+            {
+            	var item:Object;
+            	
+            	// Go through the list of selected groups
+            	for each (item in sessionAuthGrpLst.selectedItems)
+            	{
+            		// Add the item to the chosen list
+            		if (item.chosen == "no")
+            		{
+            			item.chosen = "yes";
+            			chosenGroupsList.addItem(item);
+            		}
+            	}
+
+            	// Go through the list of selected users
+            	for each (item in sessionAuthUserLst.selectedItems)
+            	{
+            		// Add the item to the chosen list
+            		if (item.chosen == "no")
+            		{
+            			item.chosen = "yes";
+            			chosenUsersList.addItem(item);
+            		}
+            	}
+            	
+            	// Sort the chosen lists
+            	chosenGroupsList.sort = groupSort;
+            	chosenGroupsList.refresh();
+            	chosenUsersList.sort = userSort;
+            	chosenUsersList.refresh();
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemvSesnAuthUsers
+            // Author:       	Justin Hickey
+            // Purpose:      	To remove users that will be authorized to run the session
+            // Input Vars:   	event - mouse event triggered by clicking "Remove" link
+            // Return Vars:  	none
+            // Date Created: 	Aug 18, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemvSesnAuthUsers(event:MouseEvent):void
+            {
+            	var item:Object;
+            	
+            	// Go through the list of selected groups
+            	for each (item in sessionAuthGrpChsLst.selectedItems)
+            	{
+            		// Add the item to the chosen list
+            		if (item.chosen == "yes")
+            		{
+            			item.chosen = "no";
+            			chosenGroupsList.removeItemAt(chosenGroupsList.getItemIndex(item));
+            		}
+            	}
+
+            	// Go through the list of selected users
+            	for each (item in sessionAuthUserChsLst.selectedItems)
+            	{
+            		// Add the item to the chosen list
+            		if (item.chosen == "yes")
+            		{
+            			item.chosen = "no";
+            			chosenUsersList.removeItemAt(chosenUsersList.getItemIndex(item));
+            		}
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleCreateSesn
+            // Author:       	Justin Hickey, Yonghua You
+            // Purpose:      	To
+            // Input Vars:   	event - mouse event triggered by clicking "Create Session" link
+            // Return Vars:  	none
+            // Date Created: 	
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleCreateSesn(event:MouseEvent):void
+            {
+            	var currentTime:Date;
+            	var storeSessionXmlStr:String = new String();
+            	var startTime:String = new String();
+            	var endTime:String = new String();
+            	var groupsXmlStr:String;
+            	var usersXmlStr:String;
+            	var parameterObj:Object;
+    	   			
+    			// Get the current time
+    			currentTime = new Date();
+    			
+    			// Check if the start and end times are defined
+    			if (sessionStartUndefChk.selected)
+    			{
+    				startTime = "0";
+    			}
+    			else
+    			{
+    				// Make sure the start time makes sense
+    				if (currentTime.getTime() > sessionStartDateTimeCal.getDateAsNumber())
+    				{
+   		    			// Add the message to the popup window
+   		    			popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    			popupWindow.title = "ERROR: Create Session Error";
+   		    			popupWindow.setMessage("ERROR: The start date and time is in the past.\n"
+   		    				+ "Please choose an appropriate date and time.\n");
+   		    	
+						// Change the popup into an info only dialog box
+						popupWindow.formatInfoBox();
+				
+   		    			// Popup the message
+   		    			PopUpManager.centerPopUp(popupWindow);
+   		    			
+   		    			return;
+    				}
+    				
+    				startTime = sessionStartDateTimeCal.getDateAsNumber().toString();
+    			}
+    			
+    			if (sessionEndUndefChk.selected)
+    			{
+    				endTime = "0";
+    			}
+    			else
+    			{
+    				// Make sure the end time makes sense
+    				if (currentTime.getTime() > sessionEndDateTimeCal.getDateAsNumber())
+    				{
+   		    			// Add the message to the popup window
+   		    			popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    			popupWindow.title = "ERROR: Create Session Error";
+   		    			popupWindow.setMessage("ERROR: The end date and time is in the past.\n"
+   		    				+ "Please choose an appropriate date and time.\n");
+   		    	
+						// Change the popup into an info only dialog box
+						popupWindow.formatInfoBox();
+				
+   		    			// Popup the message
+   		    			PopUpManager.centerPopUp(popupWindow);
+   		    			
+   		    			return;
+    				}
+    				
+    				if (!sessionStartUndefChk.selected &&
+    					sessionStartDateTimeCal.getDateAsNumber() > sessionEndDateTimeCal.getDateAsNumber())
+    				{
+   		    			// Add the message to the popup window
+   		    			popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    			popupWindow.title = "ERROR: Create Session Error";
+   		    			popupWindow.setMessage("ERROR: The end date and time is set before the start date and time.\n"
+   		    				+ "Please choose appropriate start and end dates and times.\n");
+   		    	
+						// Change the popup into an info only dialog box
+						popupWindow.formatInfoBox();
+				
+   		    			// Popup the message
+   		    			PopUpManager.centerPopUp(popupWindow);
+   		    			
+   		    			return;
+    				}
+    				
+    				endTime = sessionEndDateTimeCal.getDateAsNumber().toString();
+    			}
+    			
+    			// Format the group and user memebers into XML strings
+    			groupsXmlStr = formatGroups();
+    			usersXmlStr = formatUsers();
+    			
+    			storeSessionXmlStr = "<message action=\"store_session\" >\n"
+    			    + "<session>\n"
+   			    	+ "<sessionName>" + sessionTitleInput.text + "</sessionName>"
+   			    	+ "<description>" + sessionDescArea.text + "</description>"
+    			    + "<scenarioId>" + sessionSelectScnList.selectedItem.scenarioID + "</scenarioId>"
+    			    + "<startTime>" + startTime + "</startTime>"
+    			    + "<endTime>" + endTime + "</endTime>\n"
+    			    + "<groups>\n" + groupsXmlStr
+    			    + "</groups>\n"
+    			    + "<users>\n" + usersXmlStr
+    			    + "</users>\n"
+    			    + "</session>\n"
+    	            + "</message>\n";
+    	            
+    			parameterObj = {savoirmsg:storeSessionXmlStr};
+    			
+    			storeSessionDelegate = Application.application.client.sendRequest("/SavoirSessionAdmin",
+    				URLRequestMethod.POST,parameterObj);
+    			storeSessionDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, storeSessionCompleteHandler);
+    			storeSessionDelegate.addEventListener(FaultEvent.FAULT, storeSessionFaultHandler);
+           }
+            
+//            private function generateConnsStr():String{
+//            	var theConnStr:String = new String();
+//            	for(var i:uint = 0; i < this.theConnections.length; i++){
+//            	   theConnStr = theConnStr + (Connection(theConnections[i])).toConnectionXMLString(i);
+//            	                 
+//            	}
+//            	return theConnStr;
+//            }
+            
+            
+//            private function handleAddConnection(event:MouseEvent):void{
+//            	var theConn:Connection = new Connection();
+//            	theConn.srcSite = sessionSrcApnList.selectedItem.label;
+//            	theConn.srcSiteId = sessionSrcApnList.selectedItem.data;
+//            	theConn.destSite = sessionDestApnList.selectedItem.label;
+//            	theConn.destSiteId = sessionDestApnList.selectedItem.data;
+//            	theConn.maxBW = maxBwTI.text;
+//            	theConn.minBW = minBwTI.text;
+//            	theConnections.push(theConn);
+//            	connTA.text = connTA.text + theConn.toConnectionString();
+//            }
+//            
+//            private function handleRemoveConnection(event:MouseEvent):void{
+//            	theConnections.pop();
+//            	var index:Number = connTA.text.lastIndexOf("Source site");
+//            	if(index != -1){
+//            		connTA.text = connTA.text.substring(0,index);
+//            	}
+//            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleOpenRemoveShade
+            // Author:       	Justin Hickey
+            // Purpose:      	To request the lists of removable scenarios from the server
+            //					The XML message is as follows:
+            //
+            //					<message action="get_removable_scenarios" />
+            //
+            // Input Vars:   	event - mouse event triggered by clicking open the remove session
+            //					and scenario window shade.
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleOpenRemoveShade(event:WindowShadeEvent):void
+            {
+            	var getScenariosXmlStr:String = new String();
+            	var parameterObj:Object;
+            	var getSessionsXmlStr:String = new String();
+            	
+            	getScenariosXmlStr = "<message action=\"get_removable_scenarios\" />\n";
+
+    			parameterObj = {savoirmsg:getScenariosXmlStr};
+    			
+    			getRemoveScnDelegate = Application.application.client.sendRequest("/SavoirScenarioAdmin",
+    				URLRequestMethod.POST,parameterObj);
+    			getRemoveScnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveScnListComplete);
+
+            	getSessionsXmlStr = "<message action=\"get_removable_sessions\" />\n";
+
+    			parameterObj = {savoirmsg:getSessionsXmlStr};
+    			
+    			getRemoveSesnDelegate = Application.application.client.sendRequest("/SavoirSessionAdmin",
+    				URLRequestMethod.POST,parameterObj);
+    			getRemoveSesnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveSesnListComplete);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleCloseRemoveShade
+            // Author:       	Justin Hickey
+            // Purpose:      	To clear the removable scenarios and sessions lists
+            // Input Vars:   	event - mouse event triggered by clicking the remove session
+            //					and scenario window shade closed.
+            // Return Vars:  	none
+            // Date Created: 	Aug 23, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleCloseRemoveShade(event:WindowShadeEvent):void
+            {
+				// Clear the removable scenarios and sessions lists
+				removableScnList.removeAll();
+				removableSesnList.removeAll();
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemScnListChange
+            // Author:       	Justin Hickey
+            // Purpose:      	To enable or disable the remove scenario button
+            // Input Vars:   	event - mouse or keyboard event triggered when the selected item
+            //					in the available scenarios list changes
+            // Return Vars:  	none
+            // Date Created: 	Aug 25, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemScnListChange(event:Event):void
+            {
+            	// Enable the remove scenarios button if there are selected items
+            	if (removeScenarioLst.selectedIndex >= 0)
+            	{
+            		removeScenarioBut.enabled = true;
+            	}
+            	else
+            	{
+            		removeScenarioBut.enabled = false;
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemSesnListChange
+            // Author:       	Justin Hickey
+            // Purpose:      	To enable or disable the remove session button
+            // Input Vars:   	event - mouse or keyboard event triggered when the selected item
+            //					in the available sessions list changes
+            // Return Vars:  	none
+            // Date Created: 	Aug 25, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemSesnListChange(event:Event):void
+            {
+            	// Enable the remove sessions button if there are selected items
+            	if (removeSessionLst.selectedIndex >= 0)
+            	{
+            		removeSessionBut.enabled = true;
+            	}
+            	else
+            	{
+            		removeSessionBut.enabled = false;
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemoveScenarios
+            // Author:       	Justin Hickey
+            // Purpose:      	To popup a message to confirm that the user wants to remove the
+            //					selected scenarios
+            // Input Vars:   	event - mouse event triggered by clicking the "Remove Scenarios"
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Aug 25, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemoveScenarios(event:MouseEvent):void
+            {
+            	var selectedItemsStr:String = new String();
+            	var item:Object;
+
+            	// Go through the list of selected scenarios
+            	for each (item in removeScenarioLst.selectedItems)
+            	{
+            		// Add the item to the message string
+            		selectedItemsStr += item.scenarioName + "\n";
+            	}
+            	
+   		    	popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    	popupWindow.title = "Confirm Remove Scenarios";
+   		    	popupWindow.setMessage("ACTION: You have chosen to remove "
+   		    		+ "the following scenarios:\n"
+   		    		+ selectedItemsStr
+   		    		+ "Please confirm that you want to perform this action.\n");
+   		    	popupWindow.okBut.addEventListener(MouseEvent.CLICK, handleConfirmedRemoveScenarios);
+   		    	PopUpManager.centerPopUp(popupWindow);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemoveSessions
+            // Author:       	Justin Hickey
+            // Purpose:      	To popup a message to confirm that the user wants to remove the
+            //					selected sessions
+            // Input Vars:   	event - mouse event triggered by clicking the "Remove Sessions"
+            //					button
+            // Return Vars:  	none
+            // Date Created: 	Aug 26, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemoveSessions(event:MouseEvent):void
+            {
+            	var selectedItemsStr:String = new String();
+            	var item:Object;
+
+            	// Go through the list of selected scenarios
+            	for each (item in removeSessionLst.selectedItems)
+            	{
+            		// Add the item to the message string
+            		selectedItemsStr += item.sessionName + "\n";
+            	}
+            	
+   		    	popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    	popupWindow.title = "Confirm Remove Sessions";
+   		    	popupWindow.setMessage("ACTION: You have chosen to remove "
+   		    		+ "the following sessions:\n"
+   		    		+ selectedItemsStr
+   		    		+ "Please confirm that you want to perform this action.\n");
+   		    	popupWindow.okBut.addEventListener(MouseEvent.CLICK, handleConfirmedRemoveSessions);
+   		    	PopUpManager.centerPopUp(popupWindow);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleConfirmedRemoveScenarios
+            // Author:       	Justin Hickey
+            // Purpose:      	To remove the selected scenarios from the server database. An example
+            //					of the XML data sent to the server is as follows:
+            //
+            //					<message action="remove_scenario" >
+            //						<scenario id="1234" />
+            //						<scenario id="2345" />
+            //					</message>
+            //
+            // Input Vars:   	event - mouse event triggered by clicking the "OK" button on the
+            //					confirmation dialog box
+            // Return Vars:  	none
+            // Date Created: 	Aug 22, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleConfirmedRemoveScenarios(event:MouseEvent):void
+            {
+            	var removeScenariosXmlStr:String = new String();
+            	var parameterObj:Object;
+            	var item:Object;
+
+            	// Remove the popup window
+            	PopUpManager.removePopUp(popupWindow);
+            	
+            	removeScenariosXmlStr = "<message action=\"remove_scenario\" >\n";
+
+            	// Go through the list of selected scenarios
+            	for each (item in removeScenarioLst.selectedItems)
+            	{
+            		// Add the item to the message string
+            		removeScenariosXmlStr += "<scenario id=\"" + item.scenarioId + "\" />\n";
+            	}
+            	
+            	// Close off the message XML
+            	removeScenariosXmlStr += "</message>\n";
+
+    			parameterObj = {savoirmsg:removeScenariosXmlStr};
+    			
+    			removeScnDelegate = Application.application.client.sendRequest("/SavoirScenarioAdmin",
+    				URLRequestMethod.POST,parameterObj);
+    			removeScnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleRemoveScnComplete);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleConfirmedRemoveSessions
+            // Author:       	Justin Hickey
+            // Purpose:      	To remove the selected sessions from the server database. An example
+            //					of the XML data sent to the server is as follows:
+            //
+            //					<message action="remove_session" >
+            //						<session id="1234" />
+            //						<session id="2345" />
+            //					</message>
+            //
+            // Input Vars:   	event - mouse event triggered by clicking the "OK" button on the
+            //					confirmation dialog box
+            // Return Vars:  	none
+            // Date Created: 	Aug 22, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleConfirmedRemoveSessions(event:MouseEvent):void
+            {
+            	var removeSessionsXmlStr:String = new String();
+            	var parameterObj:Object;
+            	var item:Object;
+            	
+            	// Remove the popup window
+            	PopUpManager.removePopUp(popupWindow);
+            	
+            	removeSessionsXmlStr = "<message action=\"remove_session\" >\n";
+
+            	// Go through the list of selected sessions
+            	for each (item in removeSessionLst.selectedItems)
+            	{
+            		// Add the item to the message string
+            		removeSessionsXmlStr += "<session id=\"" + item.sessionId + "\" />\n";
+            	}
+            	
+            	// Close off the message XML
+            	removeSessionsXmlStr += "</message>\n";
+
+    			parameterObj = {savoirmsg:removeSessionsXmlStr};
+    			
+    			removeSesnDelegate = Application.application.client.sendRequest("/SavoirSessionAdmin",
+    				URLRequestMethod.POST,parameterObj);
+    			removeSesnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleRemoveSesnComplete);
+            }
+
+			// =================== Application Event Handlers =======================
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleScenarioUploadComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To indicate the file was uploaded successfully
+            // Input Vars:   	event - event triggered by successful completion of the file upload
+            // Return Vars:  	none
+            // Date Created: 	Jul 4, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleScenarioUploadComplete(event:Event):void
+			{
+    			// Save this information in a string to be used in the handleUploadCompData function
+    			// since that should be the only place that pops up a message - only want one pop up
+    			scenarioUploadStatus = "The scenario file was uploaded successfully.";
+			}
+			
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleUploadCompData
+            // Author:       	Justin Hickey
+            // Purpose:      	To indicate the data that was returned by the server after a
+            //					scenario file was uploaded
+            // Input Vars:   	event - data event triggered by the server sending data back to
+            //					the client
+            // Return Vars:  	none
+            // Date Created: 	Aug 5, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+			private function handleUploadCompData(event:DataEvent):void
+			{
+    			var responseXml:XML;
+    			var resultStr:String;
+    			var scenarioXmlList:XMLList;
+    			var scenarioXml:XML;
+    			var warningXmlList:XMLList;
+    			var warningStr:String;
+    			var scenarioItem:Scenario;
+    			var displayStr:String = new String();
+    			var serverMsgStr:String = new String();
+            	var getScenariosXmlStr:String = new String();
+            	var parameterObj:Object;
+    			var index:int;
+    			
+    			// Initialize the error string to a newline
+    			serverMsgStr = "\n";
+    			
+    			// Obtain the results and check if it failed or suceeded
+    			responseXml = XML(event.data);
+   				resultStr = responseXml.result;
+   				scenarioXmlList = responseXml.scenario;
+   				warningXmlList = responseXml.warning;
+   				
+   				// Check if the scenario file was stored properly in Savoir
+   				if (resultStr == "success")
+   				{
+   					// Prepare a user message
+   					serverMsgStr += "The scenario file was successfully saved in the database.\n";
+   				}
+   				
+   				if (resultStr == "failure")
+   				{
+   					// Prepare a user message
+   					serverMsgStr += "ERROR: The scenario file failed to be saved in the database!\n";
+   				}
+   				
+   				// Check if there are any scenarios
+   				if (scenarioXmlList.length() == 0)
+   				{
+   					// Prepare a user message
+   					serverMsgStr += "ERROR: No scenario data was returned from the server!\n";
+   				}
+   				else if (resultStr == "success")
+   				{
+   					// Go through all the sceanrios and parse the XML data
+   					for each (scenarioXml in scenarioXmlList)
+   					{
+   						scenarioItem = Application.application.parseScenarioData(scenarioXml);
+   						
+   						// Add the scenario item to the array collection
+   						Application.application.scenarioData.addItem(scenarioItem);
+   						index = Application.application.scenarioData.getItemIndex(scenarioItem);
+
+    					// Create a new display object and add it to the VBox for scenarios
+    					createScenarioDisplayObj(index);
+   					}
+   					
+            		// Update the list of removable scenarios if the remove scenario window shade is open
+            		if (removeScenarioShade.opened)
+            		{
+            			// First clear the list of scenarios
+            			removableScnList.removeAll();
+            			
+            			// Create and send the message to the server
+            			getScenariosXmlStr = "<message action=\"get_removable_scenarios\" />\n";
+
+    					parameterObj = {savoirmsg:getScenariosXmlStr};
+    			
+    					getScenariosDelegate = Application.application.client.sendRequest("/SavoirScenarioAdmin",
+    						URLRequestMethod.POST,parameterObj);
+    					getScenariosDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveScnListComplete);
+            		}
+       			}
+
+    			// Check for any warnings or errors from the server
+    			if (warningXmlList.length() > 0)
+    			{
+    				serverMsgStr += "NOTE: Messages generated from the server are as follows:\n";
+    				
+    				// Add each warning or error to the message string
+    				for each (warningStr in warningXmlList)
+    				{
+    					serverMsgStr += warningStr + "\n";
+    				}
+    				
+    				serverMsgStr += "Please contact your Savoir Admin regarding this issue and send "
+    					+ "him/her the above warnings and/or errors.\n"; 
+    			}
+    			
+    			// Form the final message indicating success or failure of the file upload
+    			displayStr = scenarioUploadStatus + "\n" + serverMsgStr;
+   		    	
+   		    	// Add the message to the popup window
+   		    	popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    	popupWindow.title = "File Upload Status";
+   		    	popupWindow.setMessage(displayStr);
+   		    	
+				// Change the popup into an info only dialog box
+				popupWindow.formatInfoBox();
+				
+   		    	// Popup the message
+   		    	PopUpManager.centerPopUp(popupWindow);
+    			
+    			// Reset the scenario status string to failure for next upload attempt
+    			scenarioUploadStatus = "The scenario file failed to upload.";
+			}
+			
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	storeSessionCompleteHandler
+            // Author:       	Justin Hickey, Yonghua You
+            // Purpose:      	To add the new session to the list of sessions available to the
+            //					user. Then reset the new session form. An example of the XML
+            //					return message is as follows
+            //
+            //					<message>
+            //					</message>
+            //
+            // Input Vars:   	event - event triggered by a reply from the server to a create
+            //					session request
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function storeSessionCompleteHandler(event:SavoirEvent):void
+            {
+            	var storeSessionResXml:XML;
+            	var resultStr:String = new String();
+            	var sessionXmlList:XMLList;
+            	var sessionXml:XML;
+            	var sessionItem:Session;
+            	var unauthStr:String = new String();
+            	var unauthGroupsXmlList:XMLList;
+            	var unauthUsersXmlList:XMLList;
+            	var unauthGroup:Object;
+            	var unauthUser:Object;
+            	var getScenariosXmlStr:String = new String();
+            	var getSessionsXmlStr:String = new String();
+            	var parameterObj:Object;
+    			var index:int;
+            	var item:Object;
+            	
+            	// Set the unauthorized string to blank
+            	unauthStr = "";
+            	
+            	storeSessionResXml = XML(event.data);
+            	resultStr = storeSessionResXml.result;
+            	
+            	if(resultStr == "success" || resultStr == "partial")
+            	{
+            		sessionXmlList = storeSessionResXml.session;
+            		
+   					// Go through all the sessions and parse the XML data
+   					for each (sessionXml in sessionXmlList)
+   					{
+   						sessionItem = Application.application.parseSessionData(sessionXml);
+   					
+   						// Add the session item to the array collection
+   						Application.application.sessionData.addItem(sessionItem);
+   						index = Application.application.sessionData.getItemIndex(sessionItem);
+
+    					// Create a new display object and add it to the VBox for scenarios
+    					Application.application.mySavoirMainBox.createSessionDisplayObj(index);
+   					}
+   					
+   					// Add a message if the results were partial
+   					if (resultStr == "partial")
+   					{
+   						unauthGroupsXmlList = storeSessionResXml.unadded.group;
+   						unauthUsersXmlList = storeSessionResXml.unadded.user;
+   						
+   						unauthStr = "However, some groups or users were not authorized to run "
+   							+ "the session,\n"
+   							+ "most likely because they were not authorized to access one or more\n"
+   							+ "of the devices used in the session. These groups and users are\n"
+   							+ "listed below.\n";
+   							
+   						if (unauthGroupsXmlList.length() > 0)
+   						{
+   							unauthStr += "Groups:\n";
+   						
+   							// Get the groups
+   							for each (unauthGroup in unauthGroupsXmlList)
+   							{
+   								unauthStr += "\t" + unauthGroup.@name + "\n";
+   							}
+   						}
+   						
+   						if (unauthUsersXmlList.length() > 0)
+   						{
+   							unauthStr += "Users:\n";
+   						
+   							// Get the users
+   							for each (unauthUser in unauthUsersXmlList)
+   							{
+   								unauthStr += "\t" + unauthUser.@username + "\n";
+   							}
+						}
+   					}
+   					
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "Create Session Status";
+   		    		popupWindow.setMessage("INFO: The session was successfully created and saved "
+   		    			+ "in the database.\n" + unauthStr);
+
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+    				
+    				// Reset the global users and group lists
+    				for each (item in Application.application.userList)
+    				{
+    					if (item.chosen == "yes")
+    					{
+    						item.chosen = "no";
+    					}
+    				}
+
+    				for each (item in Application.application.groupList)
+    				{
+    					if (item.chosen == "yes")
+    					{
+    						item.chosen = "no";
+    					}
+    				}
+    			
+    				// Clear the chosen lists and deselect any items in the user and group lists
+    				chosenGroupsList.removeAll();
+    				chosenUsersList.removeAll();
+    				sessionAuthGrpLst.selectedIndex = -1;
+    				sessionAuthUserLst.selectedIndex = -1;
+            	
+            		// Clear the session title and session description fields
+            		sessionTitleInput.text = "";
+            		sessionDescArea.text = "";
+            	
+            		// Reset the date and time components
+            		sessionStartDateTimeCal.enabled = false;
+            		sessionStartUndefChk.selected = true;
+            		sessionEndDateTimeCal.enabled = false;
+            		sessionEndUndefChk.selected = true;
+            	
+            		// Reset the combo box
+            		sessionSelectScnList.selectedIndex = -1;
+            	
+            		// Disable the create new session button
+            		sessionCreateBut.enabled = false;
+            		
+            		// Update list of removable scenarios and sessions if the remove session window shade is open
+            		if (removeScenarioShade.opened)
+            		{
+            			// First clear the list of scenarios and sessions
+            			removableScnList.removeAll();
+            			removableSesnList.removeAll();
+            			
+            			// Create and send the scenario message to the server
+            			getScenariosXmlStr = "<message action=\"get_removable_scenarios\" />\n";
+
+   						parameterObj = {savoirmsg:getScenariosXmlStr};
+    			
+   						getScnDelegate = Application.application.client.sendRequest("/SavoirScenarioAdmin",
+   							URLRequestMethod.POST,parameterObj);
+   						getScnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveScnListComplete);
+
+            			// Create and send the session message to the server
+            			getSessionsXmlStr = "<message action=\"get_removable_sessions\" />\n";
+
+    					parameterObj = {savoirmsg:getSessionsXmlStr};
+    			
+    					getSesnDelegate = Application.application.client.sendRequest("/SavoirSessionAdmin",
+    						URLRequestMethod.POST,parameterObj);
+    					getSesnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveSesnListComplete);
+            		}
+            	}
+            	else
+            	{
+   		    		// Add the message to the popup window
+   		    		popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    		popupWindow.title = "ERROR: Create Session Error";
+   		    		popupWindow.setMessage("ERROR: The system was unable to create "
+   		    			+ "the session.\n"
+   		    			+ "Generated in the click handler for the create session button.\n\n"
+   		    			+ "Please contact your Savoir Admin regarding this issue and send "
+   		    			+ "him/her the above error\n");
+   		    	
+					// Change the popup into an info only dialog box
+					popupWindow.formatInfoBox();
+				
+   		    		// Popup the message
+   		    		PopUpManager.centerPopUp(popupWindow);
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	storeSessionFaultHandler
+            // Author:       	Justin Hickey
+            // Purpose:      	To display any fault sent from the server 
+            // Input Vars:   	event - event triggered by a reply from the server to a create
+            //					session request
+            // Return Vars:  	none
+            // Date Created: 	Sep 01, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function storeSessionFaultHandler(event:FaultEvent):void
+            {
+            	var serverError:String;
+            	
+            	// Get the error message
+            	serverError = event.message;
+            	
+   		    	// Add the message to the popup window
+   		    	popupWindow = InfoPopupWindow(PopUpManager.createPopUp(this, InfoPopupWindow, true));
+   		    	popupWindow.title = "ERROR: Create Session Error";
+   		    	popupWindow.setMessage("ERROR: The system was unable to create "
+   		    		+ "the session.\n"
+   		    		+ "The message returned from the server is as follows:\n"
+   		    		+ serverError + "\n"
+   		    		+ "Generated in the fault handler for the create session button.\n\n"
+   		    		+ "Please contact your Savoir Admin regarding this issue and send "
+   		    		+ "him/her the above error\n");
+
+				// Change the popup into an info only dialog box
+				popupWindow.formatInfoBox();
+				
+  		   		// Popup the message
+   		   		PopUpManager.centerPopUp(popupWindow);
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleGetRemoveScnListComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To obtain the list of removable scenarios. An example of the XML
+            //					data returned is as follows:
+            //
+			//					<message action="get_removable_scenarios_resp">
+    		//						<result>success</result>
+    		//						<scenario scenarioID="123"
+    		//							name="Test"
+    		//							lastModified="1279028147000"
+    		//							authorName="John Doe"
+    		//							description="A scenario"
+    		//							deviceNames="Device A"
+    		//							apnConnections="Fredericton to Ottawa, 1-2MB" />
+			//					</message>
+            //
+            // Input Vars:   	event - event triggered by the reply from the server to a request
+            //					to obtain the list of scenarios
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleGetRemoveScnListComplete(event:SavoirEvent):void
+            {
+            	var removeScnListResXml:XML;
+            	var resultStr:String = new String();
+            	var scenarioXmlList:XMLList;
+            	var scenarioXml:XML;
+            	
+            	removeScnListResXml = XML(event.data);
+            	resultStr = removeScnListResXml.result;
+            	
+            	if (resultStr == "success")
+            	{
+            		scenarioXmlList = removeScnListResXml.scenario;
+            		
+   					// Go through all the scenarios and parse the XML data
+   					for each (scenarioXml in scenarioXmlList)
+   					{
+   						// Get the name and the id of the scenario
+   						removableScnList.addItem({scenarioName:scenarioXml.@name,
+   							scenarioId:scenarioXml.@scenarioID});
+   					}
+   					
+ 					// Create the cursor for the removable scenarios array
+					remScnCursor = removableScnList.createCursor();
+				
+   					// Sort the list
+   					removableScnList.sort = remScnSort;
+   					removableScnList.refresh();
+            	}
+            	else
+            	{
+            		// Indicate that no scenarios are available
+            		removableScnList.addItem({scenarioName:"No scenarios available",
+            			scenarioId:"-1"});
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleGetRemoveSesnListComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To obtain the list of removable sessions. An example of the XML
+            //					data returned is as follows:
+            //
+			//					<message action="get_removable_sessions_resp">
+    		//						<result>success</result>
+    		//						<session name="Test"
+    		//							sessionID="234"
+    		//							description="A session"
+    		//							authorName="John Doe"
+    		//							submissionTime="1279025234000"
+    		//							startTime="1279028147000"
+    		//							endTime="1279028779000"
+    		//							scenarioID="1234" />
+			//					</message>
+            //
+            // Input Vars:   	event - event triggered by the reply from the server to a request
+            //					to obtain the list of sessions
+            // Return Vars:  	none
+            // Date Created: 	Aug 20, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleGetRemoveSesnListComplete(event:SavoirEvent):void
+            {
+            	var removeSesnListResXml:XML;
+            	var resultStr:String = new String();
+            	var sessionXmlList:XMLList;
+            	var sessionXml:XML;
+            	
+            	removeSesnListResXml = XML(event.data);
+            	resultStr = removeSesnListResXml.result;
+            	
+            	if(resultStr == "success")
+            	{
+            		sessionXmlList = removeSesnListResXml.session;
+            		
+   					// Go through all the sessions and parse the XML data
+   					for each (sessionXml in sessionXmlList)
+   					{
+   						// Get the name and the id of the scenario
+   						removableSesnList.addItem({sessionName:sessionXml.@name,
+   							sessionId:sessionXml.@sessionID});
+   					}
+   					
+ 					// Create the cursor for the removable sessions array
+					remSesnCursor = removableSesnList.createCursor();
+				
+   					// Sort the list
+   					removableSesnList.sort = remSesnSort;
+   					removableSesnList.refresh();
+            	}
+            	else
+            	{
+            		// Indicate that no sessions are available
+            		removableSesnList.addItem({sessionName:"No sessions available",
+            			sessionId:"-1"});
+            	}
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemoveScnComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To process the response from the server for a remove scenarios
+            //					request. Note that the resultId is actually the scenarioId so that
+            //					the result item can be mapped to the scenario item. An
+            //					example of the XML data returned is as follows, both
+            //					for success and failure:
+            //
+			//					<message action="remove_scenario_resp">
+			//						<result resultId="1234" reason="">success</result>
+			//					</message>
+			//
+			//					<message action="remove_scenario_resp">
+			//						<result resultId="1234" reason="file_io_error">failure</result>
+			//					</message>
+			//
+			//					The "reason" attribute will have one of the following values:
+			//						no_such_scenario	No scenario with the given Id
+			//						invalid_parameters	Given scenario Id <= 0
+			//						scenario_in_use		Sessions exist that use this scenario
+			//						file_io_error		Could not delete file
+			//						invalid_caller		No such caller
+			//						unauthorized		Caller not authorized
+			//						unknown				Other error
+			//
+            // Input Vars:   	event - event triggered by the reply from the server to a request
+            //					to remove secenarios
+            // Return Vars:  	none
+            // Date Created: 	Aug 22, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemoveScnComplete(event:SavoirEvent):void
+            {
+            	var removeScenarioResXml:XML;
+            	var resultXmlList:XMLList;
+            	var resultXml:XML;
+            	var resultStr:String = new String();
+            	var resultId:String = new String();
+            	var scenarioChild:DisplayObject;
+            	var found:Boolean;
+            	
+            	removeScenarioResXml = XML(event.data);
+            	resultXmlList = removeScenarioResXml.result;
+            	
+   				// Sort the removable scenarios list by scenarioId
+   				removableScnList.sort = remScnIdSort;
+   				removableScnList.refresh();
+   						
+   				// Go through all the results and parse the XML data
+   				for each (resultXml in resultXmlList)
+            	{
+//            		Alert.show("message = " + removeScenarioResXml.toString() +
+//            			"\nresult = " + resultXml.text() + "\nid = " + resultXml.@resultId);
+            		
+            		resultStr = resultXml.text();
+            		
+            		if(resultStr == "success")
+   					{
+   						// Get the id of the scenario for an index into the scenario arrays
+   						resultId = resultXml.@resultId;
+   				
+   						// Find the scenario data from the scenario array - note that the resultId
+   						// is used to find the correct scenario in the scenario array
+   						found = Application.application.scenarioCursor.findAny({scenarioID:resultId});
+   				
+   						if (found)
+   						{
+   							// Remove the scenario from the array collection
+   							Application.application.scenarioCursor.remove();
+   						}
+   						
+   						// Remove the display item from the displayed scenarios
+   						scenarioChild = scenariosVBox.getChildByName("scn" + resultId);
+   						
+   						if (scenarioChild != null)
+   						{
+   							scenariosVBox.removeChild(scenarioChild);
+   						}
+   						
+   						// Find the scenario data from the removable scenario array to delete it
+   						found = remScnCursor.findAny({scenarioId:resultId});
+   				
+   						if (found)
+   						{
+   							// Remove the scenario from the removable scenario array collection
+   							remScnCursor.remove();
+   						}
+   					}
+            	}
+   				
+   				// Sort the list in alphabetical order for readability
+   				removableScnList.sort = remScnSort;
+   				removableScnList.refresh();
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // Function:     	handleRemoveSesnComplete
+            // Author:       	Justin Hickey
+            // Purpose:      	To process the response from the server for a remove sessions
+            //					request. An example of the XML data returned is as follows, both
+            //					for success and failure:
+            //
+			//					<message action="remove_session_resp">
+			//						<result resultId="1234" reason="">success</result>
+			//					</message>
+			//
+			//					<message action="remove_session_resp">
+			//						<result resultId="1234" reason="no_such_session">failure</result>
+			//					</message>
+			//
+			//					The "reason" attribute will have one of the following values:
+			//						no_such_session		No session with the given Id
+			//						invalid_parameters	Given session Id <= 0
+			//						invalid_caller		No such caller (shouldn’t happen)
+			//						unauthorized		Caller not authorized
+			//						unknown				Other error
+			//
+            // Input Vars:   	event - event triggered by the reply from the server to a request
+            //					to remove sessions
+            // Return Vars:  	none
+            // Date Created: 	Aug 22, 2010
+            //////////////////////////////////////////////////////////////////////////////////////
+            private function handleRemoveSesnComplete(event:SavoirEvent):void
+            {
+            	var removeSessionResXml:XML;
+            	var resultXmlList:XMLList;
+            	var resultXml:XML;
+            	var resultStr:String = new String();
+            	var resultId:String = new String();
+            	var getScnXmlStr:String = new String();
+            	var sessionChild:DisplayObject;
+            	var parameterObj:Object;
+            	var found:Boolean;
+            	
+            	removeSessionResXml = XML(event.data);
+            	resultXmlList = removeSessionResXml.result;
+            	
+   				// Sort the removable sessions list by sessionId
+   				removableSesnList.sort = remSesnIdSort;
+   				removableSesnList.refresh();
+   						
+   				// Go through all the results and parse the XML data
+   				for each (resultXml in resultXmlList)
+            	{
+//            		Alert.show("message = " + removeSessionResXml.toString() +
+//            			"\nresult = " + resultXml.text() + "\nid = " + resultXml.@resultId);
+            		
+            		resultStr = resultXml.text();
+            		
+            		if(resultStr == "success")
+   					{
+   						// Get the id of the session for an index into the session arrays
+   						resultId = resultXml.@resultId;
+   				
+   						// Find the session data from the session array - note that the resultId
+   						// is used to find the correct session in the session array
+   						found = Application.application.sessionCursor.findAny({sessionID:resultId});
+   				
+   						if (found)
+   						{
+   							// Remove the session from the array collection
+   							Application.application.sessionCursor.remove();
+   						}
+   						
+   						// Remove the display item from the displayed sessions
+   						sessionChild = Application.application.mySavoirMainBox.sessionsVBox.getChildByName("sesn" + resultId);
+   						
+   						if (sessionChild != null)
+   						{
+   							Application.application.mySavoirMainBox.sessionsVBox.removeChild(sessionChild);
+   						}
+   						
+   						// Find the session data from the removable session array to delete it
+   						found = remSesnCursor.findAny({sessionId:resultId});
+   				
+   						if (found)
+   						{
+   							// Remove the session from the removable session array collection
+   							remSesnCursor.remove();
+   						}
+   					}
+            	}
+            	
+            	// Update the list of removable scenarios if the remove scenario window shade is open
+            	if (removeScenarioShade.opened)
+            	{
+            		// First clear the list of scenarios
+            		removableScnList.removeAll();
+            			
+            		// Create and send the message to the server
+            		getScnXmlStr = "<message action=\"get_removable_scenarios\" />\n";
+
+    				parameterObj = {savoirmsg:getScnXmlStr};
+    			
+    				getScnDelegate = Application.application.client.sendRequest("/SavoirScenarioAdmin",
+    					URLRequestMethod.POST,parameterObj);
+    				getScnDelegate.addEventListener(SavoirEvent.REQUEST_COMPLETE, handleGetRemoveScnListComplete);
+            	}
+   				
+   				// Sort the list in alphabetical order for readability
+   				removableSesnList.sort = remSesnSort;
+   				removableSesnList.refresh();
+            }
+
+			// ======================= Public Functions =============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		initScenarios
+			// Author:			Justin Hickey
+			// Purpose:			To instantiate the scenarios view
+			// Input Vars:		none
+			// Return Vars:		none
+			// Date Created:	Feb 09, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function initScenarios():void
+			{
+				var index:int;
+				
+				// Get the server name and the URL of the authouring tool
+				this.serverName = SharedObject.getLocal("serverName","/");
+    			scenarioCreateUrl = new URLRequest("http://" + this.serverName.data.serverName
+    				+ "/authoringTool/authoringTool.html");
+
+				// Set the text variables
+				submitScenarioText = "Submit Scenario File";
+				createScenarioText = "Create New Scenario";
+				sessionSelectScnText = "Scenario:";
+				sessionSelectScnNoteText = "Note: a scenario must be selected";
+				sessionTimeNoteText = "Note: a time must be specified if the scenario "
+					+ "contains a device that is required to be scheduled";
+				sessionStartDateTimeText = "Start Date and Time";
+				sessionStartUndefText = "No defined start time - Session can be started "
+					+ "anytime";
+				sessionEndDateTimeText = "End Date and Time";
+				sessionEndUndefText = "No defined end time - Session will always be "
+					+ "available";
+				sessionSrcApnText = "Source Site:";
+				sessionDestApnText = "Dest Site";
+				sessionTitleText = "Session Title:";
+				sessionDescText = "Session Description:";
+				sessionUserText = "Authorized Users";
+				sessionUserDescText = "Please choose which groups and/or users that are "
+					+ "authorized to run the session.";
+				sessionAuthGrpText = "Available Groups";
+				sessionAuthUserText = "Available Users";
+				sessionAuthGrpChsText = "Authorized Groups";
+				sessionAuthUserChsText = "Authorized Users";
+				sessionAddText = "Add >>";
+				sessionRemvText = "Remove";
+				removeScenarioText = "Available Scenarios";
+				removeSessionText = "Available Sessions";
+				removeScenarioButText = "Remove Scenarios";
+				removeSessionButText = "Remove Sessions";
+				sessionCreateText = "Create New Session";
+				
+				// Go through all the scenarios and display them
+				if (Application.application.scenarioData != null)
+				{
+					for (index = 0; index < Application.application.scenarioData.length; index++)
+					{
+						createScenarioDisplayObj(index);
+					}
+				}
+				
+				// Set the default status message for file uploads
+				scenarioUploadStatus = "The scenario file failed to upload.";
+
+				// Create new sorts for sorting the various lists
+                userSort = new Sort();
+                userSort.fields = [new SortField("username", true)];
+                groupSort = new Sort();
+                groupSort.fields = [new SortField("groupName", true)];
+                remScnSort = new Sort();
+                remScnSort.fields = [new SortField("scenarioName", true)];
+                remSesnSort = new Sort();
+                remSesnSort.fields = [new SortField("sessionName", true)];
+                remScnIdSort = new Sort();
+                remScnIdSort.fields = [new SortField("scenarioId", true)];
+                remSesnIdSort = new Sort();
+                remSesnIdSort.fields = [new SortField("sessionId", true)];
+                
+                // Sort the users and groups
+                Application.application.groupList.sort = groupSort;
+                Application.application.groupList.refresh();
+                Application.application.userList.sort = userSort;
+                Application.application.userList.refresh();
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		createScenarioDisplayObj
+			// Author:			Justin Hickey
+			// Purpose:			To create the display object for a scenario item and add it to the 
+			//					vertical box container for the scenarios.
+			// Input Vars:		index - index into the scenarios associative array
+			// Return Vars:		none
+			// Date Created:	Aug 17, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			public function createScenarioDisplayObj(index:int):void
+			{
+				var scenarioItem:Scenario = new Scenario();
+				
+				// Get the scenario item from the array collection
+				scenarioItem = Application.application.scenarioData.getItemAt(index);
+				
+				// Set up a new display item - initialize function is required to access properties
+				// otherwise properties cannot be accessed until after addChild() is called
+				scenarioDispItem = new SesnOrScnInfo();
+				scenarioDispItem.initialize();
+				
+				// Create a name for the display item based on the scenarioID for easy access elsewhere
+				scenarioDispItem.name = "scn" + scenarioItem.scenarioID;
+				
+				// Get the items to be displayed
+				scenarioDispItem.link.label = scenarioItem.title + " " + scenarioItem.scenarioID;
+				scenarioDispItem.description.htmlText = scenarioItem.createTextString();
+				
+				// Use the scenarioID as part of the ID for the link button so that we
+				// can access the correct scenarioID when the user clicks the link. Also
+				// add the event listener to handle the launching of the scenario as an
+				// unscheduled session
+				scenarioDispItem.link.id = "link" + scenarioItem.scenarioID;
+					
+				// Save the display item in an array
+//				scenarioDisplay[index] = scenarioDispItem;
+				
+				// Add the item to the container
+				scenariosVBox.addChild(scenarioDispItem);
+			}
+			
+			// ======================= Private Functions ============================
+
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		formatGroups
+			// Author:			Justin Hickey
+			// Purpose:			To create the list of groups that the user chose as authorized
+			//					groups as an XML string.
+			// Input Vars:		none
+			// Return Vars:		xmlStr
+			// Date Created:	Aug 20, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function formatGroups():String
+			{
+				var xmlStr:String = new String();
+				var item:Object;
+				
+				// Initialize the XML string
+				xmlStr = "";
+				
+				for each (item in chosenGroupsList)
+				{
+					xmlStr += "<group name=\"" + item.groupName + "\" groupId=\"" + item.groupId + "\" />\n";
+				}
+				
+				return xmlStr;
+			}
+			
+			//////////////////////////////////////////////////////////////////////////////////////
+			// Function:		formatUsers
+			// Author:			Justin Hickey
+			// Purpose:			To create the list of users that the user chose as authorized
+			//					users as an XML string.
+			// Input Vars:		none
+			// Return Vars:		xmlStr
+			// Date Created:	Aug 20, 2010
+			//////////////////////////////////////////////////////////////////////////////////////
+			private function formatUsers():String
+			{
+				var xmlStr:String = new String();
+				var item:Object;
+				
+				// Initialize the XML string
+				xmlStr = "";
+				
+				for each (item in chosenUsersList)
+				{
+					xmlStr += "<user username=\"" + item.username + "\" userId=\"" + item.userId + "\" />\n";
+				}
+				
+				return xmlStr;
+			}
+			
+		]]>
+    </mx:Script>
+
+</mx:VBox>
